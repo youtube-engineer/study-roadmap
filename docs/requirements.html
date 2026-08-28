@@ -1,0 +1,943 @@
+<title>参考書ロードマップ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --paper: #f3f4f0;
+    --paper-raised: #ffffff;
+    --ink: #1e232c;
+    --ink-soft: #545c68;
+    --ink-faint: #8a909b;
+    --rule: #dadcd6;
+    --rule-strong: #c3c6bf;
+    --accent: #33518c;
+    --accent-strong: #223a68;
+    --accent-soft: #e4e9f3;
+    --amber: #966016;
+    --amber-soft: #f5e8d2;
+    --mono-bg: #eaebe4;
+    --mono-ink: #3b4048;
+    --shadow: 0 1px 2px rgba(30,35,44,0.04), 0 6px 20px rgba(30,35,44,0.05);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #14171c;
+      --paper-raised: #1b1f26;
+      --ink: #e7e8e3;
+      --ink-soft: #a7adb6;
+      --ink-faint: #6e7580;
+      --rule: #2a2f38;
+      --rule-strong: #363c46;
+      --accent: #8fabdd;
+      --accent-strong: #b3c5e8;
+      --accent-soft: #202b3e;
+      --amber: #e0a857;
+      --amber-soft: #332a16;
+      --mono-bg: #1f242b;
+      --mono-ink: #cfd3d9;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #14171c;
+    --paper-raised: #1b1f26;
+    --ink: #e7e8e3;
+    --ink-soft: #a7adb6;
+    --ink-faint: #6e7580;
+    --rule: #2a2f38;
+    --rule-strong: #363c46;
+    --accent: #8fabdd;
+    --accent-strong: #b3c5e8;
+    --accent-soft: #202b3e;
+    --amber: #e0a857;
+    --amber-soft: #332a16;
+    --mono-bg: #1f242b;
+    --mono-ink: #cfd3d9;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Zen Kaku Gothic New", "Hiragino Sans", "Noto Sans JP", sans-serif;
+    font-size: 1.0625rem;
+    line-height: 1.85;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+
+  h1, h2, h3, h4 {
+    font-family: "Shippori Mincho", "Hiragino Mincho ProN", "Noto Serif JP", serif;
+    font-weight: 700;
+    color: var(--ink);
+    text-wrap: balance;
+    line-height: 1.4;
+  }
+
+  code, .mono {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+  }
+
+  a { color: var(--accent); }
+
+  .page {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: clamp(1.25rem, 4vw, 3.5rem) clamp(1.25rem, 4vw, 3rem) 6rem;
+  }
+
+  /* ---- masthead ---- */
+
+  .masthead {
+    padding-bottom: 2.25rem;
+    margin-bottom: 2.5rem;
+    border-bottom: 1px solid var(--rule);
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+
+  .eyebrow {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .eyebrow .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+    flex: none;
+  }
+
+  .masthead h1 {
+    font-size: clamp(2.1rem, 4.4vw, 2.9rem);
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+
+  .masthead .lede {
+    color: var(--ink-soft);
+    font-size: 1.09rem;
+    max-width: 46em;
+    margin: 0;
+  }
+
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.9rem;
+    margin-top: 0.4rem;
+  }
+
+  .meta-chip {
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-radius: 100px;
+    padding: 0.3rem 0.75rem;
+  }
+
+  /* ---- layout ---- */
+
+  .layout {
+    display: grid;
+    grid-template-columns: 200px minmax(0,1fr);
+    gap: clamp(2rem, 4vw, 3.5rem);
+    align-items: start;
+  }
+
+  nav.toc {
+    position: sticky;
+    top: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    border-left: 2px solid var(--rule);
+    padding-left: 1.1rem;
+  }
+
+  nav.toc a {
+    position: relative;
+    text-decoration: none;
+    color: var(--ink-faint);
+    font-size: 0.86rem;
+    padding: 0.42rem 0;
+    line-height: 1.4;
+    transition: color 0.15s ease;
+  }
+
+  nav.toc a:hover { color: var(--ink); }
+
+  nav.toc a::before {
+    content: "";
+    position: absolute;
+    left: -1.32rem;
+    top: 0.75rem;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--rule-strong);
+  }
+
+  nav.toc .toc-num {
+    font-family: "JetBrains Mono", monospace;
+    color: var(--accent);
+    margin-right: 0.45em;
+    font-size: 0.78rem;
+  }
+
+  main.content { min-width: 0; }
+
+  section {
+    padding: 2.6rem 0;
+    border-bottom: 1px solid var(--rule);
+    scroll-margin-top: 1.5rem;
+  }
+  section:last-child { border-bottom: none; padding-bottom: 0; }
+
+  .sec-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    margin-bottom: 1.1rem;
+  }
+
+  .sec-num {
+    font-family: "JetBrains Mono", monospace;
+    color: var(--accent);
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
+
+  section h2 {
+    font-size: 1.5rem;
+    margin: 0;
+  }
+
+  section h3 {
+    font-size: 1.09rem;
+    font-family: "Zen Kaku Gothic New", sans-serif;
+    font-weight: 700;
+    margin: 1.6rem 0 0.6rem;
+  }
+
+  section p { margin: 0.75rem 0; max-width: 42em; }
+  section p.wide { max-width: none; }
+
+  ul.plain, ol.plain { padding-left: 1.3rem; margin: 0.75rem 0; max-width: 42em; }
+  ul.plain li, ol.plain li { margin: 0.42rem 0; }
+
+  .field {
+    display: inline-block;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.86em;
+    background: var(--mono-bg);
+    color: var(--mono-ink);
+    padding: 0.05em 0.44em;
+    border-radius: 4px;
+  }
+
+  /* ---- principle grid ---- */
+
+  .principle-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 1.2rem;
+  }
+
+  .principle {
+    background: var(--paper-raised);
+    padding: 1.15rem 1.25rem;
+  }
+
+  .principle .k {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 0.4rem;
+  }
+
+  .principle .v { color: var(--ink); font-size: 0.95rem; }
+
+  /* ---- decision card ---- */
+
+  .card {
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 1.3rem 1.5rem;
+    margin: 1.1rem 0;
+    box-shadow: var(--shadow);
+  }
+
+  .card + .card { margin-top: 0.9rem; }
+
+  .card h3 { margin-top: 0; }
+
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    font-size: 0.72rem;
+    font-family: "JetBrains Mono", monospace;
+    letter-spacing: 0.04em;
+    padding: 0.18em 0.6em 0.2em;
+    border-radius: 100px;
+    border: 1px solid var(--rule-strong);
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+  .status.done { color: var(--accent-strong); border-color: var(--accent); background: var(--accent-soft); }
+  .status.open { color: var(--amber); border-color: var(--amber); background: var(--amber-soft); }
+
+  /* ---- schema tables ---- */
+
+  .table-wrap { overflow-x: auto; margin: 1.1rem 0; border: 1px solid var(--rule); border-radius: 10px; }
+
+  table.schema {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 560px;
+    background: var(--paper-raised);
+  }
+
+  table.schema caption {
+    text-align: left;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.92rem;
+    font-weight: 500;
+    color: var(--accent-strong);
+    background: var(--accent-soft);
+    padding: 0.6rem 1rem;
+  }
+
+  table.schema th, table.schema td {
+    text-align: left;
+    padding: 0.62rem 1rem;
+    border-bottom: 1px solid var(--rule);
+    font-size: 0.9rem;
+    vertical-align: top;
+  }
+
+  table.schema th {
+    font-family: "JetBrains Mono", monospace;
+    font-weight: 500;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  table.schema tr:last-child td { border-bottom: none; }
+  table.schema td:first-child { font-family: "JetBrains Mono", monospace; color: var(--mono-ink); white-space: nowrap; }
+
+  /* ---- callout ---- */
+
+  .callout {
+    border-left: 3px solid var(--amber);
+    background: var(--amber-soft);
+    padding: 1rem 1.2rem;
+    border-radius: 0 8px 8px 0;
+    margin: 1.1rem 0;
+    max-width: 42em;
+  }
+  .callout p { margin: 0.3rem 0; }
+  .callout .lbl {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--amber);
+    display: block;
+    margin-bottom: 0.35rem;
+  }
+
+  /* ---- open questions list ---- */
+
+  .open-list { list-style: none; margin: 1.2rem 0; padding: 0; display: flex; flex-direction: column; gap: 0.6rem; }
+  .open-list li {
+    display: flex;
+    gap: 0.8rem;
+    align-items: flex-start;
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+  }
+  .open-list .status { margin-top: 0.15rem; flex: none; }
+
+  /* ---- scope columns ---- */
+
+  .scope-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.4rem;
+    margin-top: 1.2rem;
+  }
+  @media (max-width: 560px) { .scope-cols { grid-template-columns: 1fr; } }
+
+  .scope-col h4 {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin: 0 0 0.7rem;
+  }
+  .scope-col.in h4 { color: var(--accent-strong); }
+  .scope-col.out h4 { color: var(--ink-faint); }
+
+  .scope-col ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+  .scope-col li {
+    font-size: 0.92rem;
+    padding-left: 1.1rem;
+    position: relative;
+  }
+  .scope-col.in li::before { content: "✓"; position: absolute; left: 0; color: var(--accent); font-size: 0.85em; }
+  .scope-col.out li::before { content: "–"; position: absolute; left: 0; color: var(--ink-faint); }
+  .scope-col.out li { color: var(--ink-faint); }
+
+  /* ---- responsive: mobile nav ---- */
+
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; }
+    nav.toc {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      flex-direction: row;
+      overflow-x: auto;
+      border-left: none;
+      border-bottom: 1px solid var(--rule);
+      padding: 0.85rem 0.2rem;
+      gap: 1.3rem;
+      background: var(--paper);
+      margin: 0 -1.25rem 0.5rem;
+      padding-left: 1.25rem;
+      padding-right: 1.25rem;
+    }
+    nav.toc a { white-space: nowrap; padding: 0.2rem 0; }
+    nav.toc a::before { display: none; }
+  }
+
+  footer.doc-footer {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--rule);
+    color: var(--ink-faint);
+    font-size: 0.82rem;
+  }
+</style>
+
+<div class="page">
+
+  <header class="masthead">
+    <div class="eyebrow"><span class="dot"></span>要件定義書 &nbsp;/&nbsp; v0.1</div>
+    <h1>参考書ロードマップ</h1>
+    <p class="lede">参考書を並べて学習の道筋を可視化するアプリの要件整理。作れる内容はアプリ側で制限せず、発信と集客の焦点を英語・英検に置いて立ち上げる。主な利用者は学生、スマホでの利用が中心という前提で設計し、将来的には社会人の資格勉強・リスキリングまでを射程に含める。</p>
+    <div class="meta-row">
+      <span class="meta-chip">2026-08-21 時点</span>
+      <span class="meta-chip">Next.js / TypeScript / Supabase / Vercel / shadcn</span>
+      <span class="meta-chip">初期の焦点: 英語・英検</span>
+    </div>
+  </header>
+
+  <div class="layout">
+
+    <nav class="toc">
+      <a href="#overview"><span class="toc-num">01</span>概要と方針</a>
+      <a href="#auth"><span class="toc-num">02</span>認証・データ保存</a>
+      <a href="#screens"><span class="toc-num">03</span>画面構成</a>
+      <a href="#structure"><span class="toc-num">04</span>ロードマップ構造</a>
+      <a href="#search"><span class="toc-num">05</span>参考書検索</a>
+      <a href="#data"><span class="toc-num">06</span>データモデル</a>
+      <a href="#apis"><span class="toc-num">07</span>外部API・法務</a>
+      <a href="#revenue"><span class="toc-num">08</span>収益設計</a>
+      <a href="#scope"><span class="toc-num">09</span>機能スコープ</a>
+      <a href="#stack"><span class="toc-num">10</span>技術スタック</a>
+      <a href="#perf"><span class="toc-num">11</span>非機能要件</a>
+      <a href="#open"><span class="toc-num">12</span>未確定事項</a>
+    </nav>
+
+    <main class="content">
+
+      <section id="overview">
+        <div class="sec-head"><span class="sec-num">01</span><h2>概要と方針</h2></div>
+        <p class="wide">参考書をどの順番で進めるべきかを、ロードマップとして並べて可視化できるアプリ。<b>作れる内容はアプリ側で制限しない</b>——制限は実装コストを払って可能性を狭める行為になるため、何のロードマップでも作れる状態にしたうえで、発信と集客の焦点だけを英語・英検に置く。プロダクトの制約と、売り込む先は層を分けて考える。</p>
+        <p class="wide">英検を焦点にするのは、級（3級→準2級→2級→準1級）が公式に定義された梯子になっているため。「2級のルート」は誰にとっても同じ意味を持つので他人のロードマップをそのまま流用でき、共有の価値が上がる。合格すれば次の級のルートが必要になるため、受験生のように1年で完全離脱せず戻ってくる理由が構造に埋まっている。中学生から社会人まで同じ試験である点も、将来の対象拡大と噛み合う。2024年度は高校生だけで133万人が受験し、準1級は10年で約8倍に伸びている。</p>
+        <p class="wide">初期の利用者は学生が中心で、パソコンよりスマートフォンで開かれることが圧倒的に多いという前提を設計全体の軸にする。「参考書をどの順で進めるか分からない」という課題は社会人の資格勉強・リスキリングでも同じ形で存在するため、最終的な射程には社会人を含める（<a href="#revenue">08 収益設計</a>参照）。</p>
+
+        <div class="principle-grid">
+          <div class="principle"><span class="k">ログイン</span><span class="v">必須にしない。使い始めるまでの摩擦をゼロにする。</span></div>
+          <div class="principle"><span class="k">操作感</span><span class="v">ドラッグ&ドロップの体験が最重要。ここが命。</span></div>
+          <div class="principle"><span class="k">品質基準</span><span class="v">見づらい・使いにくい・遅いは一切許容しない。</span></div>
+          <div class="principle"><span class="k">導線</span><span class="v">参考書同士のつながりが一目でわかる設計にする。</span></div>
+          <div class="principle"><span class="k">画面</span><span class="v">スマホ表示を主戦場とし、PC表示は副次的に対応する。</span></div>
+          <div class="principle"><span class="k">拡張性</span><span class="v">作れる内容はアプリ側で制限しない。英語・英検は発信の焦点であって仕様上の制約ではない。</span></div>
+          <div class="principle"><span class="k">一貫性</span><span class="v">ロードマップを主役から降ろす機能は足さない。ここが競争優位そのもの。</span></div>
+        </div>
+
+        <div class="card">
+          <h3>機能追加の判断基準</h3>
+          <p>このアプリの競争優位は機能の多さではなく、<b>目的が一つに絞られていること</b>にある。既存サービスがこの領域に入ってこられないのは、入ろうとすると自社プロダクトの中に別のメンタルモデルが同居してしまうため。Studyplusは学習時間の記録が中核で、単位は1回のセッション。ロードマップはセッションの上位にある構造物であり、流れていくタイムラインに置く器としても形が合わない。さらにあちらの収益は大学広告＝毎日開かれることに依存しており、開く回数を減らす計画ツールは動機の面でも噛み合わない。</p>
+          <p>つまり守るべき資産は一貫性そのものであり、機能を足さないことによって優位が保たれる。追加を検討する際は毎回<b>「これはロードマップを主役のままにするか」</b>を基準にする。判断例として、講師による複数生徒の横断管理は生徒側の画面に何も足さないため許容できるが、コメントや詳細な進捗管理は生徒側の画面そのものを重くするため同じ扱いにはできない。</p>
+          <p>なお脅威の主体としてより現実的なのは、既にルート表示アプリを持つ武田塾（ルートタケダ）や、カリキュラム管理に手を伸ばす塾管理システム側。「自社ルートの権威が薄まるから参入しない」は絶対ではなく、有料機能として出せば囲い込みが強まる形もありうる点は認識しておく。</p>
+        </div>
+      </section>
+
+      <section id="auth">
+        <div class="sec-head"><span class="sec-num">02</span><h2>認証・データ保存</h2></div>
+        <p>ログイン機能は「作る予定」だが、使い始めるのに必須にはしない。保存の速さとデータの守られやすさを両立させるため、ローカルとクラウドの二層構造にする。</p>
+
+        <div class="card">
+          <h3>保存の流れ</h3>
+          <ol class="plain">
+            <li>参考書を追加・並び替えるたびに <span class="field">IndexedDB</span> へ即座に書き込み、UIはこれを見て即反映する（体感速度はネットワークに左右されない）。</li>
+            <li>裏側で Supabase の匿名認証（<span class="field">signInAnonymously</span>）を自動実行し、匿名ユーザーIDに紐づけて非同期・デバウンスでクラウドへ同期する。ユーザーはログイン画面を一切見ない。</li>
+            <li>本ログイン（LINE / Google のワンタップ）は、匿名アカウントに <span class="field">linkIdentity()</span> で認証情報を後付けするだけで完了する。ユーザーIDが変わらないため、データの移行処理は不要。</li>
+          </ol>
+        </div>
+
+        <div class="callout">
+          <span class="lbl">残るリスク</span>
+          <p>匿名認証のセッションもブラウザ内のトークンに依存しているため、リンク（本ログイン化）前にブラウザデータが消えると匿名アカウントごとアクセスできなくなる。「本当に守られる」のはユーザーが実際にログインを紐付けた後のみ、という前提を持っておく。</p>
+        </div>
+
+        <h3>空白期間を縮める打ち手</h3>
+        <ul class="plain">
+          <li>ログインへの誘導は完成時だけでなく、最初の数冊を追加した直後など早い段階でも軽いバナーで促す（非ブロッキング、閉じられる）。</li>
+          <li>誘導は「消えます」という脅し文句ではなく「バックアップしませんか」というポジティブな文言にする。</li>
+          <li><span class="field">navigator.storage.persist()</span> をコード側で自動的に呼び、ユーザー操作なしでストレージを消されにくくする（コストゼロの保険）。</li>
+          <li>PWA化してホーム画面に追加してもらう対策は、学生には行動として期待できないため主対策からは外す。</li>
+        </ul>
+      </section>
+
+      <section id="screens">
+        <div class="sec-head"><span class="sec-num">03</span><h2>画面構成</h2></div>
+
+        <p class="wide">実際に動くプロトタイプを作って操作を検証済み。以下はその結果を反映した確定仕様。</p>
+
+        <h3>初回訪問者</h3>
+        <p>ランディング＝ロードマップ編集画面。一覧やダッシュボードを挟まず、開いた瞬間に作り始められる。右上に「共有」と控えめなログインボタン。</p>
+
+        <h3>再訪問者</h3>
+        <p>匿名セッションに既存のロードマップがある場合は、真っ白な作成画面ではなく、前回の続き、または一覧画面を最初に表示する。</p>
+
+        <div class="card">
+          <h3>編集画面の構成</h3>
+          <p>タイトル（自由入力）とタグ行の下に、<b>1本の経路</b>として参考書が縦に並ぶ。上端に<span class="field">START</span>、下端に旗と<span class="field">GOAL</span>を置き、各参考書は経路上の番号付きの点として表示する。箱が等間隔に並ぶだけの見た目だと買い物リストに見えてしまうため、<b>始点・つながり・終点を視覚的に持たせること</b>がロードマップとして成立する条件になる。</p>
+          <p>終点にはタイトルと重複する文言を置かない（旗と<span class="field">GOAL</span>の表示のみ）。目標はタイトルが表しているため、データとしても二重に持たない。</p>
+          <ul class="plain">
+            <li><b>並び替え</b>：カード右端の握り（全高・幅50px程度のストリップ）をつまむ。押した瞬間から動かせる。</li>
+            <li><b>参考書を追加</b>：経路上の最後の点として「参考書を追加」を置き、押すと検索シートが下から出る。初見でも何をする画面か分かる形にする。</li>
+            <li><b>終了の印</b>：番号の点をタップすると印が付き、その区間の紐が濃くなる。上から見て「どこまで進んだか」が経路の色で分かる。行は消さず残す。</li>
+            <li><b>参考書ごとの設定</b>：カードをタップすると詳細シートが開き、終了の切り替え・周回の目標・メモを編集できる。削除もここに置き、カード上には置かない（破壊的操作の誤爆を防ぐ）。</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>参考書ごとのメモと周回目標</h3>
+          <p>参考書1冊ごとに<b>メモ</b>（この本をどう使うか）と<b>周回の目標</b>を持たせる。メモは共有したときに相手が読む部分になり、「なぜこの順番か」「この本はこう使う」という、既存のルート表には載っていない情報にあたる。<b>このアプリの価値の中心はここ</b>。</p>
+          <p>周回は<b>最初に決める目標であって進捗のカウンターではない</b>。「今何周目か」は記録しない。計画時に一度決めるだけなので、触る回数を増やさないという方針と矛盾しない。</p>
+        </div>
+
+        <h3>過去のロードマップ一覧</h3>
+        <p>デスクトップでは常時表示の左サイドバー、スマホでは折りたたみ式のドロワー（ハンバーガーメニュー）として出し分ける。</p>
+
+        <div class="card">
+          <h3>共有ページ</h3>
+          <p>誰でもログインなしで閲覧できる読み取り専用ページ。サーバーサイドレンダリングで配信し、検索エンジン経由の新規流入も狙う。</p>
+          <p>編集画面の読み取り専用コピーにはしない。<b>メモを開かずに読める形</b>にする——他人のルートを見る価値はまさにそのメモにあるため、カードの下に本文として展開する。番号の点は数字のままにし、終了の印は出さない（他人の進捗ではなく、計画として読ませる）。</p>
+          <p>下端に<b>「このルートをコピーして使う」</b>を置く。押すと内容を複製した自分用のロードマップが作られ、そのまま編集画面に入る。順番・メモ・周回目標は引き継ぎ、<b>終了の印だけは引き継がない</b>（元の作成者の進捗であって自分のものではないため）。併せて「まっさらから作る」も控えめに置き、他人のルートが合わない人の逃げ道を残す。</p>
+          <p>コピーして作られたロードマップには<b>複製元への参照を表示する</b>（「◯◯さんのルートをもとにしています／元を見る」）。作成者への還元になり、元ルートへ辿る導線にもなるため、良いルートに人が集まる構造になる。</p>
+        </div>
+      </section>
+
+      <section id="structure">
+        <div class="sec-head"><span class="sec-num">04</span><h2>ロードマップ構造とドラッグ&ドロップ</h2></div>
+        <p>自由なノードグラフ（React Flow相当）は実装・操作コストが高すぎるため採用しない。</p>
+
+        <div class="card">
+          <h3>採用する構造：1本の経路</h3>
+          <p>枝分かれ（補助教材のぶら下げ）は<b>当初採用したが、プロトタイプで実際に触った結果、取り下げた</b>。「ごく稀に挟みたい教材がある」という理由で採用したものの、稀にしか使われない機能のために全カードが「メインか補助か」という概念を背負うことになり、<a href="#overview">01の機能追加の判断基準</a>（ロードマップを主役から降ろす機能は足さない）に照らして割に合わない。稀な教材は本線に入れれば順序で意味は伝わる。</p>
+          <p>枝を外しても「ロードマップに見えない」問題は起きない。原因は枝の有無ではなく、カードが独立した箱として等間隔に並んでいることの方にある。<b>始点・つながり・終点</b>を視覚的に持たせれば、一本道でも経路として読める（<a href="#screens">03 画面構成</a>）。むしろ枝がない方が背骨は明確になる。</p>
+        </div>
+
+        <ul class="plain">
+          <li>並び替えは <span class="field">dnd-kit</span> を採用（タッチ操作に標準対応、軽量、活発にメンテされている）。<span class="field">react-beautiful-dnd</span> は開発終了のため不採用。</li>
+          <li>並び順は fractional indexing で管理し、1冊動かすたびに動かした行だけを更新する（全件の並び替え書き込みを避け、速度を担保する）。</li>
+        </ul>
+
+        <div class="card">
+          <h3>ライブラリの実機検証</h3>
+          <p><span class="field">dnd-kit</span> / <span class="field">@hello-pangea/dnd</span> / <span class="field">Pragmatic DnD</span>（Atlassian製）の3つで同じ参考書リストの並び替えUIを実装し、実際に触って比較した。<span class="field">Puck</span>（ページビルダー用）と<span class="field">Gridstack.js</span>（グリッドダッシュボード用）は「一列リストの並び替え」という今回の用途と方向性が違うため比較対象から除外している。</p>
+          <p>結果、<b>dnd-kitが最も自然でカクつきがなく</b>、採用方針を確定した。実装上の注意点として、hello-pangea/dnd と Pragmatic DnD は「ボタン要素からはドラッグを開始させない」仕様があり、ハンドルを<span class="field">&lt;button&gt;</span>で作ると無反応になる（<span class="field">&lt;div role="button"&gt;</span>相当にする必要がある）。dnd-kit採用のため直接の影響はないが、既知の落とし穴として記録しておく。</p>
+        </div>
+
+        <div class="callout">
+          <span class="lbl">タッチ操作の制約：掴める範囲とスクロールは両立しない</span>
+          <p>「カード全体を長押しで掴めるようにしたい」という要望を実装したところ、実機で<b>掴めても動かせない</b>という現象が出た。原因はCSSの<span class="field">touch-action</span>。ブラウザは<b>タッチ開始の時点で</b>そのジェスチャーに許す動作を確定するため、縦スクロールを許可した要素の上ではドラッグが成立しない。実際に3パターン検証した結果が下記。</p>
+          <div class="table-wrap">
+            <table class="schema">
+              <caption>touch-action の値と実機挙動（Chromiumのタッチイベントで検証）</caption>
+              <thead><tr><th>値</th><th>カード全体を長押しで掴む</th><th>握りから即掴む</th><th>カード上でスクロール</th></tr></thead>
+              <tbody>
+                <tr><td>pan-y</td><td>不可</td><td>可</td><td>可</td></tr>
+                <tr><td>manipulation</td><td>不可</td><td>可</td><td>可</td></tr>
+                <tr><td>none</td><td>可</td><td>可</td><td><b>不可</b></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>ドラッグ開始後に<span class="field">touch-action</span>を動的に切り替える方法も試したが、進行中のジェスチャーには反映されず効果がなかった。<b>採用する形</b>：カード本体は<span class="field">pan-y</span>のままスクロールを通し、右端の握り（全高・幅50px程度）だけを<span class="field">touch-action: none</span>にして即座にドラッグへ入れる。握りを小さくすると指で取りづらいため、幅と高さを十分に確保することが前提になる。</p>
+          <p>あわせて、長押し時のテキスト選択とiOSのコピーメニューを止めるため、操作領域に<span class="field">user-select: none</span>と<span class="field">-webkit-touch-callout: none</span>を当てる（入力欄は除外）。<span class="field">-webkit-touch-callout</span>はChromiumが未実装のため、<b>iOS実機での確認が別途必要</b>。</p>
+        </div>
+
+        <div class="callout">
+          <span class="lbl">dnd-kit のセンサー登録に関する落とし穴</span>
+          <p>「握りは即座に、カード本体は長押しで」という2つの発火条件を、2つのセンサーを登録して実現しようとすると<b>無言で片方が効かなくなる</b>。dnd-kitは同じイベント名（<span class="field">onPointerDown</span>）を持つセンサーを、イベント名をキーにしたオブジェクトへ畳み込むため、後から登録した方が前の登録を上書きするため。<b>センサーは1つにまとめ、押された位置を見て発火条件を切り替える</b>実装にする必要がある。</p>
+        </div>
+      </section>
+
+      <section id="search">
+        <div class="sec-head"><span class="sec-num">05</span><h2>参考書検索</h2></div>
+        <ul class="plain">
+          <li>楽天ブックス書籍検索APIとGoogle Books APIの2系統を横断で検索する。片方が0件でも、もう一方を自動的に試す。</li>
+          <li>「該当なし」と「API障害・タイムアウト」は明確に区別して表示する。原因を混同させない。</li>
+          <li>両API共に0件だった場合は、タイトル・著者を手入力する手動追加フォールバックを用意し、ロードマップ作成が行き止まりにならないようにする（表紙画像・ISBN・アフィリエイトリンクなしの簡易カードとして追加）。</li>
+          <li>APIキーはNext.jsのRoute Handler経由でサーバーサイドからのみ呼び出す。ログイン不要で誰でも使えるため、検索エンドポイントには簡易レート制限をかける。</li>
+        </ul>
+      </section>
+
+      <section id="data">
+        <div class="sec-head"><span class="sec-num">06</span><h2>データモデル（ドラフト）</h2></div>
+        <p>対象領域の拡張・共有ページ・ルートの複製を前提にしたテーブル設計案。</p>
+
+        <div class="table-wrap">
+          <table class="schema">
+            <caption>tags — タグ（ユーザーが自由に作成）</caption>
+            <thead><tr><th>field</th><th>説明</th></tr></thead>
+            <tbody>
+              <tr><td>id</td><td>主キー</td></tr>
+              <tr><td>name</td><td>表示名（ユーザーが入力したまま。「英検2級」「TOEIC」「簿記」など）</td></tr>
+              <tr><td>normalized_key</td><td>小文字化・空白除去・全角半角統一した突き合わせ用のキー。明らかな重複を入口で防ぐ</td></tr>
+              <tr><td>usage_count</td><td>使用数。補完候補の並び順と「◯人が使用」の表示に使う</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="table-wrap">
+          <table class="schema">
+            <caption>roadmap_tags — ロードマップとタグの中間テーブル</caption>
+            <thead><tr><th>field</th><th>説明</th></tr></thead>
+            <tbody>
+              <tr><td>roadmap_id</td><td>roadmaps への参照</td></tr>
+              <tr><td>tag_id</td><td>tags への参照</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h3>目標の表現：自由なタイトル＋自由なタグ</h3>
+          <p>当初は<span class="field">subjects — 教科</span>、次いで開発側が管理する固定カテゴリを検討したが、どちらも取り下げた。<b>ユーザーがゼロの段階で正しいタグ体系を設計するのは、一人の推測を仕様に固定する行為</b>でしかない。自由に作らせて実際の語彙を観察する方が、正解に早く辿り着く。表記の分散という害は、閲覧する母数が育つまでは発生せず、問題になる頃には統合するためのデータが揃っている。コストが後払いで学習が先払いになる。加えて、制限する方が実装（リスト管理・バリデーション）の手間がかかるという実務上の理由もある。</p>
+          <p><b>タイトルもタグも自由入力</b>とする。第一フェーズで扱う領域をアプリ側で制限もしない。英語・英検はあくまで発信と集客の焦点であり、プロダクトが作れるものの制限とは層を分ける。</p>
+          <p>タグは当面<b>任意</b>。コンテンツが充実し、一覧や検索が実際に使われるようになった段階で共有時の必須項目に切り替える。この切り替えは移行を伴わない。</p>
+        </div>
+
+        <div class="callout">
+          <span class="lbl">自由タグを機能させる鍵は補完UI</span>
+          <p>支援のない自由入力は単なる分散を生む。Qiita同様、<b>入力途中で既存タグを使用数付きで提示する補完</b>（例:「簿記 1,203」）を必ず併せて実装する。大半のユーザーは新規作成せず既存タグを選ぶため、表記揺れの吸収をルールではなくUIの誘導で行える。人気タグの可視化も、発見の導線であると同時に統合圧力として働く。<b>自由入力にするなら補完は後回しにできない必須機能</b>。</p>
+          <p>タグを<span class="field">roadmaps</span>の<span class="field">text[]</span>カラムではなく<b>独立テーブル＋中間テーブル</b>で持つのはこのため。将来「日商簿記→簿記」のような統合を行う際、中間テーブルなら参照先IDの差し替えだけで済むが、配列カラムだと全ロードマップの行を書き換えることになる。統合が起きる前提の設計にする。</p>
+          <p>将来的にはタイトルから適したタグを推薦する機能も考えられるが、これはタグのデータが蓄積してから追加する。</p>
+        </div>
+
+        <div class="table-wrap">
+          <table class="schema">
+            <caption>roadmaps — ロードマップ</caption>
+            <thead><tr><th>field</th><th>説明</th></tr></thead>
+            <tbody>
+              <tr><td>id</td><td>主キー</td></tr>
+              <tr><td>owner_id</td><td>匿名／本アカウント共通のユーザーID</td></tr>
+              <tr><td>title</td><td>ロードマップ名（自由入力）</td></tr>
+              <tr><td>is_public</td><td>共有リンクを有効にしているか</td></tr>
+              <tr><td>share_slug</td><td>共有URL用の識別子</td></tr>
+              <tr><td>copied_from_id</td><td>コピー元のロードマップID。複製元の表示と元ルートへの導線に使う（自作ならnull）</td></tr>
+              <tr><td>created_at</td><td>作成日時</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="table-wrap">
+          <table class="schema">
+            <caption>roadmap_items — ロードマップ内の教材</caption>
+            <thead><tr><th>field</th><th>説明</th></tr></thead>
+            <tbody>
+              <tr><td>id</td><td>主キー</td></tr>
+              <tr><td>roadmap_id</td><td>roadmaps への参照</td></tr>
+              <tr><td>book_id</td><td>books への参照</td></tr>
+              <tr><td>fractional_index</td><td>並び順（動かした行のみ更新）</td></tr>
+              <tr><td>is_done</td><td>この教材を終えたか（1タップで切り替わる最小限の進捗信号）</td></tr>
+              <tr><td>rounds_target</td><td>周回の目標（1〜20、未設定はnull）。目標であり進捗カウンターではない</td></tr>
+              <tr><td>note</td><td>この本をどう使うかのメモ。共有時に相手が読む部分</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="table-wrap">
+          <table class="schema">
+            <caption>books — 参考書キャッシュ</caption>
+            <thead><tr><th>field</th><th>説明</th></tr></thead>
+            <tbody>
+              <tr><td>id</td><td>主キー</td></tr>
+              <tr><td>source</td><td><span class="field">"rakuten"</span> / <span class="field">"google"</span> / <span class="field">"manual"</span></td></tr>
+              <tr><td>external_id</td><td>元APIでの商品ID（手動追加時はnull）</td></tr>
+              <tr><td>isbn</td><td>ISBN（Amazonアフィリエイトリンクの構築にも使用）</td></tr>
+              <tr><td>title / author</td><td>書名・著者</td></tr>
+              <tr><td>cover_image_url</td><td>表紙画像URL（手動追加時はnull）</td></tr>
+              <tr><td>source_url</td><td>出典ページのURL。Google由来の場合はGoogle Booksまたはプレビューページへのリンクとして表示が必須（<a href="#apis">07</a>）</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h3>booksテーブルの役割</h3>
+          <p>本の情報を「1件だけ保存して使い回す」ためのキャッシュ。<span class="field">roadmap_items</span>側に書名・著者・画像URLを毎回埋め込むと、同じ本が複数のロードマップに登場するたびにデータが重複してしまう。<span class="field">book_id</span>で参照するだけにすることで、重複を防ぎ、後から表紙画像などを直す際も1箇所の修正で済むようにする。ISBNはAmazonアフィリエイトリンクを組み立てる際の材料としても使う。</p>
+          <p>保存されるタイミングは「検索された瞬間」ではなく「誰かが実際にロードマップへ追加した瞬間」。検索そのものは常に楽天/Google Booksへ生きたまま問い合わせ、検索結果自体はキャッシュしない（検索を自前で再現するのは非現実的なため）。追加が押された時点で、そのISBNが既に<span class="field">books</span>にあるかを確認し、あれば既存の<span class="field">book_id</span>を再利用、なければAPIレスポンスから1件だけ新規作成する。この確認・作成の処理はIndexedDBへの即時保存とは切り離された裏側の非同期処理で、画面の表示速度には影響しない。</p>
+        </div>
+
+        <div class="callout">
+          <span class="lbl">共有ページ用のアクセス制御</span>
+          <p>本人の書き込み権限とは別に「is_public=true かつ share_slug が一致すれば誰でも読み取り可」というRLSポリシーを、本人用ポリシーとは独立して用意する必要がある。</p>
+        </div>
+
+        <div class="card">
+          <h3>コピー（複製）の扱い</h3>
+          <p>コピーは<b>参照ではなく実体の複製</b>。<span class="field">roadmaps</span>と<span class="field">roadmap_items</span>を新しい所有者のもとに作り直す。元のロードマップが後から書き換えられてもコピー側は影響を受けず、逆にコピー側を編集しても元は変わらない。</p>
+          <p>複製時に引き継ぐのは並び順・<span class="field">book_id</span>・<span class="field">rounds_target</span>・<span class="field">note</span>。<span class="field">is_done</span>は<b>引き継がず必ずfalseにする</b>（元の作成者の進捗であるため）。<span class="field">copied_from_id</span>に元のIDを記録する。</p>
+          <p>タイトルとタグも引き継ぐ。<span class="field">books</span>は既にキャッシュ済みのレコードを参照するだけなので、コピーによってAPIを叩き直す必要はない。</p>
+        </div>
+
+        <div class="card">
+          <h3>将来の拡張のために潰さない構造</h3>
+          <p>商用プラン（<a href="#revenue">08 収益設計</a>）に備えて特別なテーブルを先回りして作る必要は<b>ない</b>。塾対応は<span class="field">organizations</span>・<span class="field">memberships</span>の新規追加とRLSポリシーの追加だけで済み、<span class="field">roadmaps.user_id</span>は生徒本人のまま変更されないため、既存データの移行が発生しないため。</p>
+          <p>したがって今守るべきなのは、下記2つだけ。どちらも商用展開と無関係に良い設計であり、追加作業ではない。</p>
+          <ul class="plain">
+            <li><b>所有者を素直な外部キーで持つ</b>。所有情報を<span class="field">roadmap_items</span>など下位のテーブルへ非正規化して持ち回らない</li>
+            <li><b>アクセス制御をRLSに集約する</b>。「本人のみ読める」という判定をアプリ側のあちこちに散らさない。散らばっていると、閲覧できる主体が増えた時に修正箇所を追い切れなくなる</li>
+          </ul>
+          <p>これとは別に、<b>イベントログ用のテーブルだけは初回リリース時点から用意する</b>。参考書の選択・追加・購入リンクのクリック・離脱地点は、記録していなければ後から遡って取得する手段が存在しない唯一の項目。</p>
+        </div>
+      </section>
+
+      <section id="apis">
+        <div class="sec-head"><span class="sec-num">07</span><h2>外部API連携・法務まわり</h2></div>
+
+        <div class="card">
+          <h3>楽天ブックス書籍検索API</h3>
+          <p>利用時は楽天のブランディング表示が規約上必須。形式は3種類——<b>小バナー（221×21px）／大バナー（311×30px）／テキスト「Supported by Rakuten Developers」</b>。バナーは <span class="field">webservice.rakuten.co.jp</span>、テキストは <span class="field">developers.rakuten.com</span> へのリンクを付ける。<b>提供されたHTMLコード・画像はいずれも改変不可</b>。</p>
+          <p>表示場所は<b>「サイト/アプリ内のどこでもよい」</b>と明記されている（ユーザーが楽天ウェブサービスの支援を受けていると理解できる位置であること）。この自由度が下記の衝突を解く鍵になる。</p>
+          <p>価格は変動するため長期キャッシュを避け、書名・著者・画像など変わらない情報のみキャッシュする。</p>
+        </div>
+
+        <div class="card">
+          <h3>Google Books API</h3>
+          <p>「Powered by Google」ロゴを<b>検索結果に隣接して</b>表示する（検索ボックス内の透かし、またはボックスの隣も可）。<b>最も目立つ要素にしてはいけない</b>。加えて<b>すべての検索結果に、Google Booksページまたはプレビューページへの目立つリンクが必須</b>。</p>
+          <p>名称は<b>「Google Books」のみ</b>（Google-Books / GB / Google Book Search は不可）。プレビュー機能を指す語は「Preview」「Google Preview」「Book preview」のいずれかに統一する。機能名に「Google」を含めない。</p>
+        </div>
+
+        <div class="callout">
+          <span class="lbl">要注意：2つのクレジットを同じ場所に並べられない</span>
+          <p>Google Books のガイドラインには<b>「競合サービスのロゴとの並記は例外なく禁止」</b>という条項がある。楽天ブックスは書籍検索として競合にあたるため、<b>検索シートに両者のロゴを並べて置くことはできない</b>。今回のように2系統のAPIを横断検索する構成では、ここが実装時に踏みやすい地雷になる。</p>
+          <p><b>採用する配置</b>——楽天側が「どこに置いてもよい」と明記していることを利用して、置き場所を物理的に分ける。</p>
+          <ul class="plain">
+            <li><b>検索シート</b>：「Powered by Google」のみを検索ボックス隣か結果に隣接して置く。控えめなサイズにする（最も目立つ要素にしない規定のため）。</li>
+            <li><b>楽天のクレジット</b>：設定・「このアプリについて」など<b>別画面</b>に置く。テキスト版「Supported by Rakuten Developers」なら場所を取らない。</li>
+            <li><b>結果ごとの出典表示</b>：ロゴではなく<b>テキスト</b>（「楽天ブックス」「Google Books」）で示す。禁止されているのはロゴの並記なので、文字による出典明示は抵触しない。</li>
+            <li><b>Google由来の各結果</b>：Google Booksまたはプレビューページへのリンクを1件ずつ持たせる。行のタップは「ロードマップへ追加」に割り当てているため、<b>別に小さなリンクを設ける</b>必要がある。</li>
+          </ul>
+          <p>キャッシュ済みデータを表示する編集画面・共有ページについては、画面ごとにロゴを出すとデザインが破綻するため、<b>アプリ全体のクレジット（別画面）で担保する</b>方針とする。ここは解釈の余地がある部分なので、実装前に両者の原文を確認すること。特に楽天は英語版ガイドラインを参照しているため、日本語版との差異を確認する。</p>
+        </div>
+
+        <div class="card">
+          <h3>Amazon</h3>
+          <p>PA-API（商品データ自動取得）は現状利用不可。直近30日で3件以上の適格販売実績がないとAPIキーが発行されないため。当面はISBN（多くの場合ASINと一致）を使った<b>手動アフィリエイトリンク</b>をAmazonへの導線として設置し、実売上がPA-APIの利用条件を満たした段階で自動データ取得に切り替える。</p>
+          <p><b>自己購入・家族/友人による購入は規約違反</b>（発覚時はアカウント停止・報酬没収のリスク）。開発者自身も自分のアフィリエイトリンクを踏んで購入しない。</p>
+        </div>
+      </section>
+
+      <section id="revenue">
+        <div class="sec-head"><span class="sec-num">08</span><h2>収益設計</h2></div>
+        <p>プロダクトは1つ。<b>個人利用は無料</b>、<b>商用利用（塾・予備校・家庭教師などが事業として使う場合）はサブスク契約</b>とする。塾向けに別プロダクトを作るのではなく、同じアプリに商用利用のライセンス層を重ねる形にする。</p>
+
+        <div class="card">
+          <h3>有料になる境界線</h3>
+          <p>境界は<b>「複数の生徒を紐づけて横断的に見られること」</b>に置く。個人利用者には発生しない要件であり、塾には必ず必要になるため、機能を意図的に削って人質にする必要がない。個人向けの機能はいっさい制限しない。</p>
+          <p>個別指導は生徒ごとに教材が異なることが前提で、かつ担当講師が入れ替わる運用も多い。「この生徒が今どの参考書のどこにいるか」を人の記憶や紙の報告書ではなく構造として引き継げること自体に、業務上の価値がある。</p>
+        </div>
+
+        <div class="card">
+          <h3>単価の根拠</h3>
+          <p><b>アフィリエイト（副次的な収益）</b>：Amazonアソシエイトの書籍紹介料率は3.00%。参考書1冊1,500円なら45円。ロードマップは一度組んだら終わりの性質上、これは継続収入ではなく1ユーザーあたり100〜200円程度の実質一回きりの収益になる。年100万円規模には1万人以上の購入者が必要で、<b>単独では開発時間に見合わない</b>。</p>
+          <p><b>塾向けサブスク（主たる収益）</b>：塾管理システムの相場は生徒数課金で月100〜200円/名（塾スマ200円、SCHPASS190円、Jukugo100円）、教室課金で月4,000〜24,000円/教室。ただしこれらは請求・出欠・保護者連絡まで含む総合システムの価格帯であり、参考書ルートに特化したツールであれば<b>月3,000〜6,000円/教室</b>が現実的なライン。</p>
+          <div class="table-wrap">
+            <table class="schema">
+              <caption>年間180万円を作るのに必要な規模</caption>
+              <thead><tr><th>経路</th><th>必要な数</th></tr></thead>
+              <tbody>
+                <tr><td>アフィリエイト</td><td>約15,000〜20,000人が実際にリンク経由で購入</td></tr>
+                <tr><td>塾向けサブスク</td><td>30教室（法人学習塾18,850事業所の約0.16%）</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>学生向けアプリの位置づけ</h3>
+          <p>学生向けは収益源ではなく<b>認知・営業チャネル</b>。生徒が個人で使っている状態そのものが、塾への導入経路になる。したがって「無料であること」「触る回数が少なくて済むこと」「軽いこと」は収益とのトレードオフではなく、この戦略において正しい設計になる。共有機能とSNS発信も、収益装置ではなく塾に見つけてもらうための装置として位置づける。</p>
+          <p>順序は、①学生向け無料アプリでの認知 → ②個人利用の定着 → ③塾での商用利用が発生した時点でサブスク契約。①が動かない限り②③は始まらないため、当面の優先度は認知に置く。</p>
+        </div>
+
+        <div class="card">
+          <h3>市場の前提</h3>
+          <p>学習塾市場は約9,850億円で横ばい。法人の学習塾は全国に約18,850事業所、塾ポータル掲載ベースでは約11万教室。母数は十分にある。</p>
+          <p>ただし少子化により通塾対象人口は過去最少水準（小学生581万人・中学生310万人＝ピーク時の4〜5割）で、赤字企業の割合は26.0%から31.8%へ上昇し二極化が進んでいる。売る相手は「すべての塾」ではなく<b>差別化に投資している側の塾</b>に限られる。</p>
+          <p>大学広告モデル（Studyplusの主収益）は会員495万人・高3の3人に1人という規模で初めて成立しているもので、<b>今回の射程には入れない</b>。規模を達成した後に開く選択肢として認識するに留める。</p>
+        </div>
+
+        <div class="callout">
+          <span class="lbl">商用提供に伴う責任</span>
+          <p>塾を顧客にした時点で、未成年の個人情報を業務として預かることになる。加えて請求・問い合わせ対応・導入時の説明が発生し、これはコードを書くのとは別種の負荷になる。①②の段階では発生しないが、③に進む判断をする時点で改めて引き受け可否を確認する。</p>
+        </div>
+
+        <div class="card">
+          <h3>将来の展開：社会人・リスキリング</h3>
+          <p>最終的には社会人の学び直し・資格試験が射程に入る。市場の向きが学生向けと逆で、<b>学習塾市場が約9,850億円で横ばい・対象人口も減少しているのに対し、eラーニング市場は2022年で3,705億円と2019年から約60%成長</b>。企業研修市場5,370億円の中でもeラーニング比率は12.9%(2019)から20.2%(2024)へ拡大している。政府も「5年で1兆円を個人のリスキリング支援に投資」と表明しており、ジョブ型雇用の導入企業は41.5%に達している。</p>
+          <p>収益面で学生向けの弱点が2つとも解消される点が大きい。ひとつは<b>継続性</b>。高校生は1年で完全に離脱するが、社会人は簿記3級→2級→TOEIC→宅建のように何年もかけて繰り返すため、低頻度でも関係が続きLTVが積み上がる。もうひとつは<b>支払い主体</b>。学生は本人が払えないため塾を経由する必要があったが、社会人は本人が払える。学生向けには成立しないと判断したB2Cサブスクが、社会人相手なら直接成立する。</p>
+          <p>重要なのは、これが<b>教科の乗り換えではない</b>こと。第一フェーズの英語は、社会人領域でも最大の学習需要であるTOEIC・ビジネス英語とそのまま地続きで、参考書の生態系も大きく重なる。同じ仕組みに別のタグが乗るだけで届く。その先には企業研修という塾よりはるかに予算規模の大きい市場もあるが、そこは社会人向けが立ち上がってから見える景色であり、現時点では認識に留める。</p>
+        </div>
+
+        <div class="card">
+          <h3>今の設計に織り込んでおく項目</h3>
+          <p>当初「塾向けを想定したデータ設計が必要」としていたが、精査した結果<b>それは不要</b>と判断した。塾対応に必要なのは<span class="field">organizations</span>と<span class="field">memberships</span>（user_id / org_id / role）を新規テーブルとして足し、roadmapsに「同じ組織の講師なら読める」というRLSポリシーを追加すること。<span class="field">roadmaps.user_id</span>は生徒本人のまま一切変更せず、講師との関係はカラムではなくJOINで表現されるため、既存データの移行は発生しない。純粋な追加操作で済む。</p>
+          <p>したがって今必要なのは、塾を想定した設計ではなく<b>「所有者を素直な外部キーで持つ」「アクセス制御をアプリ側に散らさずRLSに集約する」</b>という、それ自体が普通に良い設計であること。特別な作業は発生しない。</p>
+          <div class="callout">
+            <span class="lbl">本当に後戻りできない項目</span>
+            <p>同じ基準で見直した結果、不可逆なのは<b>イベントログのみ</b>。どの参考書が選ばれ、どこで離脱したかは、記録していなければ後から遡って取得する手段が存在しない。初回リリース時点からテーブルを用意して記録を始める。</p>
+            <p>参考書単位の<b>完了フラグ</b>（<span class="field">is_done</span>）はbooleanカラムの後付けで済み、<b>タグの必須化</b>も移行を伴わずに後から切り替えられる。どちらも「今やらないと詰む」項目ではないため、判断の重みを下げる。ただし完了フラグは1タップで付く最小限の信号に留め、ページ数や日次記録は持たない方針は維持する（<a href="#scope">09 機能スコープ</a>）。</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="scope">
+        <div class="sec-head"><span class="sec-num">09</span><h2>機能スコープ</h2></div>
+        <div class="scope-cols">
+          <div class="scope-col in">
+            <h4>今回やる</h4>
+            <ul>
+              <li>ロードマップ作成・検索・追加</li>
+              <li>ドラッグ&ドロップでの並び替え</li>
+              <li>参考書ごとのメモと周回目標</li>
+              <li>参考書単位の完了フラグ</li>
+              <li>共有（閲覧専用リンク）</li>
+              <li>共有ルートのコピー（自分用に複製して編集）</li>
+              <li>自由入力のタグ＋使用数付きの補完</li>
+              <li>匿名認証による自動バックアップ</li>
+              <li>任意のログイン（LINE / Google）</li>
+            </ul>
+          </div>
+          <div class="scope-col out">
+            <h4>今回は見送り</h4>
+            <ul>
+              <li>コメント機能</li>
+              <li>いいね機能</li>
+              <li>補助教材の枝分かれ（プロトタイプ検証の結果、取り下げ）</li>
+              <li>タグの必須化・整理統合（当面は自由入力のまま観察する）</li>
+              <li>タイトルからのタグ推薦</li>
+              <li>社会人・リスキリング向けの提供</li>
+              <li>Amazon PA-APIでの自動データ取得</li>
+              <li>講師による複数生徒の横断管理（商用プラン）</li>
+              <li>進捗の数値管理・日次の学習記録</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="stack">
+        <div class="sec-head"><span class="sec-num">10</span><h2>技術スタック</h2></div>
+        <p>Next.js / TypeScript / Vercel / Supabase（DB・匿名認証） / shadcn/ui / dnd-kit / fractional-indexing。外部データは楽天ブックス書籍検索APIとGoogle Books APIの2系統。</p>
+        <div class="callout">
+          <span class="lbl">Supabase 無料枠の目安</span>
+          <p>DB 500MB、月間アクティブユーザー5万人まで無料、APIリクエスト無制限。1週間アクセスがないとプロジェクトが一時停止する点と、バックアップ機能がない点だけ運用上注意する。今回の規模（自己利用〜身内規模）であれば容量・MAUともに十分余裕がある。</p>
+        </div>
+      </section>
+
+      <section id="perf">
+        <div class="sec-head"><span class="sec-num">11</span><h2>非機能要件</h2></div>
+        <p>IndexedDBが担うのは「アプリを開いた後の、追加・並び替えといった操作の速さ」まで。それとは別に、IndexedDBが関与しない速度課題（初回表示・検索API・画像）だけは目安を置いておく。</p>
+
+        <div class="card">
+          <h3>初回表示速度（LCP）</h3>
+          <p>目標を <b>1.5秒以内</b>、<b>2.5秒</b>（Core Web Vitalsの一般的な合格ライン）はどんな環境でも超えない絶対の下限とする。一般的なWebサイト向けの2.5秒基準は、画像・動画をほぼ持たない今回のアプリには緩すぎるため引き上げた。</p>
+          <p>達成できる根拠は2つ。初回訪問者が最初に見る画面（検索フォーム＋作成画面）は表示前にデータ取得が不要で、Vercelのエッジから静的に配信できる。再訪問者が見るロードマップ一覧もSupabaseではなくIndexedDBから読むため、どちらもネットワークの往復を挟まない。</p>
+          <p>実装上の注意点として、<span class="field">dnd-kit</span>やSupabaseクライアントSDKは初回表示に不要なので動的importで初期バンドルから外す。日本語Webフォントはファイルサイズが大きく初回表示を遅らせやすいため、本文はシステムフォント中心にし、装飾用フォントを使う場合も最小限のサブセットに絞る。</p>
+        </div>
+
+        <div class="card">
+          <h3>参考書検索のタイムアウト</h3>
+          <p>楽天・Google Books APIへの問い合わせは<b>5秒</b>を目安にタイムアウトとし、エラー表示（「該当なし」とは別の表現）に切り替える。前述の通り、片方がタイムアウト・0件でももう一方は独立して試す。</p>
+        </div>
+
+        <div class="card">
+          <h3>表紙画像の遅延読み込み</h3>
+          <p>ロードマップの教材が増えるほど表紙画像も増えるため、画面内に入ってから読み込む遅延読み込みを前提にする。<span class="field">next/image</span>相当の仕組みを使う想定で、厳密な数値目標は置かない。</p>
+        </div>
+
+        <div class="card">
+          <h3>対応ブラウザ範囲</h3>
+          <p>iOS Safari / Android Chromeの<b>最新版のみ</b>を正式対応とする。学生の利用端末は買い替えサイクルが速く、PC利用者はごく少数という前提のため、旧バージョンや他ブラウザへの後方互換は追わない。</p>
+        </div>
+      </section>
+
+      <section id="open">
+        <div class="sec-head"><span class="sec-num">12</span><h2>未確定事項</h2></div>
+        <p>ここから先、詰めていく必要がある項目。</p>
+        <ul class="open-list">
+          <li><span class="status open">要検討</span><span><b>すべて終了したときの挙動</b>。最後の1冊に印を付けても現状は何も起きない。ここが「ロードマップ完成時にログインを促す」と決めた、まさにその瞬間にあたる。文言も画面を作らないと決められない</span></li>
+          <li><span class="status open">要検討</span><span>ログイン誘導バナーの具体的な文言・表示頻度のルール（上記とセットで決める）</span></li>
+          <li><span class="status open">要検討</span><span><b>保存状態の見せ方</b>。IndexedDBへ即時保存・裏でSupabase同期という設計だが、画面上に何の反応もない。データが消えないことを売りにする以上、静かでよいので保存済みが見える方がよい</span></li>
+          <li><span class="status open">要検討</span><span><b>取り消し</b>。削除もドラッグの事故も戻せない。削除時に数秒「取り消す」を出す程度で足りる</span></li>
+          <li><span class="status open">要検討</span><span><b>初回の空の状態</b>。1冊もない画面が新規ユーザーの第一印象になる</span></li>
+          <li><span class="status open">要検討</span><span>タイトルの編集方法（現状のプロトタイプでは編集できない）</span></li>
+          <li><span class="status open">要検討</span><span>放置された匿名ユーザーの定期クリーンアップの実施方法・頻度</span></li>
+          <li><span class="status open">要検討</span><span>商用プランの具体的な価格・課金単位（教室課金か生徒数課金か）。個人利用が定着してから決める</span></li>
+          <li><span class="status open">要確認</span><span>楽天・Google Books 双方のガイドライン原文の確認（特に楽天は日本語版との差異、Googleは競合ロゴ並記の条項の解釈）</span></li>
+          <li><span class="status open">要検討</span><span>イベントログで実際に記録する項目の確定</span></li>
+        </ul>
+      </section>
+
+    </main>
+  </div>
+
+  <footer class="doc-footer">この文書は開発を進めながら更新していく前提のドラフト。決定事項は増えるたびに追記する。</footer>
+
+</div>
