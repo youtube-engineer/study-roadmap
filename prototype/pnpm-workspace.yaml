@@ -1,5 +1,0 @@
-# esbuild のインストール後スクリプトを許可する。
-# 無いと pnpm install のたびに "Ignored build scripts" の警告が出る。
-# （pnpm 11 のキー名は allowBuilds。10 系の onlyBuiltDependencies ではない）
-allowBuilds:
-  esbuild: true

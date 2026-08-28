@@ -1,0 +1,144 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   設計トークン
+   プロトタイプ（prototype/index.html）の :root をそのまま引き継いでいる。
+   ライト / ダーク / 明示指定の3状態を持つ:
+     - :root                                    … ライト（既定）
+     - prefers-color-scheme: dark かつ非 light  … OSがダークのとき
+     - :root[data-theme="dark"]                 … ユーザーが明示的にダークを選んだとき
+   色は必ずここで定義し、コンポーネント側に生の色を書かないこと。
+--------------------------------------------------------------------------- */
+:root {
+  --paper: #eceee8;
+  --raised: #fbfbf8;
+  --sunk: #f2f3ee;
+  --deep: #e6e8e1;
+  --ink: #1c2028;
+  --ink-soft: #58616e;
+  --ink-faint: #8b93a0;
+  --rule: #dcdfd7;
+  --rule-strong: #c2c7bc;
+  --accent: #33518c;
+  --accent-strong: #24406f;
+  --accent-soft: #e2e8f4;
+  --thread: #9c3f33;
+  --thread-soft: #f4e4e0;
+  --amber: #8c6115;
+  --elev-sm: 0 1px 2px rgba(28, 32, 40, 0.05);
+  --elev: 0 1px 3px rgba(28, 32, 40, 0.07), 0 10px 24px rgba(28, 32, 40, 0.09);
+  --elev-lift: 0 14px 26px rgba(28, 32, 40, 0.2), 0 3px 8px rgba(28, 32, 40, 0.14);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #14161b;
+    --raised: #1d2027;
+    --sunk: #22262e;
+    --deep: #171a20;
+    --ink: #e8e9e4;
+    --ink-soft: #a5acb7;
+    --ink-faint: #6d7581;
+    --rule: #2c3039;
+    --rule-strong: #3b414c;
+    --accent: #8fabdd;
+    --accent-strong: #b4c6e9;
+    --accent-soft: #1d2839;
+    --thread: #c9584a;
+    --thread-soft: #33211e;
+    --amber: #d9a055;
+    --elev-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --elev: 0 1px 3px rgba(0, 0, 0, 0.45), 0 10px 24px rgba(0, 0, 0, 0.5);
+    --elev-lift: 0 16px 28px rgba(0, 0, 0, 0.62), 0 3px 8px rgba(0, 0, 0, 0.5);
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper: #14161b;
+  --raised: #1d2027;
+  --sunk: #22262e;
+  --deep: #171a20;
+  --ink: #e8e9e4;
+  --ink-soft: #a5acb7;
+  --ink-faint: #6d7581;
+  --rule: #2c3039;
+  --rule-strong: #3b414c;
+  --accent: #8fabdd;
+  --accent-strong: #b4c6e9;
+  --accent-soft: #1d2839;
+  --thread: #c9584a;
+  --thread-soft: #33211e;
+  --amber: #d9a055;
+  --elev-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --elev: 0 1px 3px rgba(0, 0, 0, 0.45), 0 10px 24px rgba(0, 0, 0, 0.5);
+  --elev-lift: 0 16px 28px rgba(0, 0, 0, 0.62), 0 3px 8px rgba(0, 0, 0, 0.5);
+}
+
+/* トークンを Tailwind のユーティリティ名に接続する。
+   bg-paper / text-ink-soft / border-rule / shadow-lift などが使えるようになる。 */
+@theme inline {
+  --color-paper: var(--paper);
+  --color-raised: var(--raised);
+  --color-sunk: var(--sunk);
+  --color-deep: var(--deep);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-rule: var(--rule);
+  --color-rule-strong: var(--rule-strong);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-thread: var(--thread);
+  --color-thread-soft: var(--thread-soft);
+  --color-amber: var(--amber);
+
+  --shadow-sm: var(--elev-sm);
+  --shadow-card: var(--elev);
+  --shadow-lift: var(--elev-lift);
+
+  /* 日本語Webフォントは初回表示を遅らせやすいので本文はシステムフォント
+     （CLAUDE.md 10章）。プロトタイプの Google Fonts 3種は持ち込まない。 */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP",
+    "Yu Gothic UI", sans-serif;
+  --font-serif: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+}
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* 長押しでテキスト選択とiOSのコピーメニューが出るのを止める（CLAUDE.md 9章）。
+     入力欄だけは選択できないと困るので除外する。
+     -webkit-touch-callout は Chromium 未実装なので iOS 実機での確認が別途必要。 */
+  [data-touch-surface] {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  [data-touch-surface] :is(input, textarea) {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition-duration: 0.001ms !important;
+      animation-duration: 0.001ms !important;
+    }
+  }
+}

@@ -1,8 +1,16 @@
 # 依存関係
 node_modules/
 
-# ビルド生成物（prototype/dist は pnpm build で再生成できる）
+# ビルド生成物
+/.next/
+/out/
+/build
 dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# Vercel
+.vercel
 
 # macOS
 .DS_Store
