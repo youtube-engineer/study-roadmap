@@ -510,11 +510,32 @@ supabase/migrations/        スキーマ・RLS・GRANT。preview と本番の両
 **ロードマップは丸ごと書き換える。** 1件が数KBしかないので、差分更新にすると
 「どこまで書けたか」の状態が増えて壊れ方が読めなくなるだけ。差分が要るのは Supabase 側だけ。
 
-**起動時は IndexedDB の内容で置き換える。** サーバーが渡してくる初期値は、
-ローカルに何も無いとき（初回訪問・ストレージを消した後）だけ使われる。
+### 起動時にローカルとサーバーのどちらを採るか
 
-> ⚠ 端末をまたいだときの突き合わせは**まだ決めていない**。今はローカルが無条件に勝つので、
-> 別端末で編集したものがある状態でログインすると、古いローカルが新しいサーバーを隠す。
+**ローカルを無条件に勝たせてはいけない。** 一度そう実装して、共有ページの
+「コピーして使う」が効かなくなった。サーバーに新しい文書ができて戻ってきても、
+ローカルの前のロードマップが上書きしてしまうため。
+
+そこでサーバーが渡すものを2種類に分けている（`store.ts` の `RoadmapSource`）。
+
+| サーバー側 | ローカル | 採るもの |
+|---|---|---|
+| `placeholder`（まだ何も無い） | あり | **ローカル** |
+| `stored` かつ id が一致 | あり | **ローカル**（同じ文書。ローカルの方が新しい） |
+| `stored` かつ id が違う | あり | **サーバー**（別の文書＝コピー直後・まっさらから作る） |
+| なんでも | 無し | サーバー |
+
+`placeholder` は「サーバーには何も無い」という意味しか持たないので、
+ローカルを消す根拠にならない。id が毎回変わるため、これを `stored` として扱うと
+リロードのたびにローカルが飛ぶ。
+
+**「まっさらから作る」は押した時点で実体を作る**（`copy.ts` の `startBlankForCurrentUser`）。
+作らずに済ませると id が変わらず、ローカルに残っている前のロードマップが出てしまう。
+訪問しただけではなく明確な意思表示なので、ここで匿名サインインしてよい。
+
+> ⚠ **端末をまたいだときの突き合わせはまだ決めていない。**
+> 上の表は「別の文書ならサーバー」という単純な規則で、更新時刻を見ていない。
+> 別端末で編集したものがある状態でログインしたときにどちらを採るかは、
 > ログインを実装する前に決めること。
 
 ### 匿名サインインを打つ場所
@@ -578,3 +599,13 @@ supabase/migrations/        スキーマ・RLS・GRANT。preview と本番の両
 - **`Enter` でカードを開けるようにした。** プロトタイプは dnd-kit のリスナーを後から
   展開していたので、キーボードの `Enter` が握り潰されていた
 - **共有URLを `/r/[slug]` の実ページにした。** プロトタイプは画面切り替えの模擬
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

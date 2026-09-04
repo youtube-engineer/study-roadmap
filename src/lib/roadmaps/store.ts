@@ -20,7 +20,18 @@ import { newShareSlug } from "./slug";
  * 単なる選択であることに注意。
  */
 
-export type LoadedRoadmap = { roadmap: Roadmap; books: Book[] };
+/**
+ * サーバーが渡してくるロードマップの出どころ。
+ *
+ * - stored      … 実際に保存されている文書。コピー直後や別端末からの読み込みがこれ
+ * - placeholder … まだ何も無い人に見せるための仮の器。中身は空で、idも毎回変わる
+ *
+ * ローカル（IndexedDB）とどちらを採るかの判断に使う。placeholder は
+ * 「サーバーには何も無い」という意味でしかないので、ローカルを上書きしてはいけない。
+ */
+export type RoadmapSource = "stored" | "placeholder";
+
+export type LoadedRoadmap = { roadmap: Roadmap; books: Book[]; source: RoadmapSource };
 
 type BookRow = {
   id: string;
@@ -100,11 +111,15 @@ async function loadItemsAndBooks(
 export async function loadOwnRoadmap(): Promise<LoadedRoadmap> {
   if (!isSupabaseConfigured()) {
     const roadmap = await mockOwnRoadmap();
-    return { roadmap, books: mockFindMany(roadmap.items.map((i) => i.bookId)) };
+    return {
+      roadmap,
+      books: mockFindMany(roadmap.items.map((i) => i.bookId)),
+      source: "stored",
+    };
   }
 
   const supabase = await getServerClient();
-  if (!supabase) return { roadmap: blankRoadmap(), books: [] };
+  if (!supabase) return { roadmap: blankRoadmap(), books: [], source: "placeholder" };
 
   const {
     data: { user },
@@ -112,7 +127,7 @@ export async function loadOwnRoadmap(): Promise<LoadedRoadmap> {
 
   // まだ匿名サインインもしていない＝一度も書き込んでいない人。
   // ここでセッションを作らないのが要点（訪問しただけでMAUに乗せない）
-  if (!user) return { roadmap: blankRoadmap(), books: [] };
+  if (!user) return { roadmap: blankRoadmap(), books: [], source: "placeholder" };
 
   const { data: row } = await supabase
     .from("roadmaps")
@@ -122,7 +137,7 @@ export async function loadOwnRoadmap(): Promise<LoadedRoadmap> {
     .limit(1)
     .maybeSingle();
 
-  if (!row) return { roadmap: blankRoadmap(), books: [] };
+  if (!row) return { roadmap: blankRoadmap(), books: [], source: "placeholder" };
 
   const { items, books } = await loadItemsAndBooks(row.id);
 
@@ -144,6 +159,7 @@ export async function loadOwnRoadmap(): Promise<LoadedRoadmap> {
         : null,
     },
     books,
+    source: "stored",
   };
 }
 
@@ -151,7 +167,11 @@ export async function loadSharedRoadmap(slug: string): Promise<LoadedRoadmap | n
   if (!isSupabaseConfigured()) {
     const roadmap = await mockBySlug(slug);
     if (!roadmap) return null;
-    return { roadmap, books: mockFindMany(roadmap.items.map((i) => i.bookId)) };
+    return {
+      roadmap,
+      books: mockFindMany(roadmap.items.map((i) => i.bookId)),
+      source: "stored",
+    };
   }
 
   const supabase = await getServerClient();
@@ -189,5 +209,6 @@ export async function loadSharedRoadmap(slug: string): Promise<LoadedRoadmap | n
         : null,
     },
     books,
+    source: "stored",
   };
 }

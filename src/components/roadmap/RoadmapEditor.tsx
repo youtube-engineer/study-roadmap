@@ -11,6 +11,7 @@ import { ShareIcon } from "@/components/ui/icons";
 import { loadLocal, saveLocal } from "@/lib/db/local";
 import { moveItem } from "@/lib/roadmaps/reorder";
 import { createRoadmapSync } from "@/lib/roadmaps/sync";
+import type { RoadmapSource } from "@/lib/roadmaps/store";
 import type { Book, Roadmap, RoadmapItem } from "@/types/roadmap";
 
 import { RouteGoal, RouteStart } from "./RouteMarkers";
@@ -20,9 +21,11 @@ import type { RouteListProps } from "./StaticRoute";
 type Props = {
   roadmap: Roadmap;
   books: Book[];
+  /** roadmap がサーバーに実在する文書か、まだ何も無いときの仮の器か */
+  source: RoadmapSource;
 };
 
-export function RoadmapEditor({ roadmap, books: initialBooks }: Props) {
+export function RoadmapEditor({ roadmap, books: initialBooks, source }: Props) {
   /**
    * ロードマップ1件をまるごと1つの状態として持つ。
    * IndexedDB へも丸ごと書くので、画面の状態と保存されるものが常に一致する。
@@ -57,14 +60,24 @@ export function RoadmapEditor({ roadmap, books: initialBooks }: Props) {
   }, []);
 
   /**
-   * 起動時に IndexedDB の内容で置き換える。**ローカルが主**（CLAUDE.md 5章）。
-   * 何も保存されていなければサーバーが渡してきた初期値のまま進む。
+   * 起動時にローカルとサーバーのどちらを採るかを決める。
+   *
+   * 基本はローカルが主（CLAUDE.md 5章）。ただし**無条件に勝たせてはいけない**。
+   * 共有ページから「コピーして使う」を押すと、サーバーに新しい文書ができて
+   * ここへ戻ってくる。そのときローカルを優先すると、コピーが握り潰されて
+   * 元のロードマップに戻ったように見える。
+   *
+   *   - サーバーが placeholder（まだ何も無い）→ ローカルを採る
+   *   - 同じ文書（idが一致）→ ローカルの方が新しいのでローカルを採る
+   *   - サーバーに**別の**保存済み文書がある → サーバーを採る（コピー直後がこれ）
    */
   useEffect(() => {
     let alive = true;
     loadLocal().then((local) => {
       if (!alive) return;
-      if (local) {
+      const localWins =
+        local !== null && (source === "placeholder" || local.roadmap.id === roadmap.id);
+      if (local && localWins) {
         setDoc(local.roadmap);
         setBooks(Object.fromEntries(local.books.map((b) => [b.id, b])));
       }
@@ -73,7 +86,7 @@ export function RoadmapEditor({ roadmap, books: initialBooks }: Props) {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [roadmap.id, source]);
 
   /**
    * 操作のたびに丸ごと保存する。待たせないので画面は止まらない。

@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
-import { copyRoadmapForCurrentUser } from "./copy";
+import { copyRoadmapForCurrentUser, startBlankForCurrentUser } from "./copy";
 import { copyRoadmap, startBlankRoadmap } from "./mock-store";
 
 export async function copyRoadmapAction(formData: FormData) {
@@ -22,9 +22,11 @@ export async function copyRoadmapAction(formData: FormData) {
 }
 
 export async function startBlankAction() {
-  // Supabase を使う場合、まっさらな状態は保存しない。
-  // 最初の1冊を追加した時点で roadmaps の行ができる（sync.ts）
-  if (!isSupabaseConfigured()) {
+  // 押した時点で実体を作る。作らないと、ローカルに残っている前のロードマップが
+  // そのまま表示されてしまい「まっさらから作る」が効かない
+  if (isSupabaseConfigured()) {
+    await startBlankForCurrentUser();
+  } else {
     await startBlankRoadmap();
   }
 
