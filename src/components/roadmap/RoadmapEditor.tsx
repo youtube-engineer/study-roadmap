@@ -8,6 +8,7 @@ import { SearchSheet } from "@/components/sheets/SearchSheet";
 import { ShareSheet } from "@/components/sheets/ShareSheet";
 import { Toast } from "@/components/ui/Toast";
 import { ShareIcon } from "@/components/ui/icons";
+import { loadLocal, saveLocal } from "@/lib/db/local";
 import { moveItem } from "@/lib/roadmaps/reorder";
 import { createRoadmapSync } from "@/lib/roadmaps/sync";
 import type { Book, Roadmap, RoadmapItem } from "@/types/roadmap";
@@ -22,15 +23,23 @@ type Props = {
 };
 
 export function RoadmapEditor({ roadmap, books: initialBooks }: Props) {
-  const [items, setItems] = useState<RoadmapItem[]>(roadmap.items);
+  /**
+   * ロードマップ1件をまるごと1つの状態として持つ。
+   * IndexedDB へも丸ごと書くので、画面の状態と保存されるものが常に一致する。
+   */
+  const [doc, setDoc] = useState<Roadmap>(roadmap);
   const [books, setBooks] = useState<Record<string, Book>>(() =>
     Object.fromEntries(initialBooks.map((b) => [b.id, b])),
   );
-  const [isPublic, setIsPublic] = useState(roadmap.isPublic);
+  /** IndexedDB を読み終わるまでは書き戻さない。サーバーの初期値で上書きしないため */
+  const [hydrated, setHydrated] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+
+  const items = doc.items;
+  const isPublic = doc.isPublic;
 
   /**
    * dnd-kit は初回表示に不要なので初期バンドルから外し、描画後に読み込んで
@@ -48,12 +57,40 @@ export function RoadmapEditor({ roadmap, books: initialBooks }: Props) {
   }, []);
 
   /**
-   * 画面の操作を Supabase へ反映する層。画面の状態はここが持ったまま、
-   * 書き込みは追いかけて走る。Supabase が未設定なら何もしない。
+   * 起動時に IndexedDB の内容で置き換える。**ローカルが主**（CLAUDE.md 5章）。
+   * 何も保存されていなければサーバーが渡してきた初期値のまま進む。
+   */
+  useEffect(() => {
+    let alive = true;
+    loadLocal().then((local) => {
+      if (!alive) return;
+      if (local) {
+        setDoc(local.roadmap);
+        setBooks(Object.fromEntries(local.books.map((b) => [b.id, b])));
+      }
+      setHydrated(true);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  /**
+   * 操作のたびに丸ごと保存する。待たせないので画面は止まらない。
+   * ロードマップ1件は数KBしかないので、差分を取るより丸ごと書く方が壊れない。
+   */
+  useEffect(() => {
+    if (!hydrated) return;
+    void saveLocal({ roadmap: doc, books: Object.values(books) });
+  }, [hydrated, doc, books]);
+
+  /**
+   * IndexedDB の裏で Supabase へ送る層。未設定なら何もしない。
+   * ここが失敗しても IndexedDB には書けているので、操作は失われない。
    */
   const sync = useMemo(
-    () => createRoadmapSync(roadmap, { onError: setToast }),
-    [roadmap],
+    () => createRoadmapSync({ id: doc.id, shareSlug: doc.shareSlug, title: doc.title }, { onError: setToast }),
+    [doc.id, doc.shareSlug, doc.title],
   );
 
   const present = useMemo(() => new Set(items.map((i) => i.bookId)), [items]);
@@ -61,7 +98,10 @@ export function RoadmapEditor({ roadmap, books: initialBooks }: Props) {
 
   const patch = useCallback(
     (itemId: string, next: Partial<RoadmapItem>) => {
-      setItems((prev) => prev.map((i) => (i.id === itemId ? { ...i, ...next } : i)));
+      setDoc((d) => ({
+        ...d,
+        items: d.items.map((i) => (i.id === itemId ? { ...i, ...next } : i)),
+      }));
       void sync.patchItem(itemId, next);
     },
     [sync],
@@ -72,7 +112,10 @@ export function RoadmapEditor({ roadmap, books: initialBooks }: Props) {
       const item = items.find((i) => i.id === itemId);
       if (!item) return;
       const isDone = !item.isDone;
-      setItems((prev) => prev.map((i) => (i.id === itemId ? { ...i, isDone } : i)));
+      setDoc((d) => ({
+        ...d,
+        items: d.items.map((i) => (i.id === itemId ? { ...i, isDone } : i)),
+      }));
       void sync.patchItem(itemId, { isDone });
     },
     [items, sync],
@@ -88,7 +131,7 @@ export function RoadmapEditor({ roadmap, books: initialBooks }: Props) {
       const fractionalIndex = sync.keyBetween(next[moved - 1], next[moved + 1]);
       next[moved] = { ...next[moved], fractionalIndex };
 
-      setItems(next);
+      setDoc((d) => ({ ...d, items: next }));
       void sync.patchItem(activeId, { fractionalIndex });
     },
     [items, sync],
@@ -107,7 +150,7 @@ export function RoadmapEditor({ roadmap, books: initialBooks }: Props) {
       };
 
       setBooks((prev) => ({ ...prev, [book.id]: book }));
-      setItems((prev) => [...prev, item]);
+      setDoc((d) => ({ ...d, items: [...d.items, item] }));
       setSearchOpen(false);
 
       // ここが「最初の書き込み」になることがある。
@@ -119,7 +162,7 @@ export function RoadmapEditor({ roadmap, books: initialBooks }: Props) {
 
   const removeItem = useCallback(
     (itemId: string) => {
-      setItems((prev) => prev.filter((i) => i.id !== itemId));
+      setDoc((d) => ({ ...d, items: d.items.filter((i) => i.id !== itemId) }));
       void sync.removeItem(itemId);
       // TODO(未確定): 削除後に数秒「取り消す」を出す（CLAUDE.md 13章）
       setToast("ルートから外した。");
@@ -129,7 +172,7 @@ export function RoadmapEditor({ roadmap, books: initialBooks }: Props) {
 
   const changePublic = useCallback(
     (next: boolean) => {
-      setIsPublic(next);
+      setDoc((d) => ({ ...d, isPublic: next }));
       void sync.setPublic(next);
     },
     [sync],
@@ -161,20 +204,20 @@ export function RoadmapEditor({ roadmap, books: initialBooks }: Props) {
 
       <div className="px-4 pb-1 pt-4">
         <h1 className="mb-2.5 font-serif text-[1.36rem] font-semibold leading-[1.42] text-balance">
-          {roadmap.title}
+          {doc.title}
         </h1>
 
-        {roadmap.copiedFrom && (
+        {doc.copiedFrom && (
           <div className="mb-2.5 flex flex-wrap items-center gap-2 rounded-lg bg-thread-soft px-2.5 py-1.5 text-[0.76rem] text-ink-soft">
             <span>
-              {roadmap.copiedFrom.authorName
-                ? `${roadmap.copiedFrom.authorName}さんのルートをもとにしています`
+              {doc.copiedFrom.authorName
+                ? `${doc.copiedFrom.authorName}さんのルートをもとにしています`
                 : "他の人のルートをもとにしています"}
             </span>
             {/* 元が消えていればリンクだけが外れ、この表示自体は残る（CLAUDE.md 6章） */}
-            {roadmap.copiedFrom.roadmapId && (
+            {doc.copiedFrom.roadmapId && (
               <a
-                href={`/r/${roadmap.copiedFrom.roadmapId}`}
+                href={`/r/${doc.copiedFrom.roadmapId}`}
                 className="ml-auto text-thread underline underline-offset-2"
               >
                 元を見る
@@ -185,7 +228,7 @@ export function RoadmapEditor({ roadmap, books: initialBooks }: Props) {
 
         <div className="flex items-center gap-2.5">
           <div className="flex min-w-0 flex-1 flex-wrap gap-1.5">
-            {roadmap.tags.map((tag) => (
+            {doc.tags.map((tag) => (
               <span
                 key={tag}
                 className="rounded-full border border-transparent bg-accent-soft px-2.5 py-[0.12em] text-[0.72rem] text-accent-strong"
@@ -263,8 +306,8 @@ export function RoadmapEditor({ roadmap, books: initialBooks }: Props) {
         onClose={() => setShareOpen(false)}
         isPublic={isPublic}
         onChangePublic={changePublic}
-        shareSlug={roadmap.shareSlug}
-        title={roadmap.title}
+        shareSlug={doc.shareSlug}
+        title={doc.title}
         bookCount={items.length}
       />
     </div>

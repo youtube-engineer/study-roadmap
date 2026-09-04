@@ -7,31 +7,32 @@ import type { Database } from "@/lib/supabase/database.types";
 import type { Book, Roadmap, RoadmapItem } from "@/types/roadmap";
 
 /**
- * 画面の操作を Supabase に反映する層。
+ * 操作を Supabase に送る層。**保存の主役ではない。**
  *
- * 画面の状態は編集画面がローカルに持っていて、ここは追いかけて書くだけ。
- * 失敗しても画面は巻き戻さない（CLAUDE.md 13章の「取り消し」が入るまでは、
- * 巻き戻す方が操作を失って分かりにくい）。
+ * 即時の保存は IndexedDB（`lib/db/local.ts`）が担当していて、ここはその裏で
+ * 送るだけ。ネットワークが遅くても画面の操作は止まらない（CLAUDE.md 5章）。
+ * 失敗しても画面は巻き戻さない。IndexedDB には書けているので操作は失われない。
  *
- * Supabase が未設定なら全メソッドが何もしない。モックのまま動く。
- *
- * ※ Step 2 で IndexedDB を前に挟む。そのときこの層は「IndexedDB → Supabase の
- *    非同期同期」に位置づけが変わるが、呼び出し側の形は変えなくて済むようにしてある。
+ * Supabase が未設定なら全メソッドが何もしない。IndexedDB だけで完結する。
  */
 
 type SyncOptions = {
   onError?: (message: string) => void;
 };
 
+/** ロードマップを特定するための最小限。中身（items）はここでは持たない */
+export type SyncTarget = Pick<Roadmap, "id" | "shareSlug" | "title">;
+
 export type RoadmapSync = ReturnType<typeof createRoadmapSync>;
 
-export function createRoadmapSync(initial: Roadmap, options: SyncOptions = {}) {
-  const roadmapId = initial.id;
-  const shareSlug = initial.shareSlug;
-  const title = initial.title;
+export function createRoadmapSync(target: SyncTarget, options: SyncOptions = {}) {
+  const { id: roadmapId, shareSlug, title } = target;
 
-  /** roadmaps の行を作ったか。最初の書き込みまで作らない */
-  let ensured = initial.items.length > 0;
+  /**
+   * roadmaps の行を用意したか。セッション内で1回だけ走らせる。
+   * upsert は ignoreDuplicates なので、既にある行に対して呼んでも無害
+   */
+  let ensured = false;
   let ensuring: Promise<boolean> | null = null;
 
   const fail = (where: string, error: unknown) => {
