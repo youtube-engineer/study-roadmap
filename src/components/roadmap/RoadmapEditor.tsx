@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import type { ComponentType } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ComponentType, FocusEvent, KeyboardEvent } from "react";
 
 import { DetailSheet } from "@/components/sheets/DetailSheet";
 import { SearchSheet } from "@/components/sheets/SearchSheet";
@@ -17,6 +17,9 @@ import type { Book, Roadmap, RoadmapItem } from "@/types/roadmap";
 import { RouteGoal, RouteStart } from "./RouteMarkers";
 import { StaticRoute } from "./StaticRoute";
 import type { RouteListProps } from "./StaticRoute";
+
+/** 名前が空のときに戻す既定値 */
+const DEFAULT_TITLE = "新しいルート";
 
 type Props = {
   roadmap: Roadmap;
@@ -60,6 +63,18 @@ export function RoadmapEditor({ roadmap, books: initialBooks, source }: Props) {
   }, []);
 
   /**
+   * 見出しの高さを中身に合わせる。折り返す長さの名前でも切れないようにするため。
+   * 状態は動かさないので副作用で書いてよい
+   */
+  const titleRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const el = titleRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [doc.title]);
+
+  /**
    * 起動時にローカルとサーバーのどちらを採るかを決める。
    *
    * 基本はローカルが主（CLAUDE.md 5章）。ただし**無条件に勝たせてはいけない**。
@@ -100,11 +115,20 @@ export function RoadmapEditor({ roadmap, books: initialBooks, source }: Props) {
   /**
    * IndexedDB の裏で Supabase へ送る層。未設定なら何もしない。
    * ここが失敗しても IndexedDB には書けているので、操作は失われない。
+   *
+   * ロードマップ1件につき1つだけ作る。タイトルの打鍵ごとに作り直すと、
+   * 「roadmaps の行を用意したか」の記憶が消えて毎回 upsert しに行ってしまう。
+   * そのため名前はここでは渡さず、別に預ける。
    */
   const sync = useMemo(
-    () => createRoadmapSync({ id: doc.id, shareSlug: doc.shareSlug, title: doc.title }, { onError: setToast }),
-    [doc.id, doc.shareSlug, doc.title],
+    () => createRoadmapSync({ id: doc.id, shareSlug: doc.shareSlug }, { onError: setToast }),
+    [doc.id, doc.shareSlug],
   );
+
+  // 名前を預けておく。まだ roadmaps の行が無いとき、作る瞬間の名前になる
+  useEffect(() => {
+    sync.rememberTitle(doc.title);
+  }, [sync, doc.title]);
 
   const present = useMemo(() => new Set(items.map((i) => i.bookId)), [items]);
   const doneCount = items.filter((i) => i.isDone).length;
@@ -191,6 +215,36 @@ export function RoadmapEditor({ roadmap, books: initialBooks, source }: Props) {
     [sync],
   );
 
+  /** 打鍵のたびに走る。ローカルへの保存は即時（CLAUDE.md 5章） */
+  const changeTitle = useCallback((next: string) => {
+    setDoc((d) => ({ ...d, title: next }));
+  }, []);
+
+  /**
+   * 入力欄から離れたとき。Supabase へ送るのはここだけ。
+   * 空のままにはしない——共有ページの見出しとOGPが名無しになるため。
+   *
+   * 値は状態からではなく入力欄から読む。状態を経由すると、この関数が
+   * 作られた時点の名前を見てしまい、打ち替えた直後の確定が1回ずれる。
+   */
+  const commitTitle = useCallback(
+    (e: FocusEvent<HTMLTextAreaElement>) => {
+      const trimmed = e.currentTarget.value.trim();
+      const title = trimmed === "" ? DEFAULT_TITLE : trimmed;
+      setDoc((d) => (d.title === title ? d : { ...d, title }));
+      void sync.setTitle(title);
+    },
+    [sync],
+  );
+
+  /** 名前は1行。Enter で改行させず確定して閉じる */
+  const onTitleKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      e.currentTarget.blur();
+    }
+  }, []);
+
   const detailItem = detailId ? (items.find((i) => i.id === detailId) ?? null) : null;
   const detailBook = detailItem ? (books[detailItem.bookId] ?? null) : null;
 
@@ -216,8 +270,22 @@ export function RoadmapEditor({ roadmap, books: initialBooks, source }: Props) {
       </header>
 
       <div className="px-4 pb-1 pt-4">
-        <h1 className="mb-2.5 font-serif text-[1.36rem] font-semibold leading-[1.42] text-balance">
-          {doc.title}
+        {/*
+          名前は見出しをそのまま打ち替える形にした。編集ボタンも編集モードも置かない。
+          ルートの名前を変えるのは多くて数回なので、動線を増やす方が邪魔になる。
+        */}
+        <h1 className="mb-2.5">
+          <textarea
+            ref={titleRef}
+            value={doc.title}
+            onChange={(e) => changeTitle(e.target.value)}
+            onBlur={commitTitle}
+            onKeyDown={onTitleKeyDown}
+            rows={1}
+            placeholder="ルートの名前"
+            aria-label="ルートの名前"
+            className="w-full resize-none overflow-hidden border-0 bg-transparent p-0 font-serif text-[1.36rem] font-semibold leading-[1.42] text-ink text-balance outline-none placeholder:text-ink-faint focus:outline-none"
+          />
         </h1>
 
         {doc.copiedFrom && (

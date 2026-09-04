@@ -20,13 +20,21 @@ type SyncOptions = {
   onError?: (message: string) => void;
 };
 
-/** ロードマップを特定するための最小限。中身（items）はここでは持たない */
-export type SyncTarget = Pick<Roadmap, "id" | "shareSlug" | "title">;
+/** ロードマップを特定するための最小限。中身（items）も名前もここでは持たない */
+export type SyncTarget = Pick<Roadmap, "id" | "shareSlug">;
 
 export type RoadmapSync = ReturnType<typeof createRoadmapSync>;
 
 export function createRoadmapSync(target: SyncTarget, options: SyncOptions = {}) {
-  const { id: roadmapId, shareSlug, title } = target;
+  const { id: roadmapId, shareSlug } = target;
+
+  /**
+   * roadmaps の行を作るときに使う名前。
+   *
+   * 行が作られるのは最初の書き込みの瞬間で、そこまでに名前が変わっている
+   * ことがある。編集画面が rememberTitle で最新の値を預けておく。
+   */
+  let title = "新しいルート";
 
   /**
    * roadmaps の行を用意したか。セッション内で1回だけ走らせる。
@@ -96,6 +104,9 @@ export function createRoadmapSync(target: SyncTarget, options: SyncOptions = {})
   }
 
   return {
+    /** どのロードマップ用に作られたものか。編集画面が作り直しの要否を判断する */
+    roadmapId,
+
     /** 並び順のキーを作る。前後の行の間に挟むので、動かした行だけ更新すれば済む */
     keyBetween(before: RoadmapItem | undefined, after: RoadmapItem | undefined): string {
       try {
@@ -148,6 +159,35 @@ export function createRoadmapSync(target: SyncTarget, options: SyncOptions = {})
 
       const { error } = await supabase.from("roadmap_items").delete().eq("id", itemId);
       if (error) fail("removeItem", error);
+    },
+
+    /**
+     * ルートの名前。
+     *
+     * 打鍵のたびには送らない。ローカル（IndexedDB）は即時に書くが、こちらは
+     * 入力欄から離れたときだけ呼ばれる。1文字ごとに update を投げても意味がない。
+     */
+    /**
+     * 名前を覚えておくだけ。通信はしない。
+     * まだ roadmaps の行が無い場合に、作る瞬間の名前として使われる
+     */
+    rememberTitle(next: string): void {
+      title = next;
+    },
+
+    async setTitle(next: string): Promise<void> {
+      title = next;
+
+      const supabase = getBrowserClient();
+      if (!supabase) return;
+      if (!(await ensureRoadmap())) return;
+
+      const { error } = await supabase
+        .from("roadmaps")
+        .update({ title: next })
+        .eq("id", roadmapId);
+
+      if (error) fail("setTitle", error);
     },
 
     async setPublic(isPublic: boolean): Promise<void> {
