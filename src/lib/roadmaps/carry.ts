@@ -17,7 +17,14 @@ import { newShareSlug } from "./slug";
  *
  * やっていることは copy.ts と同じ（新しい所有者のもとに作り直す）。
  * 違うのは、元がサーバーではなく手元の IndexedDB だという点だけ。
+ *
+ * **何度呼ばれても増えないこと。** IndexedDB は消えずに残り続けるので、
+ * ログインのたびにここを通る。「サーバーに自分のものとして既にあるか」を
+ * 見ずに入れると、ログインするたびに同じルートが増えていく。
  */
+
+/** 手元の id は uuid のはずだが、古い形が残っていると in() クエリが落ちる */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 async function persistBook(book: Book): Promise<string | null> {
   try {
     const res = await fetch("/api/books/persist", {
@@ -42,9 +49,35 @@ export async function carryLocalRoadmapsToCurrentUser(): Promise<number> {
   if (!user) return 0;
 
   const summaries = await listLocal();
+  if (summaries.length === 0) return 0;
+
+  /**
+   * 既に自分のものとしてサーバーにあるぶんは持ち込まない。
+   *
+   * 持ち込んだ後、手元の文書は新しい id で保存し直される。その id は
+   * 自分の所有になっているので、次にここを通ったときは弾かれる。これで
+   * 何度ログインしても増えない。
+   *
+   * 所有者まで見るのは、公開されている他人のロードマップが RLS 越しに
+   * 見えることがあるため。「見える＝自分のもの」ではない。
+   */
+  const candidateIds = summaries.map((s) => s.id).filter((id) => UUID.test(id));
+  const alreadyMine = new Set<string>();
+  if (candidateIds.length > 0) {
+    const { data: existing } = await supabase
+      .from("roadmaps")
+      .select("id, owner_id")
+      .in("id", candidateIds);
+    for (const row of existing ?? []) {
+      if (row.owner_id === user.id) alreadyMine.add(row.id);
+    }
+  }
+
   let carried = 0;
 
   for (const summary of summaries) {
+    if (alreadyMine.has(summary.id)) continue;
+
     const local = await loadLocalRoadmap(summary.id);
     if (!local) continue;
 
