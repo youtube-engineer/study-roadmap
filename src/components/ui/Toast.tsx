@@ -6,9 +6,11 @@ type Props = {
   message: string | null;
   onDismiss: () => void;
   durationMs?: number;
+  /** 「取り消す」のような、消える前に押せる操作 */
+  action?: { label: string; onClick: () => void };
 };
 
-export function Toast({ message, onDismiss, durationMs = 3200 }: Props) {
+export function Toast({ message, onDismiss, durationMs = 3200, action }: Props) {
   useEffect(() => {
     if (!message) return;
     const t = setTimeout(onDismiss, durationMs);
@@ -23,7 +25,18 @@ export function Toast({ message, onDismiss, durationMs = 3200 }: Props) {
         message ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-6 opacity-0"
       }`}
     >
-      {message}
+      <span className="flex items-center gap-3">
+        <span className="flex-1">{message}</span>
+        {action && (
+          <button
+            type="button"
+            onClick={action.onClick}
+            className="flex-none font-medium text-paper underline underline-offset-2 hover:opacity-80"
+          >
+            {action.label}
+          </button>
+        )}
+      </span>
     </div>
   );
 }

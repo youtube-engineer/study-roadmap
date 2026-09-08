@@ -1,12 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 import { CARRY_FLAG, LoginButton } from "@/components/auth/LoginButton";
-import { listLocal, saveLocal } from "@/lib/db/local";
+import { Sheet } from "@/components/sheets/Sheet";
+import { Toast } from "@/components/ui/Toast";
+import {
+  deleteLocalRoadmap,
+  listLocal,
+  loadLocalRoadmap,
+  saveLocal,
+  type LocalSnapshot,
+} from "@/lib/db/local";
 import { carryLocalRoadmapsToCurrentUser } from "@/lib/roadmaps/carry";
+import { deleteRoadmapOnServer } from "@/lib/roadmaps/remove";
 import { newRoadmap } from "@/lib/roadmaps/create";
 import type { RoadmapSummary } from "@/types/roadmap";
 
@@ -28,6 +37,71 @@ export function RoadmapList({ serverSummaries }: Props) {
   const router = useRouter();
   const [summaries, setSummaries] = useState<RoadmapSummary[]>(serverSummaries);
   const [ready, setReady] = useState(false);
+
+  /** 削除の確認を出している対象 */
+  const [confirming, setConfirming] = useState<RoadmapSummary | null>(null);
+
+  /**
+   * 削除を取り消せるようにするための控え（CLAUDE.md 13章）。
+   *
+   * 手元からはすぐ消すが、**サーバーへの削除だけを数秒遅らせる**。
+   * 取り消されたら手元に書き戻すだけで済み、サーバー側には何も起きていないので
+   * 復元処理が要らない。消えたものを作り直す経路を増やさないための作りにしている。
+   */
+  const [undoable, setUndoable] = useState<{
+    summary: RoadmapSummary;
+    /** 手元にも持っていた場合の控え。サーバーにしか無いものは null */
+    snapshot: LocalSnapshot | null;
+  } | null>(null);
+  const pending = useRef<{ id: string; timer: ReturnType<typeof setTimeout> } | null>(null);
+
+  /** 猶予のあいだに画面を離れたら、その場でサーバーからも消す */
+  useEffect(
+    () => () => {
+      if (pending.current) {
+        clearTimeout(pending.current.timer);
+        void deleteRoadmapOnServer(pending.current.id);
+        pending.current = null;
+      }
+    },
+    [],
+  );
+
+  const remove = useCallback(async (summary: RoadmapSummary) => {
+    setConfirming(null);
+
+    // 手元に無いこともある（別端末で作ったもの、IndexedDB を消した後のもの）。
+    // その場合も一覧からは外し、取り消せるようにする
+    const snapshot = await loadLocalRoadmap(summary.id);
+    await deleteLocalRoadmap(summary.id);
+    setSummaries((prev) => prev.filter((s) => s.id !== summary.id));
+    setUndoable({ summary, snapshot });
+
+    const timer = setTimeout(() => {
+      pending.current = null;
+      setUndoable(null);
+      void deleteRoadmapOnServer(summary.id);
+    }, 6000);
+    pending.current = { id: summary.id, timer };
+  }, []);
+
+  const undo = useCallback(async () => {
+    if (pending.current) {
+      clearTimeout(pending.current.timer);
+      pending.current = null;
+    }
+    if (undoable) {
+      // サーバーへの削除はまだ走っていないので、手元に書き戻すだけでよい
+      if (undoable.snapshot) await saveLocal(undoable.snapshot);
+      const restored = undoable.summary;
+      setSummaries((prev) =>
+        [...prev, restored].sort((a, b) =>
+          (b.createdAt ?? "").localeCompare(a.createdAt ?? ""),
+        ),
+      );
+    }
+    setUndoable(null);
+  }, [undoable]);
 
   useEffect(() => {
     let alive = true;
@@ -98,10 +172,22 @@ export function RoadmapList({ serverSummaries }: Props) {
       ) : (
         <ul className="flex flex-col gap-2.5">
           {summaries.map((s) => (
-            <li key={s.id}>
+            <li key={s.id} className="relative">
+              {/* 破壊的操作はカードの上に置かない。シート越しにする（CLAUDE.md 8章） */}
+              <button
+                type="button"
+                aria-label={`${s.title} の設定`}
+                onClick={() => setConfirming(s)}
+                className="absolute right-2 top-2.5 z-10 grid h-8 w-8 place-items-center rounded-full text-ink-faint hover:bg-deep hover:text-ink-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              >
+                <span aria-hidden="true" className="text-[1.05rem] leading-none">
+                  ⋯
+                </span>
+              </button>
+
               <Link
                 href={`/roadmaps/${s.id}`}
-                className="block rounded-[12px] border border-rule bg-sunk px-4 py-3.5 transition-colors hover:border-rule-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                className="block rounded-[12px] border border-rule bg-sunk py-3.5 pl-4 pr-12 transition-colors hover:border-rule-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
                 <div className="flex items-start gap-2">
                   <span className="min-w-0 flex-1 font-serif text-[1.02rem] font-semibold leading-snug">
@@ -144,6 +230,53 @@ export function RoadmapList({ serverSummaries }: Props) {
       >
         新しいルートを作る
       </button>
+
+      <Sheet
+        open={confirming !== null}
+        onClose={() => setConfirming(null)}
+        title="このルートを削除する"
+      >
+        {confirming && (
+          <div className="flex flex-col gap-4 px-4 pb-5 pt-1">
+            <div className="rounded-[10px] bg-sunk px-3.5 py-3">
+              <div className="font-serif text-[1rem] font-semibold leading-snug">
+                {confirming.title}
+              </div>
+              <div className="mt-0.5 font-mono text-[0.7rem] text-ink-faint">
+                参考書 {confirming.totalCount} 冊
+              </div>
+            </div>
+
+            <p className="text-[0.82rem] leading-[1.75] text-ink-faint">
+              {confirming.isPublic
+                ? "公開中です。共有したリンクは開けなくなります。"
+                : "並べた順番とメモも一緒に消えます。"}
+            </p>
+
+            <button
+              type="button"
+              onClick={() => remove(confirming)}
+              className="w-full rounded-[10px] border border-thread px-4 py-3 text-[0.9rem] font-medium text-thread hover:bg-thread-soft"
+            >
+              削除する
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirming(null)}
+              className="w-full py-1 text-[0.82rem] text-ink-soft underline underline-offset-[3px] hover:text-ink"
+            >
+              やめる
+            </button>
+          </div>
+        )}
+      </Sheet>
+
+      <Toast
+        message={undoable ? `「${undoable.summary.title}」を削除した` : null}
+        onDismiss={() => setUndoable(null)}
+        durationMs={6000}
+        action={{ label: "取り消す", onClick: undo }}
+      />
     </div>
   );
 }
