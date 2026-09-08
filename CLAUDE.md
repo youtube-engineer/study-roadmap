@@ -578,6 +578,23 @@ supabase/migrations/        スキーマ・RLS・GRANT。preview と本番の両
 3. **疎通確認。** ドメイン許可でサーバーサイド fetch が通るかはまだ検証していない。
    弾かれたら `RAKUTEN_REFERER` に登録ドメインを入れて Referer を明示的に送る
 
+### Supabase で踏んだ落とし穴（2つとも自動公開を切った副作用）
+
+**1. `gen_random_bytes()` は public から呼べない。** pgcrypto の関数で、Supabase では
+拡張が `extensions` スキーマに入るため。`share_slug` の既定値に使っていて `db push` が
+落ちた。`gen_random_uuid()` は Postgres 13 以降の**組み込み**なので拡張が要らない。
+既定値のためだけに拡張へ依存しない。
+
+**2. `service_role` にも権限は自動では付かない。**「Automatically expose new tables」を
+切ると、`anon` / `authenticated` だけでなく `service_role` も対象外になる。
+`books` への書き込みが `permission denied` で落ちた（`0004_service_role_grants.sql`）。
+
+→ **`service_role` には `books` だけを渡している。** 他のテーブルには意図的に渡さない。
+service_role は RLS を迂回する鍵なので、これでロードマップ本体を触ると
+「アクセス制御はRLSに集約する」（6章）が崩れる。`admin.ts` のコメントは破れるが、
+DBの権限なら破れない。サーバー側から別のテーブルを触りたくなったら、
+そのとき「なぜRLSでは足りないのか」を確かめてから足すこと。
+
 ### Supabase の入れ方
 
 楽天と同じで、**環境変数が入っていなければモックで動く**。入れた時点で切り替わる。
@@ -588,6 +605,8 @@ supabase/migrations/        スキーマ・RLS・GRANT。preview と本番の両
    自動公開を切っているぶんの GRANT は `0001_init.sql` に書いてある
 3. 匿名サインインを有効にする。CAPTCHAも入れておく（誰でも無制限にユーザーを作れるため）
 4. `supabase/migrations/` を **preview → 本番の順**で流す
+   （CLIなら `supabase link --project-ref <ref>` → `supabase db push`。
+   `db dump` は Docker が要るが、`db push` と `gen types --linked` は不要）
 5. `.env.local` に URL・publishable key・secret key を入れる
 
 ### まだ入っていないもの
@@ -595,7 +614,7 @@ supabase/migrations/        スキーマ・RLS・GRANT。preview と本番の両
 | 場所 | 現状 | 次にやること |
 |---|---|---|
 | `lib/books/` | モックの17冊 | 楽天アプリIDを入れる |
-| Supabase | コードはあるが**実接続の検証がまだ** | 鍵を入れて往復を確かめる |
+| Supabase | preview に接続・検証済み（RLS 9項目 PASS） | 本番プロジェクトを作って同じSQLを流す |
 | タグ | 表示のみ。`tags` テーブルは作ってあるが未使用 | 補完UIと保存 |
 | 保存状態の表示・取り消し | 未実装 | 13章の未確定事項と同じ |
 | 作成者名 | 常に匿名 | ログインを入れてから（13章） |

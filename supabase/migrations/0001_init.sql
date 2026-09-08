@@ -46,8 +46,12 @@ create table public.roadmaps (
   owner_id          uuid not null default auth.uid() references auth.users (id) on delete cascade,
   title             text not null default '新しいルート',
   is_public         boolean not null default false,
+  -- 既定値は保険。通常はアプリ側（lib/roadmaps/slug.ts）が作った値を明示的に入れる。
+  -- pgcrypto の gen_random_bytes() は使わない。Supabase では拡張が extensions
+  -- スキーマに入るため public から素で呼べず、既定値のためだけに依存を増やしたくない。
+  -- gen_random_uuid() は Postgres 13 以降の組み込みなので拡張が要らない。
   share_slug        text not null unique
-                      default translate(encode(gen_random_bytes(9), 'base64'), '+/=', '-_'),
+                      default substr(replace(gen_random_uuid()::text, '-', ''), 1, 16),
   -- 外部キーは「辿る」ため。元が消えたら null になる
   copied_from_id    uuid references public.roadmaps (id) on delete set null,
   -- スナップショットは「記録として残す」ため。
