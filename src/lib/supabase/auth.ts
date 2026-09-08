@@ -85,6 +85,23 @@ export async function switchToGoogleAccount(next: string): Promise<void> {
   if (error) throw error;
 }
 
+/**
+ * ログイン状態の変化を購読する。
+ *
+ * 一度読んだきりにすると、ログアウトしてもボタンが「ログアウト」のまま残る。
+ * 別のタブでログインした場合も追従できる。
+ */
+export function onAuthChange(callback: () => void): () => void {
+  const supabase = getBrowserClient();
+  if (!supabase) return () => {};
+
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange(() => callback());
+
+  return () => subscription.unsubscribe();
+}
+
 export async function signOut(): Promise<void> {
   const supabase = getBrowserClient();
   if (!supabase) return;

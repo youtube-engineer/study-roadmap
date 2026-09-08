@@ -14,14 +14,12 @@ import Link from "next/link";
 import { loadLocalRoadmap, saveLocal } from "@/lib/db/local";
 import { moveItem } from "@/lib/roadmaps/reorder";
 import { createRoadmapSync } from "@/lib/roadmaps/sync";
+import { UNTITLED } from "@/lib/roadmaps/title";
 import type { Book, Roadmap, RoadmapItem } from "@/types/roadmap";
 
 import { RouteGoal, RouteStart } from "./RouteMarkers";
 import { StaticRoute } from "./StaticRoute";
 import type { RouteListProps } from "./StaticRoute";
-
-/** 名前が空のときに戻す既定値 */
-const DEFAULT_TITLE = "新しいルート";
 
 type Props = {
   roadmap: Roadmap;
@@ -221,15 +219,17 @@ export function RoadmapEditor({ roadmap, books: initialBooks }: Props) {
 
   /**
    * 入力欄から離れたとき。Supabase へ送るのはここだけ。
-   * 空のままにはしない——共有ページの見出しとOGPが名無しになるため。
+   *
+   * **空のままでも構わない。** 名無しで困るのは一覧・共有ページ・OGPなので、
+   * そちらで「無題のルート」を補う（lib/roadmaps/title.ts）。
+   * ここで勝手に名前を付けると、消したはずの文字が戻ってきたように見える。
    *
    * 値は状態からではなく入力欄から読む。状態を経由すると、この関数が
    * 作られた時点の名前を見てしまい、打ち替えた直後の確定が1回ずれる。
    */
   const commitTitle = useCallback(
     (e: FocusEvent<HTMLTextAreaElement>) => {
-      const trimmed = e.currentTarget.value.trim();
-      const title = trimmed === "" ? DEFAULT_TITLE : trimmed;
+      const title = e.currentTarget.value.trim();
       setDoc((d) => (d.title === title ? d : { ...d, title }));
       void sync.setTitle(title);
     },
@@ -282,11 +282,23 @@ export function RoadmapEditor({ roadmap, books: initialBooks }: Props) {
             onBlur={commitTitle}
             onKeyDown={onTitleKeyDown}
             rows={1}
-            placeholder="ルートの名前"
+            placeholder={UNTITLED}
             aria-label="ルートの名前"
             className="w-full resize-none overflow-hidden border-0 bg-transparent p-0 font-serif text-[1.36rem] font-semibold leading-[1.42] text-ink text-balance outline-none placeholder:text-ink-faint focus:outline-none"
           />
         </h1>
+
+        {/*
+          保存状態の見せ方（CLAUDE.md 13章）。IndexedDB へは操作のたびに
+          書いているので、読み込みが終わっていれば常に保存済み。
+          Supabase への送信は裏で走るぶんなので、ここでは触れない
+        */}
+        {hydrated && (
+          <span className="mb-2 inline-flex items-center gap-1.5 font-mono text-[0.6rem] text-ink-faint">
+            <span aria-hidden="true" className="h-[5px] w-[5px] rounded-full bg-thread opacity-70" />
+            保存済み
+          </span>
+        )}
 
         {doc.copiedFrom && (
           <div className="mb-2.5 flex flex-wrap items-center gap-2 rounded-lg bg-thread-soft px-2.5 py-1.5 text-[0.76rem] text-ink-soft">
@@ -341,9 +353,15 @@ export function RoadmapEditor({ roadmap, books: initialBooks }: Props) {
           onReorder={reorder}
         />
 
+        {/*
+          白紙に放り出さない。紐と START / GOAL は最初から引いてあるので、
+          置く場所が見えている状態から始まる
+        */}
         {items.length === 0 && (
-          <div className="py-6 pl-[2.55rem] text-[0.86rem] text-ink-faint">
-            まだ1冊も置かれていない
+          <div className="py-5 pl-[2.55rem] text-[0.86rem] leading-[1.8] text-ink-soft">
+            1冊目を置くと、
+            <br />
+            ここに道ができる。
           </div>
         )}
 

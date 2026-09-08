@@ -7,6 +7,7 @@ import { Sheet } from "@/components/sheets/Sheet";
 import { listLocal } from "@/lib/db/local";
 import {
   getSessionState,
+  onAuthChange,
   signOut,
   startGoogleLogin,
   switchToGoogleAccount,
@@ -29,11 +30,19 @@ export function LoginButton({ next }: Props) {
 
   useEffect(() => {
     let alive = true;
-    getSessionState().then((s) => {
-      if (alive) setState(s);
-    });
+    const read = () => {
+      getSessionState().then((s) => {
+        if (alive) setState(s);
+      });
+    };
+
+    read();
+    // 購読しないと、ログアウトしてもボタンが「ログアウト」のまま残る
+    const unsubscribe = onAuthChange(read);
+
     return () => {
       alive = false;
+      unsubscribe();
     };
   }, []);
 

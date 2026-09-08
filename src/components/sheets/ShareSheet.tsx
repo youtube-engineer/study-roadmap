@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 
 import { getSiteUrl } from "@/lib/site-url";
+import { displayTitle } from "@/lib/roadmaps/title";
 
 import { Sheet } from "./Sheet";
 
@@ -130,7 +131,7 @@ export function ShareSheet({
               </div>
               <div className="flex min-w-0 flex-col justify-center gap-[0.12rem] px-3 py-2.5">
                 <div className="truncate font-serif text-[0.88rem] font-semibold leading-snug">
-                  {title}
+                  {displayTitle(title)}
                 </div>
                 <div className="text-[0.72rem] text-ink-soft">参考書{bookCount}冊のルート</div>
                 <div className="truncate font-mono text-[0.66rem] text-ink-faint">

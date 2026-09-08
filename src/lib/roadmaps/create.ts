@@ -12,7 +12,8 @@ import { newShareSlug } from "./slug";
 export function newRoadmap(): Roadmap {
   return {
     id: crypto.randomUUID(),
-    title: "新しいルート",
+    // 空で始める。見出しに「無題のルート」が薄く出るので、白紙には見えない
+    title: "",
     isPublic: false,
     shareSlug: newShareSlug(),
     tags: [],

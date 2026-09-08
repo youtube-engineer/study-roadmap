@@ -7,6 +7,7 @@ import { RakutenCredit } from "@/components/sheets/RakutenCredit";
 import { StartBlankButton } from "@/components/roadmap/StartBlankButton";
 import { copyRoadmapAction } from "@/lib/roadmaps/actions";
 import { loadSharedRoadmap } from "@/lib/roadmaps/store";
+import { displayTitle } from "@/lib/roadmaps/title";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -25,17 +26,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const by = roadmap.authorName ? `${roadmap.authorName}さんの` : "";
   const description = `${by}参考書${roadmap.items.length}冊のルート。${roadmap.tags.join("・")}`;
+  const title = displayTitle(roadmap.title);
 
   return {
-    title: roadmap.title,
+    title,
     description,
     openGraph: {
-      title: roadmap.title,
+      title,
       description,
       type: "article",
       url: `/r/${roadmap.shareSlug}`,
     },
-    twitter: { card: "summary_large_image", title: roadmap.title, description },
+    twitter: { card: "summary_large_image", title, description },
     alternates: { canonical: `/r/${roadmap.shareSlug}` },
   };
 }
@@ -51,6 +53,10 @@ export default async function SharedRoadmapPage({ params }: Props) {
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="flex items-center gap-1.5 border-b border-rule px-4 pb-2.5 pt-3">
+        {/* 他人のページなので、どこのサービスかが分かるようにする */}
+        <span className="font-serif text-[0.92rem] font-semibold tracking-[0.1em] text-ink-soft">
+          参考書ロードマップ
+        </span>
         <span className="flex-1" />
         <span className="rounded-full border border-rule px-2.5 py-[0.14em] text-[0.7rem] text-ink-faint">
           閲覧のみ
@@ -59,7 +65,7 @@ export default async function SharedRoadmapPage({ params }: Props) {
 
       <div className="px-4 pb-1 pt-4">
         <h1 className="mb-2.5 font-serif text-[1.36rem] font-semibold leading-[1.42] text-balance">
-          {roadmap.title}
+          {displayTitle(roadmap.title)}
         </h1>
 
         {/* 匿名でも共有はできる。名前が出るのはログインしている場合だけ（CLAUDE.md 13章） */}

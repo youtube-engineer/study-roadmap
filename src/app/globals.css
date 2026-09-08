@@ -10,10 +10,10 @@
    色は必ずここで定義し、コンポーネント側に生の色を書かないこと。
 --------------------------------------------------------------------------- */
 :root {
-  --paper: #eceee8;
+  --paper: #e7e9e3;
   --raised: #fbfbf8;
   --sunk: #f2f3ee;
-  --deep: #e6e8e1;
+  --deep: #dfe2da;
   --ink: #1c2028;
   --ink-soft: #58616e;
   --ink-faint: #8b93a0;
@@ -32,7 +32,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --paper: #14161b;
+    --paper: #101318;
     --raised: #1d2027;
     --sunk: #22262e;
     --deep: #171a20;
@@ -54,7 +54,7 @@
 }
 
 :root[data-theme="dark"] {
-  --paper: #14161b;
+  --paper: #101318;
   --raised: #1d2027;
   --sunk: #22262e;
   --deep: #171a20;

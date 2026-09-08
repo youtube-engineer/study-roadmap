@@ -16,6 +16,7 @@ import {
 } from "@/lib/db/local";
 import { carryLocalRoadmapsToCurrentUser } from "@/lib/roadmaps/carry";
 import { deleteRoadmapOnServer } from "@/lib/roadmaps/remove";
+import { displayTitle } from "@/lib/roadmaps/title";
 import { newRoadmap } from "@/lib/roadmaps/create";
 import type { RoadmapSummary } from "@/types/roadmap";
 
@@ -176,7 +177,7 @@ export function RoadmapList({ serverSummaries }: Props) {
               {/* 破壊的操作はカードの上に置かない。シート越しにする（CLAUDE.md 8章） */}
               <button
                 type="button"
-                aria-label={`${s.title} の設定`}
+                aria-label={`${displayTitle(s.title)} の設定`}
                 onClick={() => setConfirming(s)}
                 className="absolute right-2 top-2.5 z-10 grid h-8 w-8 place-items-center rounded-full text-ink-faint hover:bg-deep hover:text-ink-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
@@ -190,8 +191,12 @@ export function RoadmapList({ serverSummaries }: Props) {
                 className="block rounded-[12px] border border-rule bg-sunk py-3.5 pl-4 pr-12 transition-colors hover:border-rule-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
                 <div className="flex items-start gap-2">
-                  <span className="min-w-0 flex-1 font-serif text-[1.02rem] font-semibold leading-snug">
-                    {s.title}
+                  <span
+                    className={`min-w-0 flex-1 font-serif text-[1.02rem] font-semibold leading-snug ${
+                      s.title.trim() ? "" : "text-ink-faint"
+                    }`}
+                  >
+                    {displayTitle(s.title)}
                   </span>
                   {s.isPublic && (
                     <span className="mt-0.5 flex-none rounded-full bg-accent-soft px-2 py-[0.1em] text-[0.68rem] text-accent-strong">
@@ -240,7 +245,7 @@ export function RoadmapList({ serverSummaries }: Props) {
           <div className="flex flex-col gap-4 px-4 pb-5 pt-1">
             <div className="rounded-[10px] bg-sunk px-3.5 py-3">
               <div className="font-serif text-[1rem] font-semibold leading-snug">
-                {confirming.title}
+                {displayTitle(confirming.title)}
               </div>
               <div className="mt-0.5 font-mono text-[0.7rem] text-ink-faint">
                 参考書 {confirming.totalCount} 冊
@@ -272,7 +277,7 @@ export function RoadmapList({ serverSummaries }: Props) {
       </Sheet>
 
       <Toast
-        message={undoable ? `「${undoable.summary.title}」を削除した` : null}
+        message={undoable ? `「${displayTitle(undoable.summary.title)}」を削除した` : null}
         onDismiss={() => setUndoable(null)}
         durationMs={6000}
         action={{ label: "取り消す", onClick: undo }}
