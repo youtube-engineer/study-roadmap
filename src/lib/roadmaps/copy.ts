@@ -36,37 +36,6 @@ async function requireUser(
   return data.user;
 }
 
-/**
- * まっさらなロードマップを実体として作る。
- *
- * 作らずに済ませると、共有ページで「まっさらから作る」を押しても
- * ローカルに残っている前のロードマップが表示されたままになる。
- */
-export async function startBlankForCurrentUser(): Promise<string | null> {
-  const supabase = await getServerClient();
-  if (!supabase) return null;
-
-  const user = await requireUser(supabase);
-  if (!user) return null;
-
-  const { data, error } = await supabase
-    .from("roadmaps")
-    .insert({
-      owner_id: user.id,
-      title: "新しいルート",
-      share_slug: newShareSlug(),
-      is_public: false,
-    })
-    .select("id")
-    .single();
-
-  if (error) {
-    console.error("[roadmaps] まっさらの作成に失敗", error);
-    return null;
-  }
-  return data.id;
-}
-
 export async function copyRoadmapForCurrentUser(slug: string): Promise<string | null> {
   const supabase = await getServerClient();
   if (!supabase) return null;

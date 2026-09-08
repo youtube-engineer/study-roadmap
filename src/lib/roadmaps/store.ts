@@ -93,11 +93,16 @@ function toRoadmap(row: RoadmapRow, items: RoadmapItem[]): Roadmap {
   };
 }
 
-/** サーバーに存在しないものを開いたときの器。中身はローカルが埋める */
+/**
+ * サーバーに存在しないものを開いたときの器。中身はローカルが埋める。
+ *
+ * **名前は空にする。** 見出しに「無題のルート」が薄く出るので白紙には見えないし、
+ * 打ち始めたときに既に入っている文字を消す手間が要らない。
+ */
 export function placeholderRoadmap(id: string): Roadmap {
   return {
     id,
-    title: "新しいルート",
+    title: "",
     isPublic: false,
     shareSlug: newShareSlug(),
     tags: [],

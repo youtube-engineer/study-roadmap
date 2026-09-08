@@ -33,8 +33,10 @@ export function createRoadmapSync(target: SyncTarget, options: SyncOptions = {})
    *
    * 行が作られるのは最初の書き込みの瞬間で、そこまでに名前が変わっている
    * ことがある。編集画面が rememberTitle で最新の値を預けておく。
+   *
+   * 名前を付けずに1冊置いた場合は空のまま入る。表示側で「無題のルート」を補う。
    */
-  let title = "新しいルート";
+  let title = "";
 
   /**
    * roadmaps の行を用意したか。セッション内で1回だけ走らせる。
