@@ -1,5 +1,5 @@
 import { RoadmapEditor } from "@/components/roadmap/RoadmapEditor";
-import { loadRoadmap } from "@/lib/roadmaps/store";
+import { loadOwnSummaries, loadRoadmap } from "@/lib/roadmaps/store";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -11,7 +11,10 @@ type Props = { params: Promise<{ id: string }> };
  */
 export default async function EditorPage({ params }: Props) {
   const { id } = await params;
-  const { roadmap, books } = await loadRoadmap(id);
+  const [{ roadmap, books }, summaries] = await Promise.all([
+    loadRoadmap(id),
+    loadOwnSummaries(),
+  ]);
 
-  return <RoadmapEditor roadmap={roadmap} books={books} />;
+  return <RoadmapEditor roadmap={roadmap} books={books} summaries={summaries} />;
 }

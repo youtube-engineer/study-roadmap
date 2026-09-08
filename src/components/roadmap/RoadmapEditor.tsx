@@ -9,14 +9,13 @@ import { SearchSheet } from "@/components/sheets/SearchSheet";
 import { ShareSheet } from "@/components/sheets/ShareSheet";
 import { Toast } from "@/components/ui/Toast";
 import { ShareIcon } from "@/components/ui/icons";
-import Link from "next/link";
-
 import { loadLocalRoadmap, saveLocal } from "@/lib/db/local";
 import { moveItem } from "@/lib/roadmaps/reorder";
 import { createRoadmapSync } from "@/lib/roadmaps/sync";
 import { UNTITLED } from "@/lib/roadmaps/title";
-import type { Book, Roadmap, RoadmapItem } from "@/types/roadmap";
+import type { Book, Roadmap, RoadmapItem, RoadmapSummary } from "@/types/roadmap";
 
+import { RoadmapDrawer } from "./RoadmapDrawer";
 import { RouteGoal, RouteStart } from "./RouteMarkers";
 import { StaticRoute } from "./StaticRoute";
 import type { RouteListProps } from "./StaticRoute";
@@ -24,9 +23,11 @@ import type { RouteListProps } from "./StaticRoute";
 type Props = {
   roadmap: Roadmap;
   books: Book[];
+  /** ドロワーに出す一覧。サーバーにあるぶんだけで、手元のぶんは中で足す */
+  summaries: RoadmapSummary[];
 };
 
-export function RoadmapEditor({ roadmap, books: initialBooks }: Props) {
+export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props) {
   /**
    * ロードマップ1件をまるごと1つの状態として持つ。
    * IndexedDB へも丸ごと書くので、画面の状態と保存されるものが常に一致する。
@@ -106,6 +107,9 @@ export function RoadmapEditor({ roadmap, books: initialBooks }: Props) {
    */
   useEffect(() => {
     if (!hydrated) return;
+    // 開いただけで何もしていないものは残さない。
+    // 一覧が空のルートで埋まると、切り替える道具として使い物にならなくなる
+    if (doc.items.length === 0 && doc.title.trim() === "") return;
     void saveLocal({ roadmap: doc, books: Object.values(books) });
   }, [hydrated, doc, books]);
 
@@ -250,12 +254,7 @@ export function RoadmapEditor({ roadmap, books: initialBooks }: Props) {
   return (
     <div data-touch-surface className="flex min-h-dvh flex-col">
       <header className="flex items-center gap-1.5 border-b border-rule px-4 pb-2.5 pt-3">
-        <Link
-          href="/"
-          className="-ml-1 rounded-full px-2 py-1 text-[0.75rem] text-ink-soft hover:bg-sunk hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
-          ← 一覧
-        </Link>
+        <RoadmapDrawer serverSummaries={summaries} currentId={doc.id} />
         <span className="flex-1" />
         <button
           type="button"

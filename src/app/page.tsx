@@ -1,12 +1,8 @@
-import { RoadmapList } from "@/components/roadmap/RoadmapList";
+import { HomeEntry } from "@/components/roadmap/HomeEntry";
 import { loadOwnSummaries } from "@/lib/roadmaps/store";
 
-/**
- * 再訪問者が最初に見る画面（CLAUDE.md 10章）。
- * サーバーにあるぶんを渡し、手元にしか無いものは画面側で足す。
- */
 export default async function HomePage() {
   const serverSummaries = await loadOwnSummaries();
 
-  return <RoadmapList serverSummaries={serverSummaries} />;
+  return <HomeEntry serverSummaries={serverSummaries} />;
 }
