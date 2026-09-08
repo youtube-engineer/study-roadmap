@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ComponentType, FocusEvent, KeyboardEvent } from "react";
 
+import { LoginButton } from "@/components/auth/LoginButton";
 import { DetailSheet } from "@/components/sheets/DetailSheet";
 import { SearchSheet } from "@/components/sheets/SearchSheet";
 import { ShareSheet } from "@/components/sheets/ShareSheet";
@@ -265,12 +266,7 @@ export function RoadmapEditor({ roadmap, books: initialBooks }: Props) {
           共有
         </button>
         {/* ログインは強制しない。ロードマップが仕上がった時点で促す（CLAUDE.md 5章） */}
-        <button
-          type="button"
-          className="flex-none rounded-full border border-rule-strong px-3 py-1 text-[0.75rem] text-ink-soft hover:border-ink-faint hover:bg-sunk hover:text-ink"
-        >
-          ログイン
-        </button>
+        <LoginButton next={`/roadmaps/${doc.id}`} />
       </header>
 
       <div className="px-4 pb-1 pt-4">

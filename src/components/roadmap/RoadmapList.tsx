@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+import { CARRY_FLAG, LoginButton } from "@/components/auth/LoginButton";
 import { listLocal, saveLocal } from "@/lib/db/local";
+import { carryLocalRoadmapsToCurrentUser } from "@/lib/roadmaps/carry";
 import { newRoadmap } from "@/lib/roadmaps/create";
 import type { RoadmapSummary } from "@/types/roadmap";
 
@@ -29,10 +31,28 @@ export function RoadmapList({ serverSummaries }: Props) {
 
   useEffect(() => {
     let alive = true;
-    listLocal().then((local) => {
+
+    (async () => {
+      /**
+       * 別アカウントへ切り替えた直後なら、手元のぶんを新しい所有者のもとに
+       * 作り直してから一覧を出す（lib/roadmaps/carry.ts）。
+       * 先に一覧を出すと、持っていく前の状態が一瞬見えてしまう
+       */
+      if (sessionStorage.getItem(CARRY_FLAG)) {
+        sessionStorage.removeItem(CARRY_FLAG);
+        const carried = await carryLocalRoadmapsToCurrentUser();
+        if (carried > 0) {
+          // サーバー側にも増えたので、サーバーのぶんを取り直す
+          router.refresh();
+        }
+      }
+
+      const local = await listLocal();
       if (!alive) return;
+
       const byId = new Map(serverSummaries.map((s) => [s.id, s]));
       for (const s of local) byId.set(s.id, s); // 同じidならローカルが勝つ
+
       // createdAt は移行で埋めているが、読み出したものが壊れていても
       // 一覧ごと落とさない
       setSummaries(
@@ -41,11 +61,12 @@ export function RoadmapList({ serverSummaries }: Props) {
         ),
       );
       setReady(true);
-    });
+    })();
+
     return () => {
       alive = false;
     };
-  }, [serverSummaries]);
+  }, [serverSummaries, router]);
 
   const create = async () => {
     const roadmap = newRoadmap();
@@ -55,9 +76,12 @@ export function RoadmapList({ serverSummaries }: Props) {
 
   return (
     <div data-touch-surface className="flex min-h-dvh flex-col px-4 pb-10 pt-6">
-      <h1 className="mb-1 font-serif text-[1.36rem] font-semibold leading-[1.42]">
-        自分のルート
-      </h1>
+      <div className="mb-1 flex items-start gap-2">
+        <h1 className="flex-1 font-serif text-[1.36rem] font-semibold leading-[1.42]">
+          自分のルート
+        </h1>
+        <LoginButton next="/" />
+      </div>
       <p className="mb-5 text-[0.78rem] text-ink-faint">
         参考書をどの順番で進めるかを、1本の経路として組み立てます。
       </p>
