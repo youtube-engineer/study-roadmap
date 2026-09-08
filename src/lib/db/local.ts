@@ -25,8 +25,9 @@ const DB_NAME = "roadmap";
  *
  * 1 … 初版
  * 2 … Roadmap に createdAt を追加
+ * 3 … Roadmap に updatedAt を追加
  */
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 interface RoadmapDB extends DBSchema {
   roadmaps: { key: string; value: Roadmap };
@@ -54,6 +55,17 @@ function getDb() {
           for (const roadmap of await store.getAll()) {
             if (!roadmap.createdAt) {
               await store.put({ ...roadmap, createdAt: now });
+            }
+          }
+        }
+
+        // **createdAt を埋めた後に走らせること。** 逆にすると、まだ無い
+        // createdAt を読んで updatedAt が空のままになる
+        if (oldVersion >= 1 && oldVersion < 3) {
+          const store = tx.objectStore("roadmaps");
+          for (const roadmap of await store.getAll()) {
+            if (!roadmap.updatedAt) {
+              await store.put({ ...roadmap, updatedAt: roadmap.createdAt });
             }
           }
         }
@@ -88,6 +100,9 @@ function toSummary(roadmap: Roadmap): RoadmapSummary {
     totalCount: roadmap.items.length,
     doneCount: roadmap.items.filter((i) => i.isDone).length,
     createdAt: roadmap.createdAt,
+    updatedAt: roadmap.updatedAt,
+    copiedFromName: roadmap.copiedFrom?.authorName ?? null,
+    isCopy: roadmap.copiedFrom !== null,
   };
 }
 
@@ -117,7 +132,8 @@ export async function saveLocal({ roadmap, books }: LocalSnapshot): Promise<void
   await withDb(async (db) => {
     const tx = db.transaction(["roadmaps", "books"], "readwrite");
     await Promise.all([
-      tx.objectStore("roadmaps").put(roadmap),
+      // 触った時刻はここで打つ。書いた瞬間が「最後に触った時刻」そのもの
+      tx.objectStore("roadmaps").put({ ...roadmap, updatedAt: new Date().toISOString() }),
       ...books.map((book) => tx.objectStore("books").put(book)),
       tx.done,
     ]);

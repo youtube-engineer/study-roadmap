@@ -68,6 +68,12 @@ export type Roadmap = {
   copiedFrom: CopiedFrom | null;
   /** 一覧の並び順に使う。ISO文字列 */
   createdAt: string;
+  /**
+   * 最後に触った時刻。IndexedDB へ書くたびに更新される。
+   * サーバー側にはカラムを持たせていないので、他端末で作られたものには無い。
+   * その場合は createdAt で代用する。
+   */
+  updatedAt?: string;
 };
 
 /** 一覧に出すぶんだけ。中身（items）は開くまで読まない */
@@ -80,6 +86,10 @@ export type RoadmapSummary = {
   totalCount: number;
   doneCount: number;
   createdAt: string;
+  updatedAt?: string;
+  /** 他人のルートをコピーしたものか。一覧で名前の横に印を出す */
+  copiedFromName: string | null;
+  isCopy: boolean;
 };
 
 export const ROUNDS_MIN = 1;

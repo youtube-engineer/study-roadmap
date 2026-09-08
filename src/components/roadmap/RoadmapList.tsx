@@ -17,8 +17,40 @@ import {
 import { carryLocalRoadmapsToCurrentUser } from "@/lib/roadmaps/carry";
 import { deleteRoadmapOnServer } from "@/lib/roadmaps/remove";
 import { displayTitle } from "@/lib/roadmaps/title";
+import { relativeTime } from "@/lib/relative-time";
+
+import { MiniRoute } from "./MiniRoute";
 import { newRoadmap } from "@/lib/roadmaps/create";
 import type { RoadmapSummary } from "@/types/roadmap";
+
+/** 最後に触った順。触った時刻が無いもの（他端末で作られたもの）は作成日で代用する */
+function touchedAt(s: RoadmapSummary): string {
+  return s.updatedAt ?? s.createdAt ?? "";
+}
+
+function byRecency(a: RoadmapSummary, b: RoadmapSummary): number {
+  return touchedAt(b).localeCompare(touchedAt(a));
+}
+
+/** 「5冊 · 2冊終了 · 3日前」。数えるのではなく、状態が一目で読めればいい */
+function metaLine(s: RoadmapSummary): string {
+  const parts: string[] = [];
+  if (s.totalCount === 0) {
+    parts.push("まだ空");
+  } else {
+    parts.push(`${s.totalCount}冊`);
+    parts.push(
+      s.doneCount === 0
+        ? "まだ始めていない"
+        : s.doneCount === s.totalCount
+          ? "ぜんぶ終了"
+          : `${s.doneCount}冊終了`,
+    );
+  }
+  const when = relativeTime(touchedAt(s));
+  if (when) parts.push(when);
+  return parts.join(" · ");
+}
 
 type Props = {
   /** サーバー（Supabase）にあるぶん。ログイン前や未接続なら空 */
@@ -95,11 +127,7 @@ export function RoadmapList({ serverSummaries }: Props) {
       // サーバーへの削除はまだ走っていないので、手元に書き戻すだけでよい
       if (undoable.snapshot) await saveLocal(undoable.snapshot);
       const restored = undoable.summary;
-      setSummaries((prev) =>
-        [...prev, restored].sort((a, b) =>
-          (b.createdAt ?? "").localeCompare(a.createdAt ?? ""),
-        ),
-      );
+      setSummaries((prev) => [...prev, restored].sort(byRecency));
     }
     setUndoable(null);
   }, [undoable]);
@@ -130,11 +158,7 @@ export function RoadmapList({ serverSummaries }: Props) {
 
       // createdAt は移行で埋めているが、読み出したものが壊れていても
       // 一覧ごと落とさない
-      setSummaries(
-        [...byId.values()].sort((a, b) =>
-          (b.createdAt ?? "").localeCompare(a.createdAt ?? ""),
-        ),
-      );
+      setSummaries([...byId.values()].sort(byRecency));
       setReady(true);
     })();
 
@@ -171,7 +195,7 @@ export function RoadmapList({ serverSummaries }: Props) {
           </p>
         </div>
       ) : (
-        <ul className="flex flex-col gap-2.5">
+        <ul className="flex flex-col gap-0.5">
           {summaries.map((s) => (
             <li key={s.id} className="relative">
               {/* 破壊的操作はカードの上に置かない。シート越しにする（CLAUDE.md 8章） */}
@@ -179,49 +203,61 @@ export function RoadmapList({ serverSummaries }: Props) {
                 type="button"
                 aria-label={`${displayTitle(s.title)} の設定`}
                 onClick={() => setConfirming(s)}
-                className="absolute right-2 top-2.5 z-10 grid h-8 w-8 place-items-center rounded-full text-ink-faint hover:bg-deep hover:text-ink-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                className="absolute right-1 top-2 z-10 grid h-8 w-8 place-items-center rounded-full text-ink-faint hover:bg-deep hover:text-ink-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
                 <span aria-hidden="true" className="text-[1.05rem] leading-none">
                   ⋯
                 </span>
               </button>
 
+              {/*
+                左に紐の縮小版を置く。冊数とどこまで進んだかを絵のまま伝えるので、
+                開かなくても状態が読める。編集画面と同じ語彙（臙脂の紐と玉）を使う
+              */}
               <Link
                 href={`/roadmaps/${s.id}`}
-                className="block rounded-[12px] border border-rule bg-sunk py-3.5 pl-4 pr-12 transition-colors hover:border-rule-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                className="flex gap-2.5 rounded-[10px] py-2.5 pl-2 pr-11 transition-colors hover:bg-sunk focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
-                <div className="flex items-start gap-2">
-                  <span
-                    className={`min-w-0 flex-1 font-serif text-[1.02rem] font-semibold leading-snug ${
-                      s.title.trim() ? "" : "text-ink-faint"
-                    }`}
-                  >
-                    {displayTitle(s.title)}
+                <MiniRoute total={s.totalCount} done={s.doneCount} />
+
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-start gap-2">
+                    <span
+                      className={`min-w-0 flex-1 font-serif text-[0.98rem] font-semibold leading-[1.4] ${
+                        s.title.trim() ? "" : "text-ink-faint"
+                      }`}
+                    >
+                      {displayTitle(s.title)}
+                      {s.isCopy && (
+                        <span className="font-sans text-[0.76rem] font-normal text-ink-faint">
+                          {s.copiedFromName ? `（${s.copiedFromName}さんのコピー）` : "（コピー）"}
+                        </span>
+                      )}
+                    </span>
+                    {s.isPublic && (
+                      <span className="mt-0.5 flex-none rounded-full bg-accent-soft px-2 py-[0.1em] text-[0.68rem] text-accent-strong">
+                        公開中
+                      </span>
+                    )}
                   </span>
-                  {s.isPublic && (
-                    <span className="mt-0.5 flex-none rounded-full bg-accent-soft px-2 py-[0.1em] text-[0.68rem] text-accent-strong">
-                      公開中
+
+                  <span className="mt-[0.1rem] block font-mono text-[0.64rem] text-ink-faint">
+                    {metaLine(s)}
+                  </span>
+
+                  {s.tags.length > 0 && (
+                    <span className="mt-1.5 block">
+                      {s.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="mr-1.5 rounded-full bg-accent-soft px-2 py-[0.1em] text-[0.7rem] text-accent-strong"
+                        >
+                          {tag}
+                        </span>
+                      ))}
                     </span>
                   )}
-                </div>
-
-                <div className="mt-1.5 flex items-center gap-2.5">
-                  <span className="flex-1">
-                    {s.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="mr-1.5 rounded-full bg-accent-soft px-2 py-[0.1em] text-[0.7rem] text-accent-strong"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </span>
-                  <span className="flex-none font-mono text-[0.66rem] text-ink-faint">
-                    {s.totalCount === 0
-                      ? "まだ空"
-                      : `${s.doneCount}/${s.totalCount} 終了`}
-                  </span>
-                </div>
+                </span>
               </Link>
             </li>
           ))}

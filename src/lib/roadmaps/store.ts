@@ -160,6 +160,8 @@ export async function loadOwnSummaries(): Promise<RoadmapSummary[]> {
         totalCount: roadmap.items.length,
         doneCount: roadmap.items.filter((i) => i.isDone).length,
         createdAt: roadmap.createdAt,
+        copiedFromName: roadmap.copiedFrom?.authorName ?? null,
+        isCopy: roadmap.copiedFrom !== null,
       },
     ];
   }
@@ -202,6 +204,9 @@ export async function loadOwnSummaries(): Promise<RoadmapSummary[]> {
       totalCount: mine.length,
       doneCount: mine.filter((i) => i.is_done).length,
       createdAt: row.created_at,
+      // サーバーには更新時刻のカラムが無い。手元にあるものは IndexedDB 側が持つ
+      copiedFromName: row.copied_from_name,
+      isCopy: row.copied_from_title !== null,
     };
   });
 }
