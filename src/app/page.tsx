@@ -1,8 +1,12 @@
-import { RoadmapEditor } from "@/components/roadmap/RoadmapEditor";
-import { loadOwnRoadmap } from "@/lib/roadmaps/store";
+import { RoadmapList } from "@/components/roadmap/RoadmapList";
+import { loadOwnSummaries } from "@/lib/roadmaps/store";
 
-export default async function EditorPage() {
-  const { roadmap, books, source } = await loadOwnRoadmap();
+/**
+ * 再訪問者が最初に見る画面（CLAUDE.md 10章）。
+ * サーバーにあるぶんを渡し、手元にしか無いものは画面側で足す。
+ */
+export default async function HomePage() {
+  const serverSummaries = await loadOwnSummaries();
 
-  return <RoadmapEditor roadmap={roadmap} books={books} source={source} />;
+  return <RoadmapList serverSummaries={serverSummaries} />;
 }

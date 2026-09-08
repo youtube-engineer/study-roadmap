@@ -66,6 +66,20 @@ export type Roadmap = {
   /** 匿名のままでも共有はできる。名前を出すにはログインが必要（CLAUDE.md 13章） */
   authorName: string | null;
   copiedFrom: CopiedFrom | null;
+  /** 一覧の並び順に使う。ISO文字列 */
+  createdAt: string;
+};
+
+/** 一覧に出すぶんだけ。中身（items）は開くまで読まない */
+export type RoadmapSummary = {
+  id: string;
+  title: string;
+  tags: string[];
+  isPublic: boolean;
+  shareSlug: string;
+  totalCount: number;
+  doneCount: number;
+  createdAt: string;
 };
 
 export const ROUNDS_MIN = 1;

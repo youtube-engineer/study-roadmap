@@ -4,7 +4,8 @@ import { notFound } from "next/navigation";
 import { RouteGoal, RouteStart } from "@/components/roadmap/RouteMarkers";
 import { SharedStop } from "@/components/roadmap/SharedStop";
 import { RakutenCredit } from "@/components/sheets/RakutenCredit";
-import { copyRoadmapAction, startBlankAction } from "@/lib/roadmaps/actions";
+import { StartBlankButton } from "@/components/roadmap/StartBlankButton";
+import { copyRoadmapAction } from "@/lib/roadmaps/actions";
 import { loadSharedRoadmap } from "@/lib/roadmaps/store";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -126,14 +127,7 @@ export default async function SharedRoadmapPage({ params }: Props) {
           </button>
         </form>
 
-        <form action={startBlankAction}>
-          <button
-            type="submit"
-            className="mt-2 w-full py-2 text-[0.82rem] text-ink-soft underline underline-offset-[3px] hover:text-ink"
-          >
-            まっさらから作る
-          </button>
-        </form>
+        <StartBlankButton className="mt-2 w-full py-2 text-[0.82rem] text-ink-soft underline underline-offset-[3px] hover:text-ink" />
 
         <p className="mt-2 text-[0.73rem] text-ink-faint">ログインなしで、すぐに始められる</p>
       </div>

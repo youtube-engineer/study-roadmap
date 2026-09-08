@@ -8,10 +8,11 @@ import { SearchSheet } from "@/components/sheets/SearchSheet";
 import { ShareSheet } from "@/components/sheets/ShareSheet";
 import { Toast } from "@/components/ui/Toast";
 import { ShareIcon } from "@/components/ui/icons";
-import { loadLocal, saveLocal } from "@/lib/db/local";
+import Link from "next/link";
+
+import { loadLocalRoadmap, saveLocal } from "@/lib/db/local";
 import { moveItem } from "@/lib/roadmaps/reorder";
 import { createRoadmapSync } from "@/lib/roadmaps/sync";
-import type { RoadmapSource } from "@/lib/roadmaps/store";
 import type { Book, Roadmap, RoadmapItem } from "@/types/roadmap";
 
 import { RouteGoal, RouteStart } from "./RouteMarkers";
@@ -24,11 +25,9 @@ const DEFAULT_TITLE = "新しいルート";
 type Props = {
   roadmap: Roadmap;
   books: Book[];
-  /** roadmap がサーバーに実在する文書か、まだ何も無いときの仮の器か */
-  source: RoadmapSource;
 };
 
-export function RoadmapEditor({ roadmap, books: initialBooks, source }: Props) {
+export function RoadmapEditor({ roadmap, books: initialBooks }: Props) {
   /**
    * ロードマップ1件をまるごと1つの状態として持つ。
    * IndexedDB へも丸ごと書くので、画面の状態と保存されるものが常に一致する。
@@ -75,24 +74,23 @@ export function RoadmapEditor({ roadmap, books: initialBooks, source }: Props) {
   }, [doc.title]);
 
   /**
-   * 起動時にローカルとサーバーのどちらを採るかを決める。
+   * 起動時にローカルの内容で置き換える。
    *
-   * 基本はローカルが主（CLAUDE.md 5章）。ただし**無条件に勝たせてはいけない**。
-   * 共有ページから「コピーして使う」を押すと、サーバーに新しい文書ができて
-   * ここへ戻ってくる。そのときローカルを優先すると、コピーが握り潰されて
-   * 元のロードマップに戻ったように見える。
+   * URLが id を持っているので、ローカルとサーバーは**必ず同じ文書**を指す。
+   * 同じ文書ならローカルの方が新しい（操作のたびに書いているため）ので、
+   * あればローカルを採る。無ければサーバーが渡してきたものをそのまま使う。
    *
-   *   - サーバーが placeholder（まだ何も無い）→ ローカルを採る
-   *   - 同じ文書（idが一致）→ ローカルの方が新しいのでローカルを採る
-   *   - サーバーに**別の**保存済み文書がある → サーバーを採る（コピー直後がこれ）
+   * サーバーが placeholder のとき（ログイン前に作ったもの）は、そもそも
+   * サーバー側に実体が無い。それが正常な状態（CLAUDE.md 5章）。
+   *
+   * ※ 別の端末で編集したものがサーバーにある場合、ここで古いローカルが
+   *   勝ってしまう。更新時刻を見た突き合わせは未実装（14章の未決事項）。
    */
   useEffect(() => {
     let alive = true;
-    loadLocal().then((local) => {
+    loadLocalRoadmap(roadmap.id).then((local) => {
       if (!alive) return;
-      const localWins =
-        local !== null && (source === "placeholder" || local.roadmap.id === roadmap.id);
-      if (local && localWins) {
+      if (local) {
         setDoc(local.roadmap);
         setBooks(Object.fromEntries(local.books.map((b) => [b.id, b])));
       }
@@ -101,7 +99,7 @@ export function RoadmapEditor({ roadmap, books: initialBooks, source }: Props) {
     return () => {
       alive = false;
     };
-  }, [roadmap.id, source]);
+  }, [roadmap.id]);
 
   /**
    * 操作のたびに丸ごと保存する。待たせないので画面は止まらない。
@@ -251,6 +249,12 @@ export function RoadmapEditor({ roadmap, books: initialBooks, source }: Props) {
   return (
     <div data-touch-surface className="flex min-h-dvh flex-col">
       <header className="flex items-center gap-1.5 border-b border-rule px-4 pb-2.5 pt-3">
+        <Link
+          href="/"
+          className="-ml-1 rounded-full px-2 py-1 text-[0.75rem] text-ink-soft hover:bg-sunk hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          ← 一覧
+        </Link>
         <span className="flex-1" />
         <button
           type="button"

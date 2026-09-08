@@ -5,31 +5,25 @@ import { redirect } from "next/navigation";
 
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
-import { copyRoadmapForCurrentUser, startBlankForCurrentUser } from "./copy";
-import { copyRoadmap, startBlankRoadmap } from "./mock-store";
+import { copyRoadmapForCurrentUser } from "./copy";
+import { copyRoadmap } from "./mock-store";
 
+/**
+ * 共有ページからの複製。
+ *
+ * サーバー側でやる必要がある。元のロードマップを読むのも、新しい所有者のもとに
+ * 作り直すのもサーバーの仕事だから。作った先の編集画面へ送る。
+ */
 export async function copyRoadmapAction(formData: FormData) {
   const slug = String(formData.get("slug") ?? "");
 
+  let newId: string | null = null;
   if (isSupabaseConfigured()) {
-    await copyRoadmapForCurrentUser(slug);
+    newId = await copyRoadmapForCurrentUser(slug);
   } else {
-    await copyRoadmap(slug);
+    newId = (await copyRoadmap(slug))?.id ?? null;
   }
 
   revalidatePath("/");
-  redirect("/");
-}
-
-export async function startBlankAction() {
-  // 押した時点で実体を作る。作らないと、ローカルに残っている前のロードマップが
-  // そのまま表示されてしまい「まっさらから作る」が効かない
-  if (isSupabaseConfigured()) {
-    await startBlankForCurrentUser();
-  } else {
-    await startBlankRoadmap();
-  }
-
-  revalidatePath("/");
-  redirect("/");
+  redirect(newId ? `/roadmaps/${newId}` : "/");
 }

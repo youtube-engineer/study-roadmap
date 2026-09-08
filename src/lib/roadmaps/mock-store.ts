@@ -14,6 +14,7 @@ const OWN_ROADMAP: Roadmap = {
   tags: ["英検", "英検2級"],
   authorName: null,
   copiedFrom: null,
+  createdAt: "2026-08-01T00:00:00.000Z",
   items: [
     {
       id: "i1",
@@ -49,6 +50,7 @@ const SHARED_ROADMAP: Roadmap = {
   tags: ["英検", "英検準1級", "独学"],
   authorName: "ひなた",
   copiedFrom: null,
+  createdAt: "2026-07-01T00:00:00.000Z",
   items: [
     {
       id: "s1",
@@ -119,6 +121,7 @@ export async function copyRoadmap(slug: string): Promise<Roadmap | null> {
     shareSlug: crypto.randomUUID().slice(0, 6),
     tags: [...source.tags],
     authorName: null,
+    createdAt: new Date().toISOString(),
     copiedFrom: {
       roadmapId: source.shareSlug,
       title: source.title,
@@ -129,20 +132,6 @@ export async function copyRoadmap(slug: string): Promise<Roadmap | null> {
       id: crypto.randomUUID(),
       isDone: false,
     })),
-  };
-  return own;
-}
-
-export async function startBlankRoadmap(): Promise<Roadmap> {
-  own = {
-    id: crypto.randomUUID(),
-    title: "新しいルート",
-    isPublic: false,
-    shareSlug: crypto.randomUUID().slice(0, 6),
-    tags: [],
-    authorName: null,
-    copiedFrom: null,
-    items: [],
   };
   return own;
 }
