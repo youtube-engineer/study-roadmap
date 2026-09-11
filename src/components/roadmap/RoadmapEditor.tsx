@@ -319,22 +319,8 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
         )}
 
         <div className="flex items-center gap-2.5">
-          <div className="flex min-w-0 flex-1 flex-wrap gap-1.5">
-            {doc.tags.map((tag) => (
-              <span
-                key={tag}
-                className="rounded-full border border-transparent bg-accent-soft px-2.5 py-[0.12em] text-[0.72rem] text-accent-strong"
-              >
-                {tag}
-              </span>
-            ))}
-            <button
-              type="button"
-              className="rounded-full border border-dashed border-rule-strong px-2.5 py-[0.12em] text-[0.72rem] text-ink-faint hover:border-ink-faint hover:text-ink-soft"
-            >
-              ＋ タグ
-            </button>
-          </div>
+          {/* タグは今は出さない。テーブルと型は残してあるので、使うときに戻す */}
+          <span className="flex-1" />
           <span className="flex-none font-mono text-[0.66rem] text-ink-faint">
             {doneCount}/{items.length} 終了
           </span>

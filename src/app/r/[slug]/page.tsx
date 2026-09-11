@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { roadmap } = loaded;
 
   const by = roadmap.authorName ? `${roadmap.authorName}さんの` : "";
-  const description = `${by}参考書${roadmap.items.length}冊のルート。${roadmap.tags.join("・")}`;
+  const description = `${by}参考書${roadmap.items.length}冊のルート。`;
   const title = displayTitle(roadmap.title);
 
   return {
@@ -82,16 +82,8 @@ export default async function SharedRoadmapPage({ params }: Props) {
         )}
 
         <div className="flex items-center gap-2.5">
-          <div className="flex min-w-0 flex-1 flex-wrap gap-1.5">
-            {roadmap.tags.map((tag) => (
-              <span
-                key={tag}
-                className="rounded-full bg-accent-soft px-2.5 py-[0.12em] text-[0.72rem] text-accent-strong"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
+          {/* タグは今は出さない。テーブルと型は残してあるので、使うときに戻す */}
+          <span className="flex-1" />
           <span className="flex-none font-mono text-[0.66rem] text-ink-faint">
             参考書 {roadmap.items.length} 冊
           </span>
