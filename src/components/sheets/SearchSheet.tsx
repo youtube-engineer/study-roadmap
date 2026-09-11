@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { BookCover } from "@/components/ui/BookCover";
 import { SearchIcon } from "@/components/ui/icons";
+import { hueFromTitle } from "@/lib/books/hue";
 import type { Book } from "@/types/roadmap";
 
 import { RakutenCredit } from "./RakutenCredit";
@@ -25,13 +26,17 @@ export function SearchSheet({ open, onClose, onPick, present }: Props) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Book[]>([]);
   const [status, setStatus] = useState<Status>("idle");
+  const [manualAuthor, setManualAuthor] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   // 開いた瞬間に入力を空へ戻す（レンダー中に前回値と比べる）
   const [wasOpen, setWasOpen] = useState(open);
   if (open !== wasOpen) {
     setWasOpen(open);
-    if (open) setQuery("");
+    if (open) {
+      setQuery("");
+      setManualAuthor("");
+    }
   }
 
   // フォーカスはReactの外側の操作なので副作用でよい。
@@ -74,6 +79,31 @@ export function SearchSheet({ open, onClose, onPick, present }: Props) {
     };
   }, [open, query]);
 
+  /**
+   * 市販されていない教材を手で追加する。
+   *
+   * 検索を行き止まりにしない。塾のプリントや自作ノートも経路に置けるように
+   * することで、実際の学習に即したルートが組める（画面設計 05）。
+   * 表紙は無いので、書名から作った色帯で代替する。
+   */
+  const addManual = () => {
+    const title = query.trim();
+    if (!title) return;
+    onPick({
+      id: crypto.randomUUID(),
+      isbn: null,
+      source: "manual",
+      title,
+      author: manualAuthor.trim(),
+      publishedYear: null,
+      coverImageUrl: null,
+      sourceUrl: null,
+      hue: hueFromTitle(title),
+    });
+  };
+
+  const nothingFound = status === "ok" && results.length === 0 && query.trim() !== "";
+
   return (
     <Sheet open={open} onClose={onClose} title="参考書をさがす">
       <div className="mx-4 flex items-center gap-2 rounded-[10px] border border-rule bg-sunk px-2.5 py-2 focus-within:border-accent">
@@ -94,12 +124,48 @@ export function SearchSheet({ open, onClose, onPick, present }: Props) {
             detail="通信の状態を確かめて、もう一度お試しください。"
           />
         ) : status === "error" ? (
-          <Notice
-            title="検索できませんでした"
-            detail="しばらくしてからもう一度お試しください。"
-          />
-        ) : results.length === 0 && status === "ok" ? (
-          <Notice title="見つかりませんでした" detail="手で入力して追加することもできます" />
+          <Notice title="検索できませんでした" detail="しばらくしてからもう一度お試しください。" />
+        ) : nothingFound ? (
+          <div className="flex flex-col gap-3.5 px-2 pb-1 pt-4">
+            <p className="text-[0.86rem] leading-[1.8] text-ink-soft">
+              見つかりませんでした。
+              <br />
+              <span className="text-[0.78rem] text-ink-faint">
+                市販されていない教材は、手で書いて追加できます。
+              </span>
+            </p>
+
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[0.76rem] font-medium text-ink-soft">教材名</span>
+              <div className="rounded-[9px] border border-rule bg-sunk px-3 py-2 text-[0.86rem]">
+                {query.trim()}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="manual-author"
+                className="text-[0.76rem] font-medium text-ink-soft"
+              >
+                出版社・作った人（任意）
+              </label>
+              <input
+                id="manual-author"
+                value={manualAuthor}
+                onChange={(e) => setManualAuthor(e.target.value)}
+                placeholder="〇〇ゼミ"
+                className="rounded-[9px] border border-rule bg-sunk px-3 py-2 text-[0.86rem] text-ink outline-none placeholder:text-ink-faint focus:border-accent"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={addManual}
+              className="w-full rounded-[10px] bg-accent px-4 py-2.5 text-[0.88rem] font-medium text-white hover:bg-accent-strong"
+            >
+              この教材を追加する
+            </button>
+          </div>
         ) : (
           results.map((book) => (
             <ResultRow
@@ -129,6 +195,20 @@ function Notice({ title, detail }: { title: string; detail: string }) {
   );
 }
 
+/** 「旺文社・2024・楽天ブックス」。どこから来た情報かを隠さない */
+function sourceLabel(book: Book): string {
+  switch (book.source) {
+    case "rakuten":
+      return "楽天ブックス";
+    case "openbd":
+      return "openBD";
+    case "manual":
+      return "手入力";
+    default:
+      return "";
+  }
+}
+
 function ResultRow({
   book,
   added,
@@ -138,41 +218,65 @@ function ResultRow({
   added: boolean;
   onPick: () => void;
 }) {
+  const label = sourceLabel(book);
+  const meta = [book.author, book.publishedYear].filter(Boolean).join("・");
+
   return (
-    <div className="flex items-center gap-2.5 border-b border-rule px-3 py-2.5 last:border-b-0">
-      <button
-        type="button"
-        onClick={onPick}
-        disabled={added}
-        className="flex min-w-0 flex-1 items-center gap-2.5 text-left disabled:cursor-default disabled:opacity-50"
+    // 行をタップすればそのまま末尾に入る（画面設計 04）。
+    // 出典のリンクだけは押しても追加されないよう、伝播を止める
+    <div
+      role="button"
+      tabIndex={added ? undefined : 0}
+      aria-disabled={added}
+      onClick={added ? undefined : onPick}
+      onKeyDown={
+        added
+          ? undefined
+          : (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onPick();
+              }
+            }
+      }
+      className={`flex items-center gap-2.5 border-b border-rule px-3 py-2.5 text-left last:border-b-0 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent ${
+        added ? "opacity-50" : "cursor-pointer hover:bg-sunk"
+      }`}
+    >
+      <BookCover book={book} size="sm" />
+
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[0.86rem]">{book.title}</span>
+        <span className="block font-mono text-[0.66rem] text-ink-faint">
+          {meta}
+          {meta && label ? "・" : ""}
+          {/*
+            楽天ウェブサービス規約 第8条4項。ウェブサービスを使っているこの画面には
+            楽天サイトへのリンクを置き、楽天以外へのリンクは置かない
+          */}
+          {book.sourceUrl ? (
+            <a
+              href={book.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="underline underline-offset-2 hover:text-ink-soft"
+            >
+              {label}
+            </a>
+          ) : (
+            label
+          )}
+        </span>
+      </span>
+
+      <span
+        className={`flex-none rounded-full px-2 py-[0.16em] text-[0.71rem] ${
+          added ? "bg-sunk text-ink-faint" : "bg-accent-soft text-accent-strong"
+        }`}
       >
-        <BookCover book={book} size="sm" />
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-[0.86rem]">{book.title}</span>
-          <span className="block text-[0.71rem] text-ink-faint">
-            {[book.author, book.publishedYear].filter(Boolean).join("・")}
-          </span>
-        </span>
-        <span
-          className={`flex-none rounded-full px-2 py-[0.16em] text-[0.71rem] ${
-            added ? "bg-sunk text-ink-faint" : "bg-accent-soft text-accent-strong"
-          }`}
-        >
-          {added ? "追加済み" : "追加"}
-        </span>
-      </button>
-      {/* 楽天ウェブサービス規約 第8条4項: この画面には楽天サイトへのリンクを置き、
-          楽天以外へのリンクは置かない */}
-      {book.sourceUrl && (
-        <a
-          href={book.sourceUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex-none text-[0.68rem] text-ink-faint underline underline-offset-2 hover:text-ink-soft"
-        >
-          楽天ブックス
-        </a>
-      )}
+        {added ? "追加済み" : "追加"}
+      </span>
     </div>
   );
 }

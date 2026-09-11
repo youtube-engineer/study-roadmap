@@ -15,10 +15,35 @@ import { createRoadmapSync } from "@/lib/roadmaps/sync";
 import { UNTITLED } from "@/lib/roadmaps/title";
 import type { Book, Roadmap, RoadmapItem, RoadmapSummary } from "@/types/roadmap";
 
+import { CompletionSheet } from "./CompletionSheet";
 import { RoadmapDrawer } from "./RoadmapDrawer";
 import { RouteGoal, RouteStart } from "./RouteMarkers";
 import { StaticRoute } from "./StaticRoute";
 import type { RouteListProps } from "./StaticRoute";
+
+/**
+ * 走りきった知らせを出したか。ルートごとに覚える。
+ * 印を付け直すたびに祝われると鬱陶しいので、一度きりにする。
+ */
+function completionKey(roadmapId: string): string {
+  return `completed:${roadmapId}`;
+}
+
+function seenCompletion(roadmapId: string): boolean {
+  try {
+    return localStorage.getItem(completionKey(roadmapId)) !== null;
+  } catch {
+    return false;
+  }
+}
+
+function rememberCompletion(roadmapId: string): void {
+  try {
+    localStorage.setItem(completionKey(roadmapId), "1");
+  } catch {
+    /* 覚えられなくても動作は変わらない */
+  }
+}
 
 type Props = {
   roadmap: Roadmap;
@@ -42,6 +67,32 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
   const [shareOpen, setShareOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+
+  /** 外したものの控え。猶予のあいだだけ持つ */
+  const [removed, setRemoved] = useState<{ item: RoadmapItem; index: number } | null>(null);
+  /**
+   * 猶予中の削除。**確定させる関数そのものを控える。**
+   * 後片付けから sync を辿ろうとすると、参照を持ち回る羽目になる
+   */
+  const pendingRemove = useRef<{
+    flush: () => void;
+    timer: ReturnType<typeof setTimeout>;
+  } | null>(null);
+
+  /** 走りきった瞬間に出す（画面設計 08） */
+  const [completed, setCompleted] = useState(false);
+
+  /** 猶予のあいだに画面を離れたら、その場でサーバーからも消す */
+  useEffect(
+    () => () => {
+      if (pendingRemove.current) {
+        clearTimeout(pendingRemove.current.timer);
+        pendingRemove.current.flush();
+        pendingRemove.current = null;
+      }
+    },
+    [],
+  );
 
   const items = doc.items;
   const isPublic = doc.isPublic;
@@ -155,8 +206,19 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
         items: d.items.map((i) => (i.id === itemId ? { ...i, isDone } : i)),
       }));
       void sync.patchItem(itemId, { isDone });
+
+      /**
+       * 全部終わった瞬間は誇りが最大化する一点なので、そこで共有を勧める
+       * （画面設計 08）。一度出したら同じルートでは出さない——
+       * 印を付け直すたびに祝われると鬱陶しい
+       */
+      const nowAllDone = isDone && items.every((i) => i.id === itemId || i.isDone);
+      if (nowAllDone && items.length > 0 && !seenCompletion(doc.id)) {
+        rememberCompletion(doc.id);
+        setCompleted(true);
+      }
     },
-    [items, sync],
+    [items, sync, doc.id],
   );
 
   const reorder = useCallback(
@@ -198,15 +260,48 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
     [items, sync],
   );
 
+  /**
+   * ルートから外す。
+   *
+   * **サーバーへの削除だけを数秒遅らせる**（ロードマップの削除と同じ作り）。
+   * 取り消されたら元の位置へ戻すだけで済み、消えたものを作り直す経路が要らない。
+   * 確認では止めない——まず実行して数秒だけ戻せる形にする（画面設計 09）。
+   */
   const removeItem = useCallback(
     (itemId: string) => {
+      const index = items.findIndex((i) => i.id === itemId);
+      const item = items[index];
+      if (!item) return;
+
       setDoc((d) => ({ ...d, items: d.items.filter((i) => i.id !== itemId) }));
-      void sync.removeItem(itemId);
-      // TODO(未確定): 削除後に数秒「取り消す」を出す（CLAUDE.md 13章）
-      setToast("ルートから外した。");
+      setRemoved({ item, index });
+
+      const flush = () => void sync.removeItem(itemId);
+      const timer = setTimeout(() => {
+        pendingRemove.current = null;
+        setRemoved(null);
+        flush();
+      }, 6000);
+      pendingRemove.current = { flush, timer };
     },
-    [sync],
+    [items, sync],
   );
+
+  const undoRemove = useCallback(() => {
+    if (pendingRemove.current) {
+      clearTimeout(pendingRemove.current.timer);
+      pendingRemove.current = null;
+    }
+    if (removed) {
+      // 元の位置へ戻す。並び順のキーはそのままなので、次の保存で辻褄が合う
+      setDoc((d) => {
+        const next = [...d.items];
+        next.splice(Math.min(removed.index, next.length), 0, removed.item);
+        return { ...d, items: next };
+      });
+    }
+    setRemoved(null);
+  }, [removed]);
 
   const changePublic = useCallback(
     (next: boolean) => {
@@ -371,6 +466,23 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
       </div>
 
       <Toast message={toast} onDismiss={() => setToast(null)} />
+
+      <Toast
+        message={
+          removed ? `「${books[removed.item.bookId]?.title ?? "参考書"}」を外した` : null
+        }
+        onDismiss={() => setRemoved(null)}
+        durationMs={6000}
+        action={{ label: "取り消す", onClick: undoRemove }}
+      />
+
+      <CompletionSheet
+        open={completed}
+        onClose={() => setCompleted(false)}
+        count={items.length}
+        onShare={() => setShareOpen(true)}
+        next={`/roadmaps/${doc.id}`}
+      />
 
       <SearchSheet
         open={searchOpen}
