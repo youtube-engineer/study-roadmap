@@ -115,10 +115,12 @@ export function LoginButton({ next }: Props) {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const login = params.get("login");
+    const reason = params.get("reason");
     if (!login) return;
 
     // 戻る操作で同じ処理が再び走らないよう、URLから消しておく
     params.delete("login");
+    params.delete("reason");
     const rest = params.toString();
     window.history.replaceState(null, "", window.location.pathname + (rest ? `?${rest}` : ""));
 
@@ -130,13 +132,14 @@ export function LoginButton({ next }: Props) {
         return;
       }
 
-      if (login === "cancelled") {
-        // 本人がGoogleの画面でやめただけ。失敗として騒がない
-        return;
-      }
-
       if (login !== "taken") {
-        setToast("ログインできませんでした");
+        /**
+         * **理由を隠さない。** access_denied は「本人がやめた」ことも
+         * 「Google側に拒否された」（同意画面がテスト中で、そのアカウントが
+         * テストユーザーに入っていない等）ことも意味する。黙って引き下がると
+         * 何が起きたのか分からなくなる。
+         */
+        setToast(reason ? `ログインできませんでした（${reason}）` : "ログインできませんでした");
         return;
       }
 
@@ -169,7 +172,8 @@ export function LoginButton({ next }: Props) {
       await startGoogleLogin(next);
     } catch (e) {
       console.error("[login]", e);
-      setToast("ログインできませんでした");
+      const detail = e instanceof Error ? e.message.slice(0, 60) : "";
+      setToast(detail ? `ログインを開始できません（${detail}）` : "ログインを開始できません");
     }
   }, [next]);
 

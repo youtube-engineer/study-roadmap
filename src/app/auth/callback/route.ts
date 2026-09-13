@@ -41,12 +41,13 @@ export async function GET(request: NextRequest) {
   const errorCode = url.searchParams.get("error_code") ?? url.searchParams.get("error");
 
   if (errorDescription || errorCode) {
-    // 本人が Google の画面で「キャンセル」したときは失敗として扱わない
-    const cancelled = `${errorCode ?? ""}`.toLowerCase().includes("access_denied");
     target.searchParams.set(
       "login",
-      cancelled ? "cancelled" : isAlreadyLinked(errorDescription, errorCode) ? "taken" : "failed",
+      isAlreadyLinked(errorDescription, errorCode) ? "taken" : "failed",
     );
+    // **理由を画面まで持っていく。** 出さないと「ログインできない」としか
+    // 分からず、原因の切り分けができない
+    target.searchParams.set("reason", (errorCode ?? "unknown").slice(0, 60));
     console.warn("[auth/callback]", errorCode, errorDescription);
     return NextResponse.redirect(target);
   }
@@ -74,6 +75,7 @@ export async function GET(request: NextRequest) {
   if (error) {
     console.error("[auth/callback] exchange", error.message);
     target.searchParams.set("login", isAlreadyLinked(error.message, null) ? "taken" : "failed");
+    target.searchParams.set("reason", error.message.slice(0, 60));
     return NextResponse.redirect(target);
   }
 
