@@ -28,18 +28,32 @@ export type SessionState = {
   email: string | null;
 };
 
+const EMPTY: SessionState = { signedIn: false, anonymous: true, email: null };
+
 export async function getSessionState(): Promise<SessionState> {
   const supabase = getBrowserClient();
-  if (!supabase) return { signedIn: false, anonymous: false, email: null };
+  if (!supabase) return EMPTY;
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return { signedIn: false, anonymous: false, email: null };
+  if (!user) return EMPTY;
+
+  /**
+   * **is_anonymous を信用しない。**
+   *
+   * linkIdentity() で昇格しても、手元にあるトークンは発行時のまま
+   * `is_anonymous: true` を主張し続ける（更新されるまで古い claim が残る）。
+   * それを見て判定すると、ログインしてもボタンが「ログイン」のまま残る。
+   *
+   * 紐づいた identity があるかどうかで見る。匿名ユーザーは identity を持たない。
+   */
+  const linked = (user.identities ?? []).length > 0;
+
   return {
     signedIn: true,
-    anonymous: Boolean(user.is_anonymous),
+    anonymous: !linked,
     email: user.email ?? null,
   };
 }
@@ -60,7 +74,10 @@ export async function startGoogleLogin(next: string): Promise<void> {
 
   const options = { redirectTo: callbackUrl(next) };
 
-  if (user?.is_anonymous) {
+  // 匿名かどうかは identity の有無で見る（is_anonymous は古いままのことがある）
+  const anonymous = user !== null && (user.identities ?? []).length === 0;
+
+  if (anonymous) {
     const { error } = await supabase.auth.linkIdentity({ provider: "google", options });
     if (error) throw error;
     return;

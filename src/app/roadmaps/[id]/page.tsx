@@ -16,5 +16,11 @@ export default async function EditorPage({ params }: Props) {
     loadOwnSummaries(),
   ]);
 
-  return <RoadmapEditor roadmap={roadmap} books={books} summaries={summaries} />;
+  /*
+    key を付けて、別のルートへ移ったら作り直させる。
+    同じ経路のまま id だけ変わると React はコンポーネントを使い回すので、
+    useState の初期値が更新されず**前のルートの内容が残る**。
+    「新しく作ったのに他人のルートの表示が出る」のはこれだった。
+  */
+  return <RoadmapEditor key={id} roadmap={roadmap} books={books} summaries={summaries} />;
 }
