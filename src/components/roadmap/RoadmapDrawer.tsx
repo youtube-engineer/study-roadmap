@@ -4,7 +4,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-import { CARRY_FLAG } from "@/components/auth/LoginButton";
+import {
+  CARRY_FLAG,
+  CARRY_RETURN_ID,
+  SWITCH_ATTEMPTED,
+} from "@/components/auth/LoginButton";
 import { Sheet } from "@/components/sheets/Sheet";
 import { Toast } from "@/components/ui/Toast";
 import {
@@ -86,12 +90,27 @@ export function RoadmapDrawer({ serverSummaries, currentId }: Props) {
     let alive = true;
 
     (async () => {
-      // 別アカウントへ切り替えた直後なら、手元のぶんを新しい所有者のもとに
-      // 作り直してから一覧を出す（lib/roadmaps/carry.ts）
+      /**
+       * 別アカウントへ切り替えた直後なら、手元のぶんを新しい所有者のもとに
+       * 作り直してから一覧を出す（lib/roadmaps/carry.ts）。
+       * 先に一覧を出すと、持っていく前の状態が一瞬見えてしまう
+       */
       if (sessionStorage.getItem(CARRY_FLAG)) {
         sessionStorage.removeItem(CARRY_FLAG);
-        const carried = await carryLocalRoadmapsToCurrentUser();
+        sessionStorage.removeItem(SWITCH_ATTEMPTED);
+
+        const { carried, moved } = await carryLocalRoadmapsToCurrentUser();
         if (carried > 0) router.refresh();
+
+        // 切り替える前に開いていたルートの移動先へ送る。
+        // 何も言わずに別のルートが表示されるのを避ける
+        const returnId = sessionStorage.getItem(CARRY_RETURN_ID);
+        sessionStorage.removeItem(CARRY_RETURN_ID);
+        const destination = returnId ? moved.get(returnId) : undefined;
+        if (destination) {
+          router.replace(`/roadmaps/${destination}`);
+          return;
+        }
       }
 
       const local = await listLocal();

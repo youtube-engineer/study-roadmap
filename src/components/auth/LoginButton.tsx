@@ -23,6 +23,12 @@ export const CARRY_FLAG = "carryAfterSignIn";
 export const SWITCH_ATTEMPTED = "loginSwitchAttempted";
 
 /**
+ * 切り替える前に開いていたルート。
+ * 持ち込みでidが変わるので、戻ってきたときに追いかけるために控えておく。
+ */
+export const CARRY_RETURN_ID = "carryReturnRoadmapId";
+
+/**
  * 切り替えの説明を一度見たか。
  *
  * localStorage に置く。sessionStorage だとタブを閉じるたびに初回に戻り、
@@ -86,9 +92,15 @@ export function LoginButton({ next }: Props) {
     remember(SEEN_SWITCH_NOTICE);
     sessionStorage.setItem(SWITCH_ATTEMPTED, "1");
     sessionStorage.setItem(CARRY_FLAG, "1");
+
+    // 開いていたルートを控える。持ち込みでidが変わるので、
+    // 戻り先を `next` のURLに固定できない
+    const current = /^\/roadmaps\/([^/?#]+)/.exec(next)?.[1];
+    if (current) sessionStorage.setItem(CARRY_RETURN_ID, current);
+
     setConflict(false);
     await switchToGoogleAccount("/");
-  }, []);
+  }, [next]);
 
   /**
    * 昇格（linkIdentity）が「既に別のユーザーに紐づいている」で失敗すると

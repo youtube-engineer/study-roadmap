@@ -605,6 +605,15 @@ supabase/migrations/        スキーマ・RLS・GRANT。preview と本番の両
 13章の「取り消し」はロードマップの削除についてはこれで解決。**参考書をルートから
 外したときはまだ取り消せない**（同じ作りにできるはず）。
 
+### OAuthのコールバックはCookieを自分でレスポンスに載せる
+
+`next/headers` の `cookies()` に書いても、**Route Handler 内で自分が作った
+`NextResponse` には乗らない。** 乗らないままリダイレクトすると、交換は成功して
+いるのにセッションが残らない——「ログインできない」の形で現れる。
+
+交換中に渡されるCookieを溜めておき、返すレスポンスへ明示的に `set` すること
+（`app/auth/callback/route.ts`）。
+
 ### ログイン済みかどうかを is_anonymous で判定しない
 
 `linkIdentity()` で昇格しても、**手元にあるトークンは発行時のまま

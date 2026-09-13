@@ -39,17 +39,25 @@ async function persistBook(book: Book): Promise<string | null> {
   }
 }
 
-export async function carryLocalRoadmapsToCurrentUser(): Promise<number> {
+export type CarryResult = {
+  /** 持ち込んだ本数 */
+  carried: number;
+  /** 元のid → 新しいid。持ち込みでidが変わるので、開いていた画面を追う手がかりになる */
+  moved: Map<string, string>;
+};
+
+export async function carryLocalRoadmapsToCurrentUser(): Promise<CarryResult> {
+  const empty: CarryResult = { carried: 0, moved: new Map() };
   const supabase = getBrowserClient();
-  if (!supabase) return 0;
+  if (!supabase) return empty;
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return 0;
+  if (!user) return empty;
 
   const summaries = await listLocal();
-  if (summaries.length === 0) return 0;
+  if (summaries.length === 0) return empty;
 
   /**
    * 既に自分のものとしてサーバーにあるぶんは持ち込まない。
@@ -74,6 +82,7 @@ export async function carryLocalRoadmapsToCurrentUser(): Promise<number> {
   }
 
   let carried = 0;
+  const moved = new Map<string, string>();
 
   for (const summary of summaries) {
     if (alreadyMine.has(summary.id)) continue;
@@ -151,8 +160,9 @@ export async function carryLocalRoadmapsToCurrentUser(): Promise<number> {
       books: local.books,
     });
     await deleteLocalRoadmap(local.roadmap.id);
+    moved.set(local.roadmap.id, newId);
     carried += 1;
   }
 
-  return carried;
+  return { carried, moved };
 }
