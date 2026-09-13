@@ -75,3 +75,18 @@ export function GripIcon({ size = 15, className }: IconProps) {
     </svg>
   );
 }
+
+export function PersonIcon({ size = 14, className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} className={className} aria-hidden="true">
+      <circle cx="12" cy="8" r="3.6" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        d="M4.8 20a7.2 7.2 0 0114.4 0"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}

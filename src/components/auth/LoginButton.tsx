@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { Sheet } from "@/components/sheets/Sheet";
 import { Toast } from "@/components/ui/Toast";
+import { PersonIcon } from "@/components/ui/icons";
 import { listLocal } from "@/lib/db/local";
 import {
   getSessionState,
@@ -58,6 +59,7 @@ export function LoginButton({ next }: Props) {
   const [toast, setToast] = useState<string | null>(null);
   const [conflict, setConflict] = useState(false);
   const [localCount, setLocalCount] = useState(0);
+  const [account, setAccount] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -162,17 +164,69 @@ export function LoginButton({ next }: Props) {
   }, [router]);
 
   const loggedIn = Boolean(state?.signedIn && !state.anonymous);
+  const initial = state?.email?.trim()?.[0]?.toUpperCase() ?? null;
 
   return (
     <>
-      <button
-        type="button"
-        onClick={loggedIn ? logout : login}
-        title={state?.email ?? undefined}
-        className="flex-none rounded-full border border-rule-strong px-3 py-1 text-[0.75rem] text-ink-soft hover:border-ink-faint hover:bg-sunk hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-      >
-        {loggedIn ? "ログアウト" : "ログイン"}
-      </button>
+      {/*
+        ログイン中かどうかは**見れば分かる形**にする。ボタンの文字が
+        「ログイン」か「ログアウト」かの違いだけだと、どちらの状態なのか
+        読み取るのに一拍かかる。
+      */}
+      {state === null ? (
+        // 判定が終わるまでの場所取り。文字が入れ替わってちらつくのを避ける
+        <span
+          aria-hidden="true"
+          className="h-7 w-7 flex-none rounded-full border border-rule"
+        />
+      ) : loggedIn ? (
+        <button
+          type="button"
+          onClick={() => setAccount(true)}
+          aria-label="アカウント"
+          title={state?.email ?? undefined}
+          className="grid h-7 w-7 flex-none place-items-center rounded-full bg-accent-soft text-[0.72rem] font-bold text-accent-strong hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          {initial ?? <PersonIcon size={13} />}
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={login}
+          className="flex-none rounded-full border border-rule-strong px-3 py-1 text-[0.75rem] text-ink-soft hover:border-ink-faint hover:bg-sunk hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          ログイン
+        </button>
+      )}
+
+      <Sheet open={account} onClose={() => setAccount(false)} title="アカウント">
+        <div className="flex flex-col gap-4 px-4 pb-5 pt-1">
+          <div className="flex items-center gap-2.5 rounded-[10px] bg-sunk px-3.5 py-3">
+            <span className="grid h-8 w-8 flex-none place-items-center rounded-full bg-accent-soft text-[0.8rem] font-bold text-accent-strong">
+              {initial ?? <PersonIcon size={15} />}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[0.86rem]">
+                {state?.email ?? "Googleアカウント"}
+              </span>
+              <span className="block text-[0.72rem] text-ink-faint">
+                ルートは端末を変えても残ります
+              </span>
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setAccount(false);
+              void logout();
+            }}
+            className="w-full rounded-[10px] border border-rule-strong px-4 py-2.5 text-[0.86rem] text-ink-soft hover:border-thread hover:text-thread"
+          >
+            ログアウト
+          </button>
+        </div>
+      </Sheet>
 
       <Sheet
         open={conflict}
