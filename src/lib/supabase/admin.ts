@@ -16,7 +16,10 @@ import type { Database } from "./database.types";
  * 使うとアクセス制御がRLSから漏れてアプリ側に散る。
  */
 export function getAdminClient() {
-  const secret = process.env.SUPABASE_SECRET_KEY;
+  // Vercel の Supabase 連携が入れる名前（SUPABASE_SERVICE_ROLE_KEY）も受ける。
+  // 同じ鍵を2つの名前で置かせるのは、片方を更新し忘れる事故のもとなので
+  const secret =
+    process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!SUPABASE_URL || !secret) return null;
 
   return createClient<Database>(SUPABASE_URL, secret, {
