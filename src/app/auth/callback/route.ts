@@ -30,10 +30,12 @@ export async function GET(request: Request) {
 
   if (errorDescription || errorCode) {
     // 昇格に失敗した理由で分岐する。「既に紐づいている」だけは
-    // ユーザーに選ばせる余地があるので、画面側で確認を出す
+    // ユーザーに選ばせる余地があるので、画面側で確認を出す。
+    // 本人が Google の画面で「キャンセル」したときは失敗として扱わない
+    const cancelled = `${errorCode ?? ""}`.toLowerCase().includes("access_denied");
     target.searchParams.set(
       "login",
-      isAlreadyLinked(errorDescription, errorCode) ? "taken" : "failed",
+      cancelled ? "cancelled" : isAlreadyLinked(errorDescription, errorCode) ? "taken" : "failed",
     );
     console.warn("[auth/callback]", errorCode, errorDescription);
     return NextResponse.redirect(target);

@@ -63,7 +63,10 @@ export function LoginButton({ next }: Props) {
     let alive = true;
     const read = () => {
       getSessionState().then((s) => {
-        if (alive) setState(s);
+        if (!alive) return;
+        setState(s);
+        // ログインが通ったらガードは役目を終えている
+        if (s.signedIn && !s.anonymous) sessionStorage.removeItem(SWITCH_ATTEMPTED);
       });
     };
 
@@ -108,6 +111,11 @@ export function LoginButton({ next }: Props) {
     // 分岐はすべて副作用の外（マイクロタスク）へ寄せる。
     // 効果の本体で直接 setState するとレンダーが連鎖する
     void Promise.resolve().then(async () => {
+      if (login === "cancelled") {
+        // 本人がGoogleの画面でやめただけ。失敗として騒がない
+        return;
+      }
+
       if (login !== "taken") {
         setToast("ログインできませんでした");
         return;
@@ -132,6 +140,12 @@ export function LoginButton({ next }: Props) {
   }, [startSwitch]);
 
   const login = useCallback(async () => {
+    /**
+     * 往復を防ぐガードは**1回のログイン操作の中でだけ**効かせる。
+     * 押すたびに消さないと、一度キャンセルしただけで以降ずっと
+     * 「ログインできませんでした」が出続ける。
+     */
+    sessionStorage.removeItem(SWITCH_ATTEMPTED);
     try {
       await startGoogleLogin(next);
     } catch (e) {
