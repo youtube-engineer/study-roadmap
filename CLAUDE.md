@@ -605,6 +605,15 @@ supabase/migrations/        スキーマ・RLS・GRANT。preview と本番の両
 13章の「取り消し」はロードマップの削除についてはこれで解決。**参考書をルートから
 外したときはまだ取り消せない**（同じ作りにできるはず）。
 
+### 環境変数は「空文字」で存在しうる
+
+`??` は null / undefined のときしか代替に切り替わらない。Vercel では
+**名前だけ作られて値が空**という状態が普通に起きる（連携が作る変数、
+手で追加して値を入れ忘れた変数）。`??` で繋ぐと空の鍵をそのまま送ってしまい、
+Supabase が `Invalid API key`（401）を返す。実際にこれで半日溶けた。
+
+`lib/supabase/config.ts` の `firstNonEmpty` を通すこと。
+
 ### OAuthのコールバックはCookieを自分でレスポンスに載せる
 
 `next/headers` の `cookies()` に書いても、**Route Handler 内で自分が作った
