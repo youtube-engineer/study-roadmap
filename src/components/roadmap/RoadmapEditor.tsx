@@ -335,12 +335,21 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
     [sync],
   );
 
-  /** 名前は1行。Enter で改行させず確定して閉じる */
+  /**
+   * 名前は1行。Enter で改行させず確定して閉じる。
+   *
+   * **日本語入力の確定Enterを拾わないこと。** IMEの変換を確定するEnterでも
+   * keydown は飛んでくる。そこで blur すると、確定途中の文字列と確定後の
+   * 文字列が二重に入る（「名前が2倍になる」のはこれ）。
+   *
+   * isComposing は変換中かどうか。keyCode 229 は古いブラウザでの同じ合図で、
+   * 念のため両方見る。
+   */
   const onTitleKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      e.currentTarget.blur();
-    }
+    if (e.key !== "Enter") return;
+    if (e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) return;
+    e.preventDefault();
+    e.currentTarget.blur();
   }, []);
 
   const detailItem = detailId ? (items.find((i) => i.id === detailId) ?? null) : null;

@@ -83,9 +83,24 @@ export async function carryLocalRoadmapsToCurrentUser(): Promise<number> {
 
     // books は誰のものでもないので、載っていなければ載せてidを得る
     const bookIds = new Map<string, string>();
+    let bookFailed = false;
     for (const book of local.books) {
       const id = await persistBook(book);
       if (id) bookIds.set(book.id, id);
+      else bookFailed = true;
+    }
+
+    /**
+     * **1冊でも載せられなかったら、このロードマップは持ち込まない。**
+     *
+     * 以前は載せられなかったぶんを黙って捨てていた。その結果、
+     * 中身が抜けたロードマップがアカウント側にできて「タイトルは同じなのに
+     * 並びが違う」状態になった。半端に運ぶより、運ばない方がいい。
+     * 手元には残るし、この処理は冪等なので次のログインでやり直される。
+     */
+    if (bookFailed) {
+      console.error("[carry] 本を載せられなかったので見送った", summary.title);
+      continue;
     }
 
     const newId = crypto.randomUUID();
@@ -105,6 +120,7 @@ export async function carryLocalRoadmapsToCurrentUser(): Promise<number> {
     const rows = local.roadmap.items
       .map((item, index) => {
         const bookId = bookIds.get(item.bookId);
+        // 上で全冊ぶん揃っていることを確かめてあるので、ここには来ない
         if (!bookId) return null;
         return {
           roadmap_id: newId,

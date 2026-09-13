@@ -66,7 +66,10 @@ export async function copyRoadmapForCurrentUser(slug: string): Promise<string | 
       is_public: false,
       copied_from_id: source.id,
       copied_from_title: source.title,
-      copied_from_name: source.copied_from_name,
+      // TODO(13章): コピー元の「作成者名」を入れる場所。まだ名前を持っていないので null。
+      // source.copied_from_name を入れると、コピー元のさらに元の人の名前が
+      // 引き継がれてしまう（別人の名前が出る）
+      copied_from_name: null,
     })
     .select("id")
     .single();
