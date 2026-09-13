@@ -17,6 +17,7 @@ import type { Book, Roadmap, RoadmapItem, RoadmapSummary } from "@/types/roadmap
 
 import { CompletionSheet } from "./CompletionSheet";
 import { RoadmapDrawer } from "./RoadmapDrawer";
+import { SaveState } from "./SaveState";
 import { RouteGoal, RouteStart } from "./RouteMarkers";
 import { StaticRoute } from "./StaticRoute";
 import type { RouteListProps } from "./StaticRoute";
@@ -391,17 +392,7 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
           />
         </h1>
 
-        {/*
-          保存状態の見せ方（CLAUDE.md 13章）。IndexedDB へは操作のたびに
-          書いているので、読み込みが終わっていれば常に保存済み。
-          Supabase への送信は裏で走るぶんなので、ここでは触れない
-        */}
-        {hydrated && (
-          <span className="mb-2 inline-flex items-center gap-1.5 font-mono text-[0.6rem] text-ink-faint">
-            <span aria-hidden="true" className="h-[5px] w-[5px] rounded-full bg-thread opacity-70" />
-            保存済み
-          </span>
-        )}
+        <SaveState ready={hydrated} />
 
         {doc.copiedFrom && (
           <div className="mb-2.5 flex flex-wrap items-center gap-2 rounded-lg bg-thread-soft px-2.5 py-1.5 text-[0.76rem] text-ink-soft">

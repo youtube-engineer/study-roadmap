@@ -77,6 +77,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(target);
   }
 
+  // 成功したことを画面に伝える。何も出ないと、通ったのか分からない
+  target.searchParams.set("login", "ok");
+
   const response = NextResponse.redirect(target);
   for (const { name, value, options } of pending) {
     response.cookies.set(name, value, options);

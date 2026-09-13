@@ -125,6 +125,11 @@ export function LoginButton({ next }: Props) {
     // 分岐はすべて副作用の外（マイクロタスク）へ寄せる。
     // 効果の本体で直接 setState するとレンダーが連鎖する
     void Promise.resolve().then(async () => {
+      if (login === "ok") {
+        setToast("ログインしました");
+        return;
+      }
+
       if (login === "cancelled") {
         // 本人がGoogleの画面でやめただけ。失敗として騒がない
         return;
