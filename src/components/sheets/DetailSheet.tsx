@@ -71,7 +71,9 @@ export function DetailSheet({
           <div className="flex items-start gap-3.5">
             <BookCover book={book} size="lg" />
             <div className="min-w-0 flex-1 pt-1">
-              <div className="text-[1.02rem] font-bold leading-[1.5]">{book.title}</div>
+              <div className="text-[1.02rem] font-bold leading-[1.5] text-ink-title">
+                {book.title}
+              </div>
               <div className="mt-0.5 text-[0.78rem] text-ink-faint">{book.author}</div>
               {book.publishedYear && (
                 <div className="mt-0.5 font-mono text-[0.7rem] text-ink-faint">

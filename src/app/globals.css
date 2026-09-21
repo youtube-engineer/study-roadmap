@@ -15,8 +15,8 @@
   --sunk: #f0efe9;
   --deep: #e6e4dc;
   --ink: #1c1f26;
-  /* 大きな見出し。真っ黒だと大きさのぶん重く出るので少し軽くする */
-  --ink-title: #33383f;
+  /* 見出し。真っ黒だと太さと大きさのぶん重く出るので軽くする */
+  --ink-title: #454b56;
   --ink-soft: #565d68;
   --ink-faint: #8a909b;
   --rule: #e0ded5;
@@ -74,7 +74,7 @@
   --sunk: #232832;
   --deep: #181c24;
   --ink: #e9eae6;
-  --ink-title: #dcdfd9;
+  --ink-title: #d3d7d0;
   --ink-soft: #a6adb8;
   --ink-faint: #6e7683;
   --rule: #2b303a;

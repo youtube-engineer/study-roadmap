@@ -259,7 +259,7 @@ export function RoadmapDrawer({ serverSummaries, currentId }: Props) {
                   <span className="block min-w-0">
                     <span
                       className={`block text-[0.9rem] font-bold leading-[1.4] ${
-                        s.title.trim() ? "" : "text-ink-faint"
+                        s.title.trim() ? "text-ink-title" : "text-ink-faint"
                       }`}
                     >
                       {displayTitle(s.title)}
@@ -301,7 +301,7 @@ export function RoadmapDrawer({ serverSummaries, currentId }: Props) {
         {confirming && (
           <div className="flex flex-col gap-4 px-4 pb-5 pt-1">
             <div className="rounded-[10px] bg-sunk px-3.5 py-3">
-              <div className="text-[1rem] font-bold leading-snug">
+              <div className="text-[1rem] font-bold leading-snug text-ink-title">
                 {displayTitle(confirming.title)}
               </div>
               <div className="mt-0.5 text-[0.75rem] tabular-nums text-ink-faint">

@@ -49,7 +49,7 @@ export function CompletionSheet({ open, onClose, count, onShare, next }: Props) 
           </span>
         </div>
 
-        <p className="text-center text-[1.35rem] font-bold leading-[1.35] tracking-[-0.01em]">
+        <p className="text-center text-[1.35rem] font-bold leading-[1.35] tracking-[-0.01em] text-ink-title">
           {count}冊、走りきった
         </p>
         <p className="text-center text-[0.84rem] leading-[1.85] text-ink-soft">
