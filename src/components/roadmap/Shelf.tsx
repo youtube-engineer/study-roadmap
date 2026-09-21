@@ -154,13 +154,14 @@ export function Shelf({
         {/* 棚の奥板。本の後ろに板があるように見せる */}
         <span
           aria-hidden="true"
-          className="shelf-back pointer-events-none absolute inset-x-0 bottom-[11px] top-[17px]"
+          className="shelf-back pointer-events-none absolute inset-x-0 bottom-[14px] top-[11px]"
         />
 
         {/* 横スクロールを通す。掴む操作は本の握りだけが持つ（9章） */}
         <div
           ref={shelfDropRef}
-          className="shelf-books flex min-h-[calc(var(--book-h)+17px)] snap-x snap-proximity items-end gap-[11px] overflow-x-auto pr-4 pt-0.5 md:gap-[14px] md:pr-6"
+          /* 棚の内側の余白。本が側板や棚板に食い込んで見えないようにする */
+          className="shelf-books relative flex min-h-[calc(var(--book-h)+26px)] snap-x snap-proximity items-end gap-[13px] overflow-x-auto px-4 pb-2 pt-0.5 md:gap-[17px] md:px-5 md:pb-2.5"
         >
           {children}
 
@@ -169,7 +170,8 @@ export function Shelf({
               type="button"
               onClick={() => onAddBook?.(stage.id)}
               aria-label="この段に参考書を追加"
-              className="book-size mt-[17px] grid flex-none place-items-center rounded-[5px] border-[1.5px] border-dashed border-rule-strong text-[1.2rem] text-ink-faint hover:border-accent hover:bg-accent-soft hover:text-accent-strong"
+              /* 木の棚の中なので、地の色ではなく光で見せる */
+              className="book-size mt-[17px] grid flex-none place-items-center rounded-[5px] border-2 border-dashed border-white/35 bg-white/[0.07] text-[1.4rem] text-white/70 transition-colors hover:border-white/70 hover:bg-white/15 hover:text-white"
             >
               ＋
             </button>
@@ -179,12 +181,12 @@ export function Shelf({
         {/* 見切れている本があることを示す */}
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute bottom-2 right-0 top-[18px] w-[34px] bg-gradient-to-r from-transparent to-raised"
+          className="pointer-events-none absolute bottom-[14px] right-0 top-[11px] w-8 bg-gradient-to-r from-transparent to-black/25"
         />
         {/* 本が棚板に触れているところの影 */}
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 bottom-[11px] h-2.5 bg-gradient-to-t from-black/20 to-transparent"
+          className="pointer-events-none absolute inset-x-0 bottom-[14px] h-4 bg-gradient-to-t from-black/35 to-transparent"
         />
         <div className="shelf-board" />
 
@@ -195,7 +197,7 @@ export function Shelf({
         {stage.items.length > 0 && (
           <span
             aria-hidden="true"
-            className="absolute inset-x-0 bottom-[11px] h-[3px] overflow-hidden rounded-full"
+            className="absolute inset-x-0 bottom-[14px] h-[3px] overflow-hidden rounded-full"
           >
             <span
               className="block h-full rounded-full bg-thread transition-[width] duration-300"
