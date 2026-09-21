@@ -179,8 +179,8 @@ export function Shelf({
               type="button"
               onClick={() => onAddBook?.(stage.id)}
               aria-label="この段に参考書を追加"
-              /* 木の棚の中なので、地の色ではなく光で見せる */
-              className="book-size mt-[17px] grid flex-none place-items-center rounded-[5px] border-2 border-dashed border-white/35 bg-white/[0.07] text-[1.4rem] text-white/70 transition-colors hover:border-white/70 hover:bg-white/15 hover:text-white"
+              /* 木の上なので、地の色ではなく濃淡で見せる */
+              className="book-size mt-[17px] grid flex-none place-items-center rounded-[5px] border-2 border-dashed border-black/25 bg-black/[0.04] text-[1.4rem] text-black/45 transition-colors hover:border-black/45 hover:bg-black/10 hover:text-black/70"
             >
               ＋
             </button>

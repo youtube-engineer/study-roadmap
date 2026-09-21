@@ -29,10 +29,10 @@
   --amber: #9a6b12;
   /* 棚板 */
   /* 木。棚板・側板・奥板で1組 */
-  --board: #b08857;
-  --board-lip: #7d5c33;
-  --board-face: #d4ad78;
-  --board-back: #8f6a3f;
+  --board: #d2b98f;
+  --board-lip: #b39a6f;
+  --board-face: #e8d5b3;
+  --board-back: #c2a97f;
   --elev-sm: 0 1px 2px rgba(28, 32, 40, 0.05);
   --elev-book: 0 1px 1px rgba(28, 32, 40, 0.1);
   --elev: 0 1px 3px rgba(28, 32, 40, 0.07), 0 10px 24px rgba(28, 32, 40, 0.09);
@@ -82,10 +82,10 @@
   --thread: #ff7a52;
   --thread-soft: #3a1f16;
   --amber: #d9a055;
-  --board: #6b5133;
-  --board-lip: #3f2e1a;
-  --board-face: #8a6a42;
-  --board-back: #4e3a23;
+  --board: #7d6446;
+  --board-lip: #52402a;
+  --board-face: #9a7f5c;
+  --board-back: #61492f;
   --elev-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --elev-book: 0 1px 1px rgba(0, 0, 0, 0.35);
   --elev: 0 1px 3px rgba(0, 0, 0, 0.45), 0 10px 24px rgba(0, 0, 0, 0.5);
@@ -249,10 +249,10 @@
     background:
       linear-gradient(
         180deg,
-        rgb(0 0 0 / 0.34) 0%,
-        rgb(0 0 0 / 0.16) 20%,
-        rgb(0 0 0 / 0.08) 58%,
-        rgb(0 0 0 / 0.2) 100%
+        rgb(0 0 0 / 0.2) 0%,
+        rgb(0 0 0 / 0.09) 20%,
+        rgb(0 0 0 / 0.04) 58%,
+        rgb(0 0 0 / 0.12) 100%
       ),
       /* 奥板の木目。板より粗く、縦にして奥行きを出す */
       repeating-linear-gradient(

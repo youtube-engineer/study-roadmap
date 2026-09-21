@@ -733,6 +733,22 @@ supabase/migrations/        スキーマ・RLS・GRANT。preview と本番の両
 13章の「取り消し」はロードマップの削除についてはこれで解決。**参考書をルートから
 外したときはまだ取り消せない**（同じ作りにできるはず）。
 
+### ★「無い」は空文字で返ってくる
+
+`??` は null / undefined のときしか代替に切り替わらない。ところが
+**外から来る値は「無い」を空文字で表すことが多い。**
+
+これで2回踏んだ。
+
+- **Vercel の環境変数** … 名前だけ作られて値が空。空の鍵を Supabase へ送って
+  `Invalid API key`（401）になった
+- **楽天の `affiliateUrl`** … アフィリエイトIDを設定していないと `""` が返る。
+  `item.affiliateUrl ?? item.itemUrl` と書いたので空のまま採用され、
+  購入リンクが出なかった
+
+`??` ではなく**値が入っている最初のものを選ぶ**こと
+（`lib/supabase/config.ts` と `lib/books/rakuten.ts` の `firstNonEmpty`）。
+
 ### 環境変数は「空文字」で存在しうる
 
 `??` は null / undefined のときしか代替に切り替わらない。Vercel では

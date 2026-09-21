@@ -97,8 +97,24 @@ function toYear(salesDate: string | undefined): string | null {
  * 楽天は `?_ex=120x120` のような寸法をURLに載せてくる。棚に並べると粗いので
  * 大きめに差し替える。**URLだけを持つという約束は変えない**（画像は複製しない）。
  */
+/**
+ * 値が入っている最初のものを選ぶ。
+ *
+ * **楽天は「無い」を空文字で返す。** `affiliateUrl` はアフィリエイトIDを
+ * 設定していないとき `""` になるので、`??` で繋ぐと空のまま採用されてしまう
+ * （`??` は null / undefined のときしか代替に切り替わらない）。
+ * Supabase の鍵で踏んだのと同じ罠（CLAUDE.md 14章）。
+ */
+function firstNonEmpty(...values: Array<string | undefined>): string | null {
+  for (const value of values) {
+    const trimmed = value?.trim();
+    if (trimmed) return trimmed;
+  }
+  return null;
+}
+
 function coverUrl(item: RakutenItem): string | null {
-  const url = item.largeImageUrl || item.mediumImageUrl || item.smallImageUrl;
+  const url = firstNonEmpty(item.largeImageUrl, item.mediumImageUrl, item.smallImageUrl);
   if (!url) return null;
   return url.replace(/_ex=\d+x\d+/, "_ex=240x240");
 }
@@ -114,7 +130,7 @@ function toBook(item: RakutenItem): Book | null {
     isbn,
     source: "rakuten",
     title,
-    author: item.author?.trim() || item.publisherName?.trim() || "",
+    author: firstNonEmpty(item.author, item.publisherName) ?? "",
     publishedYear: toYear(item.salesDate),
     // URLだけを持つ。画像ファイルは複製しない
     coverImageUrl: coverUrl(item),
@@ -127,7 +143,7 @@ function toBook(item: RakutenItem): Book | null {
      * なお楽天アフィリエイトを使う場合、楽天以外のアフィリエイトを併用することは
      * できない（規約 第10条1項(5)）。AmazonとRakutenは二択（CLAUDE.md 7章）。
      */
-    sourceUrl: item.affiliateUrl ?? item.itemUrl ?? null,
+    sourceUrl: firstNonEmpty(item.affiliateUrl, item.itemUrl),
     hue: hueFromTitle(title),
   };
 }
