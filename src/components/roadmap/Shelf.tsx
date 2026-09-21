@@ -176,6 +176,13 @@ export function Shelf({
               ＋
             </button>
           )}
+
+          {/*
+            **末尾の余白は空要素で取る。**
+            横スクロールする flex の中では `padding-right` がスクロールしきった
+            位置で潰れる。本が増えると最後の1冊が側板に食い込んで見えていた。
+          */}
+          <span aria-hidden="true" className="w-1.5 flex-none md:w-2.5" />
         </div>
 
         {/* 見切れている本があることを示す */}
