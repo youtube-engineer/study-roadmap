@@ -9,7 +9,7 @@
 ## 1. 現在の状態
 
 - **Next.js の本実装がある**（14章）。編集画面と共有ページが動く。
-- **書誌データはモック。** `RAKUTEN_APPLICATION_ID` を入れた時点で楽天の経路に切り替わる。
+- **書誌データはモック。** `RAKUTEN_ACCESS_KEY` を入れた時点で楽天の経路に切り替わる。
   切り替えに必要なコードは書いてあるので、残っているのはアプリIDの取得と疎通確認だけ。
 - **保存はまだ無い。** ロードマップはプロセス内に置いているだけで、
   Supabase と IndexedDB は未着手。リロードすると戻る。
@@ -748,12 +748,13 @@ PCでログイン済みの人がスマホから、機種変更した人が新端
 
 ### 楽天APIの入れ方
 
-`RAKUTEN_APPLICATION_ID` が空のあいだはモックデータで動き、入れると楽天に切り替わる。
+`RAKUTEN_ACCESS_KEY` が空のあいだはモックデータで動き、入れると楽天に切り替わる。
 `src/lib/books/rakuten.ts` は書いてあるので、コードを足す必要はない。
 
 1. https://webservice.rakuten.co.jp/ でアプリIDを取る。
    **応募タイプは「ウェブアプリケーション」**（7章。API/バックエンドを選ぶとVercelで詰む）
-2. `.env.local` に `RAKUTEN_APPLICATION_ID` を入れる
+2. `.env.local` に `RAKUTEN_ACCESS_KEY` を入れる
+   （ポータルの表示は「access key」。APIのパラメータ名は `applicationId` だが同じもの）
 3. **疎通確認。** ドメイン許可でサーバーサイド fetch が通るかはまだ検証していない。
    弾かれたら `RAKUTEN_REFERER` に登録ドメインを入れて Referer を明示的に送る
 

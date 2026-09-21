@@ -11,7 +11,7 @@ import { findByIsbn, isRakutenConfigured, searchByTitle } from "./rakuten";
  * 有料化のタイミングで楽天から国立国会図書館サーチ / openBD / 自前蓄積へ
  * 差し替えることになるが、書き換えるのはこのファイルと同階層のクライアントだけ。
  *
- * RAKUTEN_APPLICATION_ID が設定されていれば楽天、無ければモックに落ちる。
+ * RAKUTEN_ACCESS_KEY が設定されていれば楽天、無ければモックに落ちる。
  * アプリIDを .env.local に入れた時点で本番の経路に切り替わる。
  */
 

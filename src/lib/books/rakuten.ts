@@ -56,8 +56,19 @@ type RakutenResponse = {
   error_description?: string;
 };
 
+/**
+ * アクセスキー。ポータルでは「access key」、APIのパラメータ名は applicationId。
+ * 呼び方が違うだけで同じもの。
+ *
+ * 空文字を「無い」として扱うのは Supabase の鍵と同じ理由（14章）。
+ * Vercel では名前だけ作られて値が空、という状態が普通に起きる。
+ */
+function accessKey(): string {
+  return process.env.RAKUTEN_ACCESS_KEY?.trim() ?? "";
+}
+
 export function isRakutenConfigured(): boolean {
-  return Boolean(process.env.RAKUTEN_APPLICATION_ID);
+  return Boolean(accessKey());
 }
 
 /** 「2024年03月15日」「2024年3月」→「2024」 */
@@ -88,13 +99,14 @@ function toBook(item: RakutenItem): Book | null {
 }
 
 async function call(params: Record<string, string>): Promise<RakutenItem[]> {
-  const applicationId = process.env.RAKUTEN_APPLICATION_ID;
-  if (!applicationId) {
-    throw new BookSearchError("RAKUTEN_APPLICATION_ID が設定されていません");
+  const key = accessKey();
+  if (!key) {
+    throw new BookSearchError("RAKUTEN_ACCESS_KEY が設定されていません");
   }
 
   const url = new URL(ENDPOINT);
-  url.searchParams.set("applicationId", applicationId);
+  // パラメータ名は applicationId のまま。ポータルの表示名だけが access key
+  url.searchParams.set("applicationId", key);
   url.searchParams.set("formatVersion", "2");
   url.searchParams.set("hits", "20");
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);

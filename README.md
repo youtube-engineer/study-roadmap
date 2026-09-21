@@ -32,11 +32,11 @@ pnpm typecheck      # tsc --noEmit
 
 ## 楽天APIを入れる
 
-`RAKUTEN_APPLICATION_ID` が空のあいだはモックの17冊で動く。入れると楽天に切り替わる。
+`RAKUTEN_ACCESS_KEY` が空のあいだはモックの17冊で動く。入れると楽天に切り替わる。
 コードは `src/lib/books/rakuten.ts` に書いてあるので、足すものは無い。
 
 ```bash
-cp .env.example .env.local   # RAKUTEN_APPLICATION_ID を埋める
+cp .env.example .env.local   # RAKUTEN_ACCESS_KEY を埋める
 ```
 
 **アプリID登録では応募タイプに「ウェブアプリケーション」を選ぶこと。**
