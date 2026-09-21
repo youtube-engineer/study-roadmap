@@ -6,8 +6,6 @@ import { CheckIcon } from "@/components/ui/icons";
 import { isStageDone } from "@/types/roadmap";
 import type { RoadmapStage } from "@/types/roadmap";
 
-import { BOOK_HEIGHT, BOOK_WIDTH } from "./BookSpine";
-
 /** 棚が外へ渡す操作。並べ替えの層をまたいで運ぶので型をまとめておく */
 export type ShelfHandlers = {
   onToggleStage?: (stageId: string) => void;
@@ -65,8 +63,8 @@ export function Shelf({
   };
 
   return (
-    <section className="relative pl-[46px]">
-      <span className="absolute inset-y-0 left-[15px] flex w-[22px] justify-center">
+    <section className="relative pl-[46px] md:pl-[58px]">
+      <span className="absolute inset-y-0 left-[15px] flex w-[22px] justify-center md:left-[22px]">
         <span
           aria-hidden="true"
           className={`absolute inset-y-0 w-[3px] rounded-sm bg-thread transition-opacity ${
@@ -108,7 +106,7 @@ export function Shelf({
         </div>
       </span>
 
-      <div className="flex min-h-7 items-baseline gap-2 pr-4">
+      <div className="flex min-h-7 items-baseline gap-2 pr-4 md:pr-6">
         {readOnly ? (
           <span className={`text-[1rem] font-bold ${done ? "text-ink-soft" : ""}`}>
             {stage.name || "（名前なし）"}
@@ -156,7 +154,7 @@ export function Shelf({
         {/* 横スクロールを通す。掴む操作は本の握りだけが持つ（9章） */}
         <div
           ref={shelfDropRef}
-          className="shelf-books flex min-h-[137px] snap-x snap-proximity items-end gap-[11px] overflow-x-auto pr-4 pt-0.5"
+          className="shelf-books flex min-h-[calc(var(--book-h)+17px)] snap-x snap-proximity items-end gap-[11px] overflow-x-auto pr-4 pt-0.5 md:gap-[14px] md:pr-6"
         >
           {children}
 
@@ -165,8 +163,7 @@ export function Shelf({
               type="button"
               onClick={() => onAddBook?.(stage.id)}
               aria-label="この段に参考書を追加"
-              style={{ width: BOOK_WIDTH, height: BOOK_HEIGHT }}
-              className="mt-[17px] grid flex-none place-items-center rounded-[5px] border-[1.5px] border-dashed border-rule-strong text-[1.2rem] text-ink-faint hover:border-accent hover:bg-accent-soft hover:text-accent-strong"
+              className="book-size mt-[17px] grid flex-none place-items-center rounded-[5px] border-[1.5px] border-dashed border-rule-strong text-[1.2rem] text-ink-faint hover:border-accent hover:bg-accent-soft hover:text-accent-strong"
             >
               ＋
             </button>

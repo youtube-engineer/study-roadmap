@@ -31,7 +31,8 @@ function StaticRoadmap({ stages, books, ...handlers }: RoadmapListProps) {
   return (
     <>
       {stages.map((stage, index) => (
-        <Shelf key={stage.id} stage={stage} index={index} {...handlers}>
+        <div key={stage.id} className="pb-5 md:pb-7">
+        <Shelf stage={stage} index={index} {...handlers}>
           {stage.items.map((item) => {
             const book = books[item.bookId];
             if (!book) return null;
@@ -45,6 +46,7 @@ function StaticRoadmap({ stages, books, ...handlers }: RoadmapListProps) {
             );
           })}
         </Shelf>
+        </div>
       ))}
     </>
   );
@@ -569,7 +571,7 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
 
   return (
     <div data-touch-surface className="flex min-h-dvh flex-col">
-      <header className="flex items-center gap-1.5 px-3 pb-1 pt-2">
+      <header className="flex items-center gap-1.5 px-3 pb-1 pt-2 md:px-5">
         <RoadmapDrawer serverSummaries={summaries} currentId={doc.id} />
         <span className="flex-1" />
         <button
@@ -583,7 +585,7 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
         <LoginButton next={`/roadmaps/${doc.id}`} />
       </header>
 
-      <div className="px-4 pb-1 pt-1">
+      <div className="px-4 pb-1 pt-1 md:px-6">
         <h1 className="mb-1">
           <textarea
             ref={titleRef}
@@ -594,7 +596,7 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
             rows={1}
             placeholder={UNTITLED}
             aria-label="ルートの名前"
-            className="w-full resize-none overflow-hidden border-0 bg-transparent p-0 font-serif text-[1.3rem] font-semibold leading-[1.4] text-ink text-balance outline-none placeholder:text-ink-faint"
+            className="w-full resize-none overflow-hidden border-0 bg-transparent p-0 font-serif text-[1.3rem] font-semibold leading-[1.4] text-ink text-balance outline-none placeholder:text-ink-faint md:text-[1.6rem]"
           />
         </h1>
 
@@ -648,7 +650,7 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
         />
         )}
 
-        <div className="h-4" />
+        <div className="h-5 md:h-7" />
 
         {/* 段を追加 */}
         {hydrated && (

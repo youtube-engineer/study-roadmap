@@ -166,7 +166,7 @@ function SortableStage({
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={isDragging ? "opacity-40" : ""}
+      className={`pb-5 md:pb-7 ${isDragging ? "opacity-40" : ""}`}
     >
       <Shelf
         stage={stage}

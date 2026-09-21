@@ -163,6 +163,38 @@
 
 @layer components {
   /**
+   * 棚に立つ本の大きさ。表紙が読めることが優先（8章）。
+   * **広い画面では大きくする。** 広がったぶんを余白にせず、本に使う。
+   */
+  :root {
+    --book-w: 88px;
+    --book-h: 120px;
+  }
+
+  @media (min-width: 768px) {
+    :root {
+      --book-w: 112px;
+      --book-h: 153px;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    :root {
+      --book-w: 128px;
+      --book-h: 175px;
+    }
+  }
+
+  .book-size {
+    width: var(--book-w);
+    height: var(--book-h);
+  }
+
+  .book-width {
+    width: var(--book-w);
+  }
+
+  /**
    * 棚板。本が載っていることを示す（画面設計）。
    * 上面・側面・影の3層で厚みを出す。
    */

@@ -7,9 +7,13 @@ import { CheckIcon } from "@/components/ui/icons";
 import { GRIP_ATTRIBUTE } from "@/lib/dnd/roadmap-sensor";
 import type { Book, RoadmapItem } from "@/types/roadmap";
 
-/** 棚に立つ本の大きさ。表紙が読める大きさであることが優先（8章） */
-export const BOOK_WIDTH = 88;
-export const BOOK_HEIGHT = 120;
+/**
+ * 表紙を取りに行くときの寸法。**見た目の大きさは CSS の `--book-w/h` が決める**
+ * （画面幅で変わるため）。ここは画像の解像度を決めるためだけの値なので、
+ * いちばん大きい場合に合わせておく。
+ */
+const IMAGE_WIDTH = 128;
+const IMAGE_HEIGHT = 175;
 
 /**
  * 本の下端の握り。指で取れる高さを確保する（9章）。
@@ -58,7 +62,7 @@ export function BookSpine({ item, book, onOpen, drag, overlay = false }: Props) 
   return (
     <div
       ref={overlay ? undefined : drag?.setNodeRef}
-      style={{ width: BOOK_WIDTH, ...(overlay ? {} : drag?.style) }}
+      style={overlay ? undefined : drag?.style}
       /*
         **<button> にしない。** センサーはボタンの上でドラッグを始めない作りに
         してあるので（誤爆を防ぐため）、ボタンにすると握りが効かなくなる。
@@ -69,7 +73,7 @@ export function BookSpine({ item, book, onOpen, drag, overlay = false }: Props) 
       onClick={overlay ? undefined : open}
       onKeyDown={overlay ? undefined : onKeyDown}
       {...(overlay ? {} : drag?.dragProps)}
-      className={`relative flex-none snap-start touch-pan-x focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent ${
+      className={`book-width relative flex-none snap-start touch-pan-x focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent ${
         drag?.isDragging ? "opacity-30" : ""
       } ${overlay ? "cursor-grabbing" : ""}`}
     >
@@ -94,15 +98,14 @@ export function BookSpine({ item, book, onOpen, drag, overlay = false }: Props) 
       <span
         className={`relative block overflow-hidden rounded-[2px_5px_5px_2px] ${
           overlay ? "shadow-lift" : "shadow-book"
-        } ${item.isDone ? "opacity-55" : ""}`}
-        style={{ width: BOOK_WIDTH, height: BOOK_HEIGHT }}
+        } ${item.isDone ? "opacity-55" : ""} book-size`}
       >
         {book.coverImageUrl ? (
           <Image
             src={book.coverImageUrl}
             alt=""
-            width={BOOK_WIDTH}
-            height={BOOK_HEIGHT}
+            width={IMAGE_WIDTH}
+            height={IMAGE_HEIGHT}
             unoptimized
             draggable={false}
             className="h-full w-full object-cover"

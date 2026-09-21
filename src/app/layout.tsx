@@ -27,7 +27,14 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ja">
-      <body className="mx-auto min-h-dvh w-full max-w-[430px] bg-raised">{children}</body>
+      {/*
+        器の幅。スマホは 430px（画面設計）。**広い画面では広げる**——
+        棚は横に並ぶので、広がったぶんだけ本が多く見える。狭いままだと
+        両脇が空くだけで、横スクロールも減らない
+      */}
+      <body className="mx-auto min-h-dvh w-full max-w-[430px] bg-raised md:max-w-[720px] xl:max-w-[920px]">
+        {children}
+      </body>
     </html>
   );
 }
