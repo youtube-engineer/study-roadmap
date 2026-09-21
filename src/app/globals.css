@@ -10,27 +10,28 @@
    色は必ずここで定義し、コンポーネント側に生の色を書かないこと。
 --------------------------------------------------------------------------- */
 :root {
-  --paper: #e7e9e3;
+  --paper: #f2f1ec;
   --raised: #fbfbf8;
-  --sunk: #f2f3ee;
-  --deep: #dfe2da;
-  --ink: #1c2028;
-  --ink-soft: #58616e;
-  --ink-faint: #8b93a0;
-  --rule: #dcdfd7;
-  --rule-strong: #c2c7bc;
-  --accent: #33518c;
-  --accent-strong: #24406f;
-  --accent-soft: #e2e8f4;
-  --thread: #9c3f33;
-  --thread-soft: #f4e4e0;
-  --amber: #8c6115;
-  /* 棚板。本が載っていることを地の色で示す */
+  --sunk: #f0efe9;
+  --deep: #e6e4dc;
+  --ink: #1c1f26;
+  --ink-soft: #565d68;
+  --ink-faint: #8a909b;
+  --rule: #e0ded5;
+  --rule-strong: #c6c3b8;
+  /* 操作の青 */
+  --accent: #1b6cf2;
+  --accent-strong: #0f52c4;
+  --accent-soft: #e3edfe;
+  /* 進捗の朱。経路と進捗だけに使う */
+  --thread: #e4572e;
+  --thread-soft: #fde8e0;
+  --amber: #9a6b12;
+  /* 棚板 */
   --board: #c8b79c;
   --board-lip: #a8957a;
   --board-face: #dccdb4;
   --elev-sm: 0 1px 2px rgba(28, 32, 40, 0.05);
-  /* 棚に載っている本。落ちる影は最小限にしないと浮いて見える */
   --elev-book: 0 1px 1px rgba(28, 32, 40, 0.1);
   --elev: 0 1px 3px rgba(28, 32, 40, 0.07), 0 10px 24px rgba(28, 32, 40, 0.09);
   --elev-lift: 0 14px 26px rgba(28, 32, 40, 0.2), 0 3px 8px rgba(28, 32, 40, 0.14);
@@ -38,20 +39,20 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --paper: #101318;
-    --raised: #1d2027;
-    --sunk: #22262e;
-    --deep: #171a20;
-    --ink: #e8e9e4;
-    --ink-soft: #a5acb7;
-    --ink-faint: #6d7581;
-    --rule: #2c3039;
-    --rule-strong: #3b414c;
-    --accent: #8fabdd;
-    --accent-strong: #b4c6e9;
-    --accent-soft: #1d2839;
-    --thread: #c9584a;
-    --thread-soft: #33211e;
+    --paper: #12151b;
+    --raised: #1c2029;
+    --sunk: #232832;
+    --deep: #181c24;
+    --ink: #e9eae6;
+    --ink-soft: #a6adb8;
+    --ink-faint: #6e7683;
+    --rule: #2b303a;
+    --rule-strong: #3a414d;
+    --accent: #6fa3ff;
+    --accent-strong: #9cc0ff;
+    --accent-soft: #1a2436;
+    --thread: #ff7a52;
+    --thread-soft: #3a1f16;
     --amber: #d9a055;
     --board: #4a3e31;
     --board-lip: #2e261d;
@@ -64,20 +65,20 @@
 }
 
 :root[data-theme="dark"] {
-  --paper: #101318;
-  --raised: #1d2027;
-  --sunk: #22262e;
-  --deep: #171a20;
-  --ink: #e8e9e4;
-  --ink-soft: #a5acb7;
-  --ink-faint: #6d7581;
-  --rule: #2c3039;
-  --rule-strong: #3b414c;
-  --accent: #8fabdd;
-  --accent-strong: #b4c6e9;
-  --accent-soft: #1d2839;
-  --thread: #c9584a;
-  --thread-soft: #33211e;
+  --paper: #12151b;
+  --raised: #1c2029;
+  --sunk: #232832;
+  --deep: #181c24;
+  --ink: #e9eae6;
+  --ink-soft: #a6adb8;
+  --ink-faint: #6e7683;
+  --rule: #2b303a;
+  --rule-strong: #3a414d;
+  --accent: #6fa3ff;
+  --accent-strong: #9cc0ff;
+  --accent-soft: #1a2436;
+  --thread: #ff7a52;
+  --thread-soft: #3a1f16;
   --amber: #d9a055;
   --board: #4a3e31;
   --board-lip: #2e261d;
@@ -88,8 +89,6 @@
   --elev-lift: 0 16px 28px rgba(0, 0, 0, 0.62), 0 3px 8px rgba(0, 0, 0, 0.5);
 }
 
-/* トークンを Tailwind のユーティリティ名に接続する。
-   bg-paper / text-ink-soft / border-rule / shadow-lift などが使えるようになる。 */
 @theme inline {
   --color-paper: var(--paper);
   --color-raised: var(--raised);

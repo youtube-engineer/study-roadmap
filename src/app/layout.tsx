@@ -19,8 +19,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   // 表示は端末のライト/ダーク設定に従う
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#e7e9e3" },
-    { media: "(prefers-color-scheme: dark)", color: "#101318" },
+    { media: "(prefers-color-scheme: light)", color: "#f2f1ec" },
+    { media: "(prefers-color-scheme: dark)", color: "#12151b" },
   ],
 };
 
