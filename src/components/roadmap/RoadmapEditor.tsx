@@ -487,29 +487,6 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
   );
 
   /**
-   * 段を上下に動かす。本と同じで**ドラッグは使わない。**
-   * 段の中が横スクロールなので、縦のドラッグと取り合いになる
-   */
-  const shiftStage = useCallback(
-    (stageId: string, direction: -1 | 1) => {
-      const from = doc.stages.findIndex((s) => s.id === stageId);
-      const to = from + direction;
-      if (from < 0 || to < 0 || to >= doc.stages.length) return;
-
-      const next = [...doc.stages];
-      const [moved] = next.splice(from, 1);
-      next.splice(to, 0, moved);
-
-      const fractionalIndex = keyBetween(next[to - 1], next[to + 1]);
-      next[to] = { ...next[to], fractionalIndex };
-
-      setDoc((d) => ({ ...d, stages: next }));
-      void sync.moveStage(stageId, fractionalIndex);
-    },
-    [doc.stages, sync],
-  );
-
-  /**
    * 段を消す。中の参考書も一緒に消える。最後の1段は残す。
    *
    * **サーバーへの削除だけを数秒遅らせる**（ロードマップや参考書の削除と同じ作り）。
@@ -585,7 +562,7 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
             onKeyDown={onTitleKeyDown}
             rows={1}
             placeholder={UNTITLED}
-            aria-label="ルートの名前"
+            aria-label="ロードマップの名前"
             className="w-full resize-none overflow-hidden border-0 bg-transparent p-0 text-[1.45rem] font-bold leading-[1.35] tracking-[-0.01em] text-ink text-balance outline-none placeholder:font-semibold placeholder:text-ink-faint md:text-[1.8rem]"
           />
         </h1>
@@ -594,8 +571,8 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
           <div className="mb-2 flex flex-wrap items-center gap-2 rounded-lg bg-thread-soft px-2.5 py-1.5 text-[0.76rem] text-ink-soft">
             <span>
               {doc.copiedFrom.authorName
-                ? `${doc.copiedFrom.authorName}さんのルートをもとにしています`
-                : "他の人のルートをもとにしています"}
+                ? `${doc.copiedFrom.authorName}さんのロードマップをもとにしています`
+                : "他の人のロードマップをもとにしています"}
             </span>
             {doc.copiedFrom.roadmapId && (
               <a
@@ -743,30 +720,6 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
                 参考書 {stageMenu.items.length} 冊
               </div>
             </div>
-
-            {doc.stages.length > 1 && (
-              <div className="flex flex-col gap-2">
-                <span className="text-[0.78rem] font-medium text-ink-soft">並べ替え</span>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    disabled={doc.stages[0]?.id === stageMenu.id}
-                    onClick={() => shiftStage(stageMenu.id, -1)}
-                    className="flex-1 rounded-lg border border-rule bg-sunk py-2 text-[0.82rem] text-ink-soft disabled:opacity-40 enabled:hover:border-accent enabled:hover:text-accent-strong"
-                  >
-                    ↑ 上へ
-                  </button>
-                  <button
-                    type="button"
-                    disabled={doc.stages[doc.stages.length - 1]?.id === stageMenu.id}
-                    onClick={() => shiftStage(stageMenu.id, 1)}
-                    className="flex-1 rounded-lg border border-rule bg-sunk py-2 text-[0.82rem] text-ink-soft disabled:opacity-40 enabled:hover:border-accent enabled:hover:text-accent-strong"
-                  >
-                    ↓ 下へ
-                  </button>
-                </div>
-              </div>
-            )}
 
             {doc.stages.length > 1 ? (
               <>

@@ -231,7 +231,7 @@ export function LoginButton({ next }: Props) {
                 {state?.email ?? "Googleアカウント"}
               </span>
               <span className="block text-[0.72rem] text-ink-faint">
-                ルートは端末を変えても残ります
+                ロードマップは端末を変えても残ります
               </span>
             </span>
           </div>
@@ -258,7 +258,7 @@ export function LoginButton({ next }: Props) {
           <p className="text-[0.87rem] leading-[1.8] text-ink-soft">
             選んだGoogleアカウントには、別の記録が既にあります。そちらを開くと、
             いまこの端末にある
-            {localCount > 0 ? `${localCount}本のルート` : "ルート"}
+            {localCount > 0 ? `${localCount}本のロードマップ` : "ロードマップ"}
             も一緒に持っていきます。
           </p>
           <p className="rounded-[10px] bg-sunk px-3.5 py-3 text-[0.79rem] leading-[1.75] text-ink-faint">

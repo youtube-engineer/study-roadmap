@@ -8,7 +8,7 @@ import type { Roadmap } from "@/types/roadmap";
 
 const OWN_ROADMAP: Roadmap = {
   id: "r-own",
-  title: "英検2級までのルート",
+  title: "英検2級までのロードマップ",
   isPublic: true,
   shareSlug: "8k2m4p",
   tags: ["英検", "英検2級"],

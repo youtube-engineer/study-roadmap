@@ -42,7 +42,7 @@ export function ShareSheet({
   const absoluteUrl = () => new URL(path, origin).toString();
   const displayUrl = `${origin}${path}`.replace(/^https?:\/\//, "");
 
-  const shareText = `${displayTitle(title)}｜参考書${bookCount}冊のルート`;
+  const shareText = `${displayTitle(title)}｜参考書${bookCount}冊のロードマップ`;
 
   /**
    * 共有先。
@@ -94,7 +94,7 @@ export function ShareSheet({
   };
 
   return (
-    <Sheet open={open} onClose={onClose} title="このルートを共有する">
+    <Sheet open={open} onClose={onClose} title="このロードマップを共有する">
       <div className="flex flex-col gap-4 overflow-y-auto px-4 pb-5 pt-1">
         <button
           type="button"
@@ -122,7 +122,7 @@ export function ShareSheet({
             </span>
             <span className="text-[0.74rem] leading-relaxed text-ink-faint">
               {isPublic
-                ? "公開中。相手は閲覧とコピーができ、あなたのルートは書き換えられない。"
+                ? "公開中。相手は閲覧とコピーができ、あなたのロードマップは書き換えられない。"
                 : "今は自分だけが見られる状態。"}
             </span>
           </span>
@@ -184,7 +184,7 @@ export function ShareSheet({
                 <div className="truncate font-serif text-[0.88rem] font-semibold leading-snug">
                   {displayTitle(title)}
                 </div>
-                <div className="text-[0.72rem] text-ink-soft">参考書{bookCount}冊のルート</div>
+                <div className="text-[0.72rem] text-ink-soft">参考書{bookCount}冊のロードマップ</div>
                 <div className="truncate font-mono text-[0.66rem] text-ink-faint">
                   {displayUrl}
                 </div>

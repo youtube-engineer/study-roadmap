@@ -194,19 +194,64 @@
   }
 
   /**
-   * 棚板。本が載っていることを示す（画面設計）。
-   * 上面・側面・影の3層で厚みを出す。
+   * 棚板。**木の板として見せる。**
+   *
+   * 上面・木口・影の3層で厚みを出したうえで、木目を重ねる。
+   * 画像は使わない（初回表示を遅らせないため。10章）。
    */
   .shelf-board {
-    height: 7px;
-    border-radius: 0 2px 2px 0;
-    background: linear-gradient(
-      180deg,
-      var(--board-face) 0 45%,
-      var(--board) 45% 72%,
-      var(--board-lip) 72% 100%
-    );
-    box-shadow: 0 3px 5px rgb(28 32 40 / 0.13);
+    position: relative;
+    height: 11px;
+    border-radius: 0 3px 3px 0;
+    background:
+      /* 木目。幅を不規則にして印刷物のような等間隔を避ける */
+      repeating-linear-gradient(
+        90deg,
+        rgb(0 0 0 / 0.045) 0 2px,
+        rgb(0 0 0 / 0) 2px 9px,
+        rgb(255 255 255 / 0.05) 9px 11px,
+        rgb(0 0 0 / 0) 11px 23px,
+        rgb(0 0 0 / 0.03) 23px 24px,
+        rgb(0 0 0 / 0) 24px 41px
+      ),
+      linear-gradient(
+        180deg,
+        var(--board-face) 0 36%,
+        var(--board) 36% 68%,
+        var(--board-lip) 68% 100%
+      );
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.28),
+      0 4px 7px rgb(28 32 40 / 0.16);
+  }
+
+  /**
+   * 棚の奥。本の後ろに板があるように見せる。
+   * 無いと本が宙に並んでいるように読める。
+   */
+  .shelf-back {
+    /* 棚の内側。上から光が入って下へ落ちる */
+    background:
+      linear-gradient(
+        180deg,
+        rgb(0 0 0 / 0.14) 0%,
+        rgb(0 0 0 / 0.07) 22%,
+        rgb(0 0 0 / 0.045) 62%,
+        rgb(0 0 0 / 0.11) 100%
+      ),
+      /* 奥板の木目。板より粗くして奥行きを出す */
+      repeating-linear-gradient(
+        90deg,
+        rgb(0 0 0 / 0.03) 0 2px,
+        rgb(0 0 0 / 0) 2px 17px,
+        rgb(0 0 0 / 0.02) 17px 18px,
+        rgb(0 0 0 / 0) 18px 37px
+      );
+    border-radius: 3px 3px 0 0;
+    /* 左は側板。奥まっていることを縁で示す */
+    box-shadow:
+      inset 3px 0 5px -3px rgb(0 0 0 / 0.35),
+      inset 0 3px 5px -3px rgb(0 0 0 / 0.3);
   }
 
   /**

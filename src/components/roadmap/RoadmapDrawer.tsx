@@ -188,7 +188,7 @@ export function RoadmapDrawer({ serverSummaries, currentId }: Props) {
     <>
       <button
         type="button"
-        aria-label="ルートの一覧"
+        aria-label="ロードマップの一覧"
         aria-expanded={open}
         onClick={() => setOpen(true)}
         className="-ml-1 grid h-8 w-8 flex-none place-items-center rounded-full text-ink-soft hover:bg-sunk hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
@@ -217,7 +217,7 @@ export function RoadmapDrawer({ serverSummaries, currentId }: Props) {
 
         <div
           role="dialog"
-          aria-label="ルートの一覧"
+          aria-label="ロードマップの一覧"
           aria-modal={open}
           className={`absolute inset-y-0 left-0 flex w-[min(300px,82%)] flex-col border-r border-rule bg-raised shadow-lift transition-transform duration-[240ms] ease-[cubic-bezier(0.2,0,0,1)] ${
             open ? "translate-x-0" : "-translate-x-full"
@@ -291,7 +291,7 @@ export function RoadmapDrawer({ serverSummaries, currentId }: Props) {
               onClick={create}
               className="w-full rounded-[9px] border border-rule-strong px-3 py-2.5 text-[0.84rem] text-ink-soft hover:border-accent hover:bg-accent-soft hover:text-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
-              ＋ 新しいルートを作る
+              ＋ 新しいロードマップを作る
             </button>
           </div>
         </div>
@@ -300,7 +300,7 @@ export function RoadmapDrawer({ serverSummaries, currentId }: Props) {
       <Sheet
         open={confirming !== null}
         onClose={() => setConfirming(null)}
-        title="このルートを削除する"
+        title="このロードマップを削除する"
       >
         {confirming && (
           <div className="flex flex-col gap-4 px-4 pb-5 pt-1">

@@ -151,6 +151,12 @@ export function Shelf({
       </div>
 
       <div className="relative mt-0.5">
+        {/* 棚の奥板。本の後ろに板があるように見せる */}
+        <span
+          aria-hidden="true"
+          className="shelf-back pointer-events-none absolute inset-x-0 bottom-[11px] top-[17px]"
+        />
+
         {/* 横スクロールを通す。掴む操作は本の握りだけが持つ（9章） */}
         <div
           ref={shelfDropRef}
@@ -175,6 +181,11 @@ export function Shelf({
           aria-hidden="true"
           className="pointer-events-none absolute bottom-2 right-0 top-[18px] w-[34px] bg-gradient-to-r from-transparent to-raised"
         />
+        {/* 本が棚板に触れているところの影 */}
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 bottom-[11px] h-2.5 bg-gradient-to-t from-black/20 to-transparent"
+        />
         <div className="shelf-board" />
 
         {/*
@@ -184,7 +195,7 @@ export function Shelf({
         {stage.items.length > 0 && (
           <span
             aria-hidden="true"
-            className="absolute inset-x-0 bottom-[7px] h-[3px] overflow-hidden rounded-full"
+            className="absolute inset-x-0 bottom-[11px] h-[3px] overflow-hidden rounded-full"
           >
             <span
               className="block h-full rounded-full bg-thread transition-[width] duration-300"

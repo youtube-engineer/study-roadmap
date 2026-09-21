@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { roadmap } = loaded;
 
   const by = roadmap.authorName ? `${roadmap.authorName}さんの` : "";
-  const description = `${by}参考書${allItems(roadmap).length}冊のルート。`;
+  const description = `${by}参考書${allItems(roadmap).length}冊のロードマップ。`;
   const title = displayTitle(roadmap.title);
 
   return {
@@ -79,7 +79,7 @@ export default async function SharedRoadmapPage({ params }: Props) {
             >
               {roadmap.authorName.slice(0, 1)}
             </span>
-            <span>{roadmap.authorName} さんのルート</span>
+            <span>{roadmap.authorName} さんのロードマップ</span>
           </div>
         )}
 
@@ -119,9 +119,9 @@ export default async function SharedRoadmapPage({ params }: Props) {
 
       <div className="mx-4 mb-6 rounded-[14px] bg-deep px-4 py-5 text-center">
         <p className="mb-3.5 text-[0.87rem] leading-[1.75] text-ink-soft">
-          このルートをコピーすると、自分用に並び替えたり本を足したりできる。
+          このロードマップをコピーすると、自分用に並び替えたり本を足したりできる。
           <br />
-          <span className="text-[0.79rem] text-ink-faint">元のルートは書き換わらない。</span>
+          <span className="text-[0.79rem] text-ink-faint">元のロードマップは書き換わらない。</span>
         </p>
 
         <form action={copyRoadmapAction}>
@@ -130,7 +130,7 @@ export default async function SharedRoadmapPage({ params }: Props) {
             type="submit"
             className="w-full rounded-[10px] bg-accent px-4 py-3 text-[0.95rem] font-medium text-white hover:bg-accent-strong"
           >
-            このルートをコピーして使う
+            このロードマップをコピーして使う
           </button>
         </form>
 

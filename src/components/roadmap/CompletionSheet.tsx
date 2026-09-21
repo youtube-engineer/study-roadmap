@@ -53,7 +53,7 @@ export function CompletionSheet({ open, onClose, count, onShare, next }: Props) 
           {count}冊、走りきった
         </p>
         <p className="text-center text-[0.84rem] leading-[1.85] text-ink-soft">
-          最後まで通したルートは、
+          最後まで通したロードマップは、
           <br />
           同じところを目指す人の役に立つ。
         </p>
@@ -66,7 +66,7 @@ export function CompletionSheet({ open, onClose, count, onShare, next }: Props) 
           }}
           className="mt-1 w-full rounded-xl bg-accent px-4 py-3.5 text-[0.98rem] font-bold text-white hover:bg-accent-strong"
         >
-          このルートを共有する
+          このロードマップを共有する
         </button>
 
         {!signedIn && (

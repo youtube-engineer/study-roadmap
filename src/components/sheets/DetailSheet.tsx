@@ -183,7 +183,7 @@ export function DetailSheet({
               }}
               className="rounded-[9px] border border-rule-strong px-3 py-2 text-[0.82rem] text-ink-soft hover:border-thread hover:text-thread"
             >
-              ルートから外す
+              ロードマップから外す
             </button>
             <button
               type="button"
