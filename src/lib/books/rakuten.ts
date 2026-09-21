@@ -167,22 +167,26 @@ async function call(params: Record<string, string>): Promise<RakutenItem[]> {
 }
 
 /**
- * 語学・学習参考書のジャンルID。
+ * 語学関係資格のジャンルID（英検・TOEICなど）。
  *
  * **検索では使わない。** ユーザーは書名で探すので、ジャンルで絞ると
  * 取りこぼしのリスクだけ増える（CLAUDE.md 9章）。
  * 使うのは「何も打っていないときに何を並べるか」を決めるときだけ。
+ *
+ * 親の `001002`（語学・学習参考書）や兄弟の `001002006`（学習参考書・問題集）だと、
+ * 図鑑・ドリル・大学の赤本が上位を占めて参考書のランキングに見えない（実測）。
+ * ここは焦点を英語・英検に置いている（3章）ので、その意味でも合っている。
  */
-const GENRE_STUDY_AIDS = "001002";
+const GENRE_LANGUAGE_EXAMS = "001002005";
 
 /**
- * 何も打っていないときに出す本。
+ * 売れている参考書。何も打っていないときに出す。
  *
- * 並び順は指定しない。`sort=sales` にすると児童書や図鑑が上位を占めて
- * 参考書らしくなくなる（実測）。楽天の標準の並びがいちばん近い。
+ * BooksにランキングAPIは無いので、ジャンルを絞って `sort=sales` で代用する。
+ * IchibaのランキングAPIは別スコープが要るうえ、返るのが書誌ではなく商品なので使わない。
  */
 export async function listPopular(): Promise<Book[]> {
-  const items = await call({ booksGenreId: GENRE_STUDY_AIDS });
+  const items = await call({ booksGenreId: GENRE_LANGUAGE_EXAMS, sort: "sales" });
   return items.map(toBook).filter((b): b is Book => b !== null);
 }
 

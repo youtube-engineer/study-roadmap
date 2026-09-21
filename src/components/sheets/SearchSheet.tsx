@@ -122,7 +122,11 @@ export function SearchSheet({ open, onClose, onPick, present }: Props) {
         シートが伸びて入力欄が動くし、何を置けばいいのかの見当もつかない
       */}
       <div className="px-4 pb-1 pt-2.5 text-[0.72rem] text-ink-faint">
-        {query.trim() === "" ? "人気の参考書" : status === "loading" ? "さがしています…" : "検索結果"}
+        {query.trim() === ""
+          ? "いま売れている参考書"
+          : status === "loading"
+            ? "さがしています…"
+            : "検索結果"}
       </div>
 
       {/*
