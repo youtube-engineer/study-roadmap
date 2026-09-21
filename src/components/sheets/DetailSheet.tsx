@@ -56,6 +56,35 @@ export function DetailSheet({ item, book, onClose, onPatch, onRemove }: Props) {
             </div>
           </div>
 
+          {/*
+            購入導線。**カードではなくここに置く。** カードは紐と玉で構造を
+            担っていて、ボタンを足すと経路が買い物リストに戻る（CLAUDE.md 8章）。
+
+            文言は「見る」にとどめる。購入やクリックを呼びかけるのは
+            楽天ウェブサービス規約 第10条1項(1) の禁止事項（7章）。
+            手入力した教材には出典が無いので出ない。
+          */}
+          {book.sourceUrl && (
+            <a
+              href={book.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex w-full items-center justify-center gap-1.5 rounded-[10px] border border-rule-strong px-4 py-2.5 text-[0.86rem] text-ink-soft hover:border-accent hover:bg-accent-soft hover:text-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              楽天ブックスで見る
+              <svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true">
+                <path
+                  d="M14 4h6v6M20 4l-8.5 8.5M18 14v4a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2h4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </a>
+          )}
+
           <button
             type="button"
             onClick={() => onPatch(item.id, { isDone: !item.isDone })}

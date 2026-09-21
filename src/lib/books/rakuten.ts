@@ -47,6 +47,8 @@ type RakutenItem = {
   publisherName?: string;
   isbn?: string;
   itemUrl?: string;
+  /** affiliateId を付けて呼んだときだけ返る。成果はこのURL経由でしか発生しない */
+  affiliateUrl?: string;
   salesDate?: string;
   largeImageUrl?: string;
   mediumImageUrl?: string;
@@ -105,7 +107,16 @@ function toBook(item: RakutenItem): Book | null {
     // URLだけを持つ。画像ファイルは複製しない
     coverImageUrl:
       item.mediumImageUrl || item.largeImageUrl || item.smallImageUrl || null,
-    sourceUrl: item.itemUrl ?? null,
+    /**
+     * 出典であり購入先。
+     *
+     * アフィリエイトIDを設定していれば affiliateUrl が返るので、そちらを優先する。
+     * **成果はこのURL経由でしか発生しない。**
+     *
+     * なお楽天アフィリエイトを使う場合、楽天以外のアフィリエイトを併用することは
+     * できない（規約 第10条1項(5)）。AmazonとRakutenは二択（CLAUDE.md 7章）。
+     */
+    sourceUrl: item.affiliateUrl ?? item.itemUrl ?? null,
     hue: hueFromTitle(title),
   };
 }
