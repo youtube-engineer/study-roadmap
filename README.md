@@ -32,19 +32,24 @@ pnpm typecheck      # tsc --noEmit
 
 ## 楽天APIを入れる
 
-`RAKUTEN_ACCESS_KEY` が空のあいだはモックの17冊で動く。入れると楽天に切り替わる。
-コードは `src/lib/books/rakuten.ts` に書いてあるので、足すものは無い。
+3つとも入れる。どれかが欠けるとモックのままか、400 / 403 になる。
 
 ```bash
-cp .env.example .env.local   # RAKUTEN_ACCESS_KEY を埋める
+cp .env.example .env.local
 ```
 
-**アプリID登録では応募タイプに「ウェブアプリケーション」を選ぶこと。**
+```
+RAKUTEN_APPLICATION_ID   UUID形式
+RAKUTEN_ACCESS_KEY       pk_ で始まる
+RAKUTEN_ORIGIN           楽天に登録した許可ドメイン
+```
+
+**アプリ登録では応募タイプに「ウェブアプリケーション」を選ぶこと。**
 「API/バックエンドサービス」を選ぶとIPアドレスでの許可リストになり、Vercelの
 サーバーレスは送信元IPが動的なので詰む（`CLAUDE.md` 7章）。
 
-入れたら最初に疎通確認をする。ドメイン許可でサーバーサイドfetchが通るかは未検証で、
-弾かれた場合は `RAKUTEN_REFERER` に登録ドメインを入れる。
+`RAKUTEN_ORIGIN` はサーバーから叩くので必須。fetch は Origin を自動送信しないため、
+無いと 403 が返る。
 
 ## Supabase を入れる
 

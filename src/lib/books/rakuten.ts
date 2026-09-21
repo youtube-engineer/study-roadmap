@@ -17,8 +17,11 @@ import { hueFromTitle } from "./hue";
  *   - ジャンルでは絞らない。ユーザーは書名で探すので取りこぼしのリスクだけ増える
  */
 
+/**
+ * 2026年の刷新で新ドメインへ移行した。旧 `app.rakuten.co.jp` は停止済み。
+ */
 const ENDPOINT =
-  "https://app.rakuten.co.jp/services/api/BooksBook/Search/20170404";
+  "https://openapi.rakuten.co.jp/services/api/BooksBook/Search/20170404";
 
 /** 検索のタイムアウト。「該当なし」とは別のエラーとして扱う（CLAUDE.md 10章） */
 export const SEARCH_TIMEOUT_MS = 5000;
@@ -57,18 +60,27 @@ type RakutenResponse = {
 };
 
 /**
- * アクセスキー。ポータルでは「access key」、APIのパラメータ名は applicationId。
- * 呼び方が違うだけで同じもの。
+ * 新方式は**2つとも要る**（2026年の刷新から）。
+ *
+ * - `RAKUTEN_APPLICATION_ID` … UUID形式。クエリの applicationId
+ * - `RAKUTEN_ACCESS_KEY`     … `pk_…`。accessKey ヘッダー
+ *
+ * 片方だけだと 400 が返る。旧方式のアプリIDは使えないので、アプリを
+ * 登録し直す必要がある。
  *
  * 空文字を「無い」として扱うのは Supabase の鍵と同じ理由（14章）。
  * Vercel では名前だけ作られて値が空、という状態が普通に起きる。
  */
+function applicationId(): string {
+  return process.env.RAKUTEN_APPLICATION_ID?.trim() ?? "";
+}
+
 function accessKey(): string {
   return process.env.RAKUTEN_ACCESS_KEY?.trim() ?? "";
 }
 
 export function isRakutenConfigured(): boolean {
-  return Boolean(accessKey());
+  return Boolean(applicationId() && accessKey());
 }
 
 /** 「2024年03月15日」「2024年3月」→「2024」 */
@@ -99,14 +111,16 @@ function toBook(item: RakutenItem): Book | null {
 }
 
 async function call(params: Record<string, string>): Promise<RakutenItem[]> {
+  const appId = applicationId();
   const key = accessKey();
-  if (!key) {
-    throw new BookSearchError("RAKUTEN_ACCESS_KEY が設定されていません");
+  if (!appId || !key) {
+    throw new BookSearchError(
+      "RAKUTEN_APPLICATION_ID と RAKUTEN_ACCESS_KEY の両方が必要です",
+    );
   }
 
   const url = new URL(ENDPOINT);
-  // パラメータ名は applicationId のまま。ポータルの表示名だけが access key
-  url.searchParams.set("applicationId", key);
+  url.searchParams.set("applicationId", appId);
   url.searchParams.set("formatVersion", "2");
   url.searchParams.set("hits", "20");
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
@@ -114,12 +128,16 @@ async function call(params: Record<string, string>): Promise<RakutenItem[]> {
   const affiliateId = process.env.RAKUTEN_AFFILIATE_ID;
   if (affiliateId) url.searchParams.set("affiliateId", affiliateId);
 
-  // ⚠ 未検証: アプリID登録を「ウェブアプリケーション」（＝ドメイン許可）にした場合、
-  // サーバーサイドの fetch は Origin/Referer を自動送信しないので弾かれる可能性がある。
-  // 弾かれたら RAKUTEN_REFERER に登録ドメインを入れて明示的に送る（CLAUDE.md 7章）。
-  const headers: HeadersInit = {};
-  const referer = process.env.RAKUTEN_REFERER;
-  if (referer) headers.Referer = referer;
+  /**
+   * サーバーサイドの fetch は Origin を自動送信しないので、**自分で付ける**。
+   * 付けないと 403 `REQUEST_CONTEXT_BODY_HTTP_REFERRER_MISSING` が返る。
+   *
+   * 名前に反して `Referer` では通らない。**`Origin` でないと駄目**（実測）。
+   * 値は楽天の許可リストに登録したドメイン。
+   */
+  const headers: HeadersInit = { accessKey: key };
+  const origin = process.env.RAKUTEN_ORIGIN?.trim();
+  if (origin) headers.Origin = origin.replace(/\/$/, "");
 
   let res: Response;
   try {
