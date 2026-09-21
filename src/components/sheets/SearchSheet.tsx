@@ -111,6 +111,7 @@ export function SearchSheet({ open, onClose, onPick, present }: Props) {
 
   return (
     <Sheet open={open} onClose={onClose} title="参考書をさがす">
+      {!manualOpen && (
       <div className="mx-4 flex items-center gap-2 rounded-[10px] border border-rule bg-sunk px-2.5 py-2 focus-within:border-accent">
         <SearchIcon className="flex-none text-ink-faint" />
         <input
@@ -121,11 +122,13 @@ export function SearchSheet({ open, onClose, onPick, present }: Props) {
           className="min-w-0 flex-1 border-0 bg-transparent text-[0.92rem] text-ink outline-none placeholder:text-ink-faint"
         />
       </div>
+      )}
 
       {/*
         何も打っていないときは人気の参考書を出す。空の一覧だと打ち始めた瞬間に
         シートが伸びて入力欄が動くし、何を置けばいいのかの見当もつかない
       */}
+      {!manualOpen && (
       <div className="px-4 pb-1 pt-2.5 text-[0.72rem] text-ink-faint">
         {query.trim() === ""
           ? "いま売れている参考書"
@@ -133,16 +136,18 @@ export function SearchSheet({ open, onClose, onPick, present }: Props) {
             ? "さがしています…"
             : "検索結果"}
       </div>
+      )}
 
       {/*
         高さを固定する。結果の件数でシートが伸び縮みすると、入力欄が動いて
         打ちにくい
       */}
-      <div
-        className={`overflow-y-auto px-2 pb-2 transition-[height] ${
-          manualOpen ? "h-[20vh]" : "h-[44vh]"
-        }`}
-      >
+      {/*
+        **手で追加しているあいだは一覧を出さない。** 自分で名前を打っている横に
+        別の本が並んでいると、何をしているのか分からなくなる。
+      */}
+      {!manualOpen && (
+      <div className="h-[44vh] overflow-y-auto px-2 pb-2">
         {status === "timeout" ? (
           <Notice
             title="検索が時間内に終わりませんでした"
@@ -170,6 +175,7 @@ export function SearchSheet({ open, onClose, onPick, present }: Props) {
           </>
         )}
       </div>
+      )}
 
       {/*
         **手で追加する道は常に開けておく。**
@@ -180,9 +186,13 @@ export function SearchSheet({ open, onClose, onPick, present }: Props) {
         切り替わると打ち直したい検索結果が見えなくなる（8章「検索を行き止まりに
         しない」）。
       */}
-      <div className="border-t border-rule px-3 py-2.5">
+      <div className={manualOpen ? "px-4 pb-4 pt-1" : "border-t border-rule px-3 py-2.5"}>
         {manualOpen ? (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3.5">
+            <p className="text-[0.82rem] leading-relaxed text-ink-faint">
+              市販されていない教材も、名前を付けてロードマップに置けます。
+            </p>
+
             <div className="flex flex-col gap-1.5">
               <label htmlFor="manual-title" className="text-[0.76rem] font-bold text-ink-soft">
                 教材名
