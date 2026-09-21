@@ -15,6 +15,8 @@
   --sunk: #f0efe9;
   --deep: #e6e4dc;
   --ink: #1c1f26;
+  /* 大きな見出し。真っ黒だと大きさのぶん重く出るので少し軽くする */
+  --ink-title: #33383f;
   --ink-soft: #565d68;
   --ink-faint: #8a909b;
   --rule: #e0ded5;
@@ -72,6 +74,7 @@
   --sunk: #232832;
   --deep: #181c24;
   --ink: #e9eae6;
+  --ink-title: #dcdfd9;
   --ink-soft: #a6adb8;
   --ink-faint: #6e7683;
   --rule: #2b303a;
@@ -98,6 +101,7 @@
   --color-sunk: var(--sunk);
   --color-deep: var(--deep);
   --color-ink: var(--ink);
+  --color-ink-title: var(--ink-title);
   --color-ink-soft: var(--ink-soft);
   --color-ink-faint: var(--ink-faint);
   --color-rule: var(--rule);

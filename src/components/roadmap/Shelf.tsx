@@ -119,7 +119,7 @@ export function Shelf({
             placeholder="段の名前"
             aria-label="段の名前"
             className={`min-w-0 flex-1 border-0 bg-transparent p-0 text-[1.05rem] font-bold tracking-[-0.01em] outline-none placeholder:font-medium placeholder:text-ink-faint ${
-              done ? "text-ink-soft" : "text-ink"
+              done ? "text-ink-soft" : "text-ink-title"
             }`}
           />
         )}
