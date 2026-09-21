@@ -138,7 +138,11 @@ export function SearchSheet({ open, onClose, onPick, present }: Props) {
         高さを固定する。結果の件数でシートが伸び縮みすると、入力欄が動いて
         打ちにくい
       */}
-      <div className="h-[46vh] overflow-y-auto px-2 pb-2">
+      <div
+        className={`overflow-y-auto px-2 pb-2 transition-[height] ${
+          manualOpen ? "h-[20vh]" : "h-[44vh]"
+        }`}
+      >
         {status === "timeout" ? (
           <Notice
             title="検索が時間内に終わりませんでした"
@@ -163,93 +167,90 @@ export function SearchSheet({ open, onClose, onPick, present }: Props) {
               </p>
             )}
 
-            {/*
-              **手で追加する道は常に開けておく。**
-              前は結果がちょうど0件のときだけフォームに切り替わる形だったが、
-              無関係な結果が1件でも返ると手詰まりになるうえ、切り替わると
-              打ち直したい検索結果が見えなくなる。
-
-              畳んだ1行として結果の末尾に置き、押したときだけ開く（8章
-              「検索を行き止まりにしない」）。
-            */}
-            {query.trim() !== "" && status !== "loading" && (
-              <div className="px-1 pb-2 pt-2">
-                {manualOpen ? (
-                  <div className="flex flex-col gap-3 rounded-[10px] border border-rule bg-sunk p-3.5">
-                    <div className="flex flex-col gap-1.5">
-                      <label
-                        htmlFor="manual-title"
-                        className="text-[0.76rem] font-bold text-ink-soft"
-                      >
-                        教材名
-                      </label>
-                      <input
-                        id="manual-title"
-                        value={manualTitle}
-                        onChange={(e) => setManualTitle(e.target.value)}
-                        className="rounded-[9px] border border-rule bg-raised px-3 py-2 text-[0.86rem] text-ink outline-none focus:border-accent"
-                      />
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                      <label
-                        htmlFor="manual-author"
-                        className="text-[0.76rem] font-bold text-ink-soft"
-                      >
-                        出版社・作った人（任意）
-                      </label>
-                      <input
-                        id="manual-author"
-                        value={manualAuthor}
-                        onChange={(e) => setManualAuthor(e.target.value)}
-                        placeholder="〇〇ゼミ"
-                        className="rounded-[9px] border border-rule bg-raised px-3 py-2 text-[0.86rem] text-ink outline-none placeholder:text-ink-faint focus:border-accent"
-                      />
-                    </div>
-
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setManualOpen(false)}
-                        className="rounded-[10px] border border-rule-strong px-4 py-2.5 text-[0.84rem] text-ink-soft"
-                      >
-                        やめる
-                      </button>
-                      <button
-                        type="button"
-                        onClick={addManual}
-                        disabled={manualTitle.trim() === ""}
-                        className="flex-1 rounded-[10px] bg-accent px-4 py-2.5 text-[0.88rem] font-bold text-white disabled:opacity-40 enabled:hover:bg-accent-strong"
-                      >
-                        この教材を追加
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setManualTitle(query.trim());
-                      setManualOpen(true);
-                    }}
-                    className="flex w-full items-center gap-2.5 rounded-[10px] border-[1.5px] border-dashed border-rule-strong px-3.5 py-3 text-left transition-colors hover:border-accent hover:bg-accent-soft"
-                  >
-                    <span className="grid h-9 w-9 flex-none place-items-center rounded-full bg-accent-soft text-[1.1rem] text-accent-strong">
-                      ＋
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[0.86rem] font-bold text-ink">
-                        「{query.trim()}」を手で追加
-                      </span>
-                      <span className="block text-[0.74rem] text-ink-faint">
-                        塾のプリントや自作ノートも置けます
-                      </span>
-                    </span>
-                  </button>
-                )}
-              </div>
-            )}
           </>
+        )}
+      </div>
+
+      {/*
+        **手で追加する道は常に開けておく。**
+
+        一覧の中ではなくここに置くのは、検索する前（売れ筋が20件並んでいる状態）
+        でもスクロールせずに見えるようにするため。結果がちょうど0件のときだけ
+        フォームに切り替わる形だと、無関係な結果が1件でも返ると手詰まりになるし、
+        切り替わると打ち直したい検索結果が見えなくなる（8章「検索を行き止まりに
+        しない」）。
+      */}
+      <div className="border-t border-rule px-3 py-2.5">
+        {manualOpen ? (
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="manual-title" className="text-[0.76rem] font-bold text-ink-soft">
+                教材名
+              </label>
+              <input
+                id="manual-title"
+                autoFocus
+                value={manualTitle}
+                onChange={(e) => setManualTitle(e.target.value)}
+                placeholder="例：塾のオリジナルプリント"
+                className="rounded-[9px] border border-rule bg-sunk px-3 py-2 text-[0.88rem] text-ink outline-none placeholder:text-ink-faint focus:border-accent"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="manual-author" className="text-[0.76rem] font-bold text-ink-soft">
+                出版社・作った人（任意）
+              </label>
+              <input
+                id="manual-author"
+                value={manualAuthor}
+                onChange={(e) => setManualAuthor(e.target.value)}
+                placeholder="〇〇ゼミ"
+                className="rounded-[9px] border border-rule bg-sunk px-3 py-2 text-[0.88rem] text-ink outline-none placeholder:text-ink-faint focus:border-accent"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setManualOpen(false)}
+                className="rounded-[10px] border border-rule-strong px-4 py-2.5 text-[0.84rem] text-ink-soft"
+              >
+                やめる
+              </button>
+              <button
+                type="button"
+                onClick={addManual}
+                disabled={manualTitle.trim() === ""}
+                className="flex-1 rounded-[10px] bg-accent px-4 py-2.5 text-[0.88rem] font-bold text-white disabled:opacity-40 enabled:hover:bg-accent-strong"
+              >
+                この教材を追加
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setManualTitle(query.trim());
+              setManualOpen(true);
+            }}
+            className="flex w-full items-center gap-2.5 rounded-[10px] border-[1.5px] border-dashed border-rule-strong px-3 py-2.5 text-left transition-colors hover:border-accent hover:bg-accent-soft"
+          >
+            <span className="grid h-8 w-8 flex-none place-items-center rounded-full bg-accent-soft text-[1.05rem] text-accent-strong">
+              ＋
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[0.85rem] font-bold text-ink">
+                {query.trim() === ""
+                  ? "リストに無い教材を手で追加"
+                  : `「${query.trim()}」を手で追加`}
+              </span>
+              <span className="block text-[0.73rem] text-ink-faint">
+                塾のプリントや自作ノートも置けます
+              </span>
+            </span>
+          </button>
         )}
       </div>
 
