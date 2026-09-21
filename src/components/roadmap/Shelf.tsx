@@ -160,9 +160,18 @@ export function Shelf({
         {/* 横スクロールを通す。掴む操作は本の握りだけが持つ（9章） */}
         <div
           ref={shelfDropRef}
-          /* 棚の内側の余白。本が側板や棚板に食い込んで見えないようにする */
-          className="shelf-books shelf-height relative flex snap-x snap-proximity items-end gap-[13px] overflow-x-auto px-4 pb-2 pt-0.5 md:gap-[17px] md:px-5 md:pb-2.5"
+          /*
+            **吸着（scroll-snap）は使わない。** 本の左端を棚の左端に合わせに
+            いくので、先頭の余白がスクロールで食われて本が側板に食い込んで見える。
+            棚では吸着の利点より害が大きい。
+
+            余白も padding ではなく**空要素で取る**（下）。横スクロールする
+            flex の中では、左右どちらの padding もスクロールした位置で潰れる。
+          */
+          className="shelf-books shelf-height relative flex items-end gap-[13px] overflow-x-auto pb-2 pt-0.5 md:gap-[17px] md:pb-2.5"
         >
+          <span aria-hidden="true" className="w-4 flex-none md:w-5" />
+
           {children}
 
           {!readOnly && (
@@ -182,21 +191,24 @@ export function Shelf({
             横スクロールする flex の中では `padding-right` がスクロールしきった
             位置で潰れる。本が増えると最後の1冊が側板に食い込んで見えていた。
           */}
-          <span aria-hidden="true" className="w-1.5 flex-none md:w-2.5" />
+          <span aria-hidden="true" className="w-4 flex-none md:w-5" />
         </div>
 
         {/*
           左右の側板。**本はこの下へ潜る。**
           スクロールすると本が棚の端に食い込んで見えるので、枠の影を重ねて
-          「奥へ滑り込んでいる」ように読ませる。見切れている本があることも伝わる。
+          「奥へ滑り込んでいる」ように読ませる。
+
+          **幅は棚の内側の余白ちょうどにすること。** 広くすると、スクロールして
+          いない状態でも端の本にかぶって暗くなる。
         */}
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute bottom-[14px] left-0 top-[11px] w-7 bg-gradient-to-r from-black/45 via-black/15 to-transparent"
+          className="pointer-events-none absolute bottom-[14px] left-0 top-[11px] w-4 bg-gradient-to-r from-black/40 to-transparent md:w-5"
         />
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute bottom-[14px] right-0 top-[11px] w-7 bg-gradient-to-l from-black/45 via-black/15 to-transparent"
+          className="pointer-events-none absolute bottom-[14px] right-0 top-[11px] w-4 bg-gradient-to-l from-black/40 to-transparent md:w-5"
         />
         {/* 本が棚板に触れているところの影 */}
         <span

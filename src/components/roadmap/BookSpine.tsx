@@ -73,7 +73,7 @@ export function BookSpine({ item, book, onOpen, drag, overlay = false }: Props) 
       onClick={overlay ? undefined : open}
       onKeyDown={overlay ? undefined : onKeyDown}
       {...(overlay ? {} : drag?.dragProps)}
-      className={`book-width relative flex-none snap-start touch-pan-x focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent ${
+      className={`book-width relative flex-none touch-pan-x focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent ${
         drag?.isDragging ? "opacity-30" : ""
       } ${overlay ? "cursor-grabbing" : ""}`}
     >
