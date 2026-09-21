@@ -11,8 +11,13 @@ import type { Book, RoadmapItem } from "@/types/roadmap";
 export const BOOK_WIDTH = 88;
 export const BOOK_HEIGHT = 120;
 
-/** 本の下端の握り。指で取れる高さを確保する（9章） */
-const GRIP_HEIGHT = 22;
+/**
+ * 本の下端の握り。指で取れる高さを確保する（9章）。
+ *
+ * **常に見えていること。** ホバーで出す作りにしたらタッチ端末で事実上
+ * 見えなくなった（ホバーが無いので）。掴めることが分からなければ無いのと同じ。
+ */
+const GRIP_HEIGHT = 26;
 
 export type DragBindings = {
   setNodeRef: (element: HTMLElement | null) => void;
@@ -119,10 +124,11 @@ export function BookSpine({ item, book, onOpen, drag, overlay = false }: Props) 
 
         {/*
           終了の印は**表紙の内側**に置く。外へはみ出すと、棚が縦にも
-          スクロールできる状態になって本が上下にずれる
+          スクロールできる状態になって本が上下にずれる。
+          下端は握りなので、重ならないよう右上へ。
         */}
         {item.isDone && (
-          <span className="absolute bottom-1 right-1 grid h-[22px] w-[22px] place-items-center rounded-full bg-thread text-white shadow-[0_0_0_2px_var(--raised)]">
+          <span className="absolute right-1 top-1 grid h-[22px] w-[22px] place-items-center rounded-full bg-thread text-white shadow-[0_0_0_2px_rgba(255,255,255,0.75)]">
             <CheckIcon size={11} />
           </span>
         )}
@@ -136,13 +142,18 @@ export function BookSpine({ item, book, onOpen, drag, overlay = false }: Props) 
           <span
             {...{ [GRIP_ATTRIBUTE]: "" }}
             aria-hidden="true"
-            className="absolute inset-x-0 bottom-0 flex cursor-grab touch-none items-center justify-center bg-gradient-to-t from-black/35 to-transparent opacity-0 transition-opacity hover:opacity-100 active:opacity-100"
+            className="absolute inset-x-0 bottom-0 flex cursor-grab touch-none items-center justify-center bg-gradient-to-t from-black/55 via-black/25 to-transparent transition-[filter] active:brightness-125"
             style={{ height: GRIP_HEIGHT }}
           >
-            <svg viewBox="0 0 22 8" width="20" height="7" className="fill-white/85">
-              <circle cx="4" cy="4" r="1.5" />
-              <circle cx="11" cy="4" r="1.5" />
-              <circle cx="18" cy="4" r="1.5" />
+            <svg viewBox="0 0 30 10" width="26" height="9" className="fill-white/90 drop-shadow-sm">
+              <circle cx="4" cy="3" r="1.5" />
+              <circle cx="11" cy="3" r="1.5" />
+              <circle cx="18" cy="3" r="1.5" />
+              <circle cx="25" cy="3" r="1.5" />
+              <circle cx="4" cy="8" r="1.5" />
+              <circle cx="11" cy="8" r="1.5" />
+              <circle cx="18" cy="8" r="1.5" />
+              <circle cx="25" cy="8" r="1.5" />
             </svg>
           </span>
         )}
