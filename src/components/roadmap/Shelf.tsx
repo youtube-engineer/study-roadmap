@@ -161,7 +161,7 @@ export function Shelf({
         <div
           ref={shelfDropRef}
           /* 棚の内側の余白。本が側板や棚板に食い込んで見えないようにする */
-          className="shelf-books relative flex min-h-[calc(var(--book-h)+26px)] snap-x snap-proximity items-end gap-[13px] overflow-x-auto px-4 pb-2 pt-0.5 md:gap-[17px] md:px-5 md:pb-2.5"
+          className="shelf-books shelf-height relative flex snap-x snap-proximity items-end gap-[13px] overflow-x-auto px-4 pb-2 pt-0.5 md:gap-[17px] md:px-5 md:pb-2.5"
         >
           {children}
 
@@ -185,10 +185,18 @@ export function Shelf({
           <span aria-hidden="true" className="w-1.5 flex-none md:w-2.5" />
         </div>
 
-        {/* 見切れている本があることを示す */}
+        {/*
+          左右の側板。**本はこの下へ潜る。**
+          スクロールすると本が棚の端に食い込んで見えるので、枠の影を重ねて
+          「奥へ滑り込んでいる」ように読ませる。見切れている本があることも伝わる。
+        */}
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute bottom-[14px] right-0 top-[11px] w-8 bg-gradient-to-r from-transparent to-black/25"
+          className="pointer-events-none absolute bottom-[14px] left-0 top-[11px] w-7 bg-gradient-to-r from-black/45 via-black/15 to-transparent"
+        />
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-[14px] right-0 top-[11px] w-7 bg-gradient-to-l from-black/45 via-black/15 to-transparent"
         />
         {/* 本が棚板に触れているところの影 */}
         <span

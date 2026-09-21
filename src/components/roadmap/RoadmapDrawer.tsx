@@ -25,8 +25,6 @@ import { displayTitle } from "@/lib/roadmaps/title";
 import { relativeTime } from "@/lib/relative-time";
 import type { RoadmapSummary } from "@/types/roadmap";
 
-import { MiniRoute } from "./MiniRoute";
-
 /** 最後に触った順。触った時刻が無いもの（他端末で作られたもの）は作成日で代用する */
 function touchedAt(s: RoadmapSummary): string {
   return s.updatedAt ?? s.createdAt ?? "";
@@ -254,15 +252,13 @@ export function RoadmapDrawer({ serverSummaries, currentId }: Props) {
                   href={`/roadmaps/${s.id}`}
                   onClick={() => setOpen(false)}
                   aria-current={s.id === currentId ? "page" : undefined}
-                  className={`flex gap-2 rounded-[8px] py-2 pl-2 pr-8 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+                  className={`block rounded-[8px] py-2 pl-2.5 pr-8 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
                     s.id === currentId ? "bg-sunk" : "hover:bg-sunk"
                   }`}
                 >
-                  <MiniRoute total={s.totalCount} done={s.doneCount} />
-
-                  <span className="min-w-0 flex-1">
+                  <span className="block min-w-0">
                     <span
-                      className={`block font-serif text-[0.86rem] font-semibold leading-[1.4] ${
+                      className={`block text-[0.9rem] font-bold leading-[1.4] ${
                         s.title.trim() ? "" : "text-ink-faint"
                       }`}
                     >
@@ -275,7 +271,7 @@ export function RoadmapDrawer({ serverSummaries, currentId }: Props) {
                         </span>
                       )}
                     </span>
-                    <span className="mt-[0.1rem] block font-mono text-[0.6rem] text-ink-faint">
+                    <span className="mt-[0.1rem] block text-[0.7rem] tabular-nums text-ink-faint">
                       {metaLine(s)}
                       {s.isPublic ? " · 公開中" : ""}
                     </span>
@@ -305,10 +301,10 @@ export function RoadmapDrawer({ serverSummaries, currentId }: Props) {
         {confirming && (
           <div className="flex flex-col gap-4 px-4 pb-5 pt-1">
             <div className="rounded-[10px] bg-sunk px-3.5 py-3">
-              <div className="font-serif text-[1rem] font-semibold leading-snug">
+              <div className="text-[1rem] font-bold leading-snug">
                 {displayTitle(confirming.title)}
               </div>
-              <div className="mt-0.5 font-mono text-[0.7rem] text-ink-faint">
+              <div className="mt-0.5 text-[0.75rem] tabular-nums text-ink-faint">
                 参考書 {confirming.totalCount} 冊
               </div>
             </div>

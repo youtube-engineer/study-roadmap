@@ -95,10 +95,16 @@ export function BookSpine({ item, book, onOpen, drag, overlay = false }: Props) 
         ) : null}
       </span>
 
+      {/*
+        **表紙の縦横比はそのまま使う。**
+        箱に合わせて `object-cover` で切ると、縦長の表紙は上下が削られる。
+        本ごとに高さが変わるのは本棚として正しい見た目でもある
+        （下端は `items-end` で棚板に揃う）。
+      */}
       <span
-        className={`relative block overflow-hidden rounded-[2px_5px_5px_2px] ${
+        className={`book-width relative block overflow-hidden rounded-[2px_5px_5px_2px] ${
           overlay ? "shadow-lift" : "shadow-book"
-        } ${item.isDone ? "opacity-55" : ""} book-size`}
+        } ${item.isDone ? "opacity-55" : ""} ${book.coverImageUrl ? "" : "book-size"}`}
       >
         {book.coverImageUrl ? (
           <Image
@@ -108,7 +114,7 @@ export function BookSpine({ item, book, onOpen, drag, overlay = false }: Props) 
             height={IMAGE_HEIGHT}
             unoptimized
             draggable={false}
-            className="h-full w-full object-cover"
+            className="block h-auto w-full"
           />
         ) : (
           <span

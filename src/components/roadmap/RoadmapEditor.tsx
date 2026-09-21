@@ -18,7 +18,6 @@ import { allItems, isStageDone } from "@/types/roadmap";
 import type { Book, Roadmap, RoadmapItem, RoadmapStage, RoadmapSummary } from "@/types/roadmap";
 
 import { BookSpine } from "./BookSpine";
-import { Progress } from "./Progress";
 import { CompletionSheet } from "./CompletionSheet";
 import { RoadmapDrawer } from "./RoadmapDrawer";
 import { Shelf } from "./Shelf";
@@ -143,7 +142,6 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
   const titleRef = useRef<HTMLTextAreaElement>(null);
 
   const items = useMemo(() => allItems(doc), [doc]);
-  const doneCount = items.filter((i) => i.isDone).length;
 
   /**
    * 見出しの高さを中身に合わせる。折り返す長さの名前でも切れないようにするため。
@@ -585,7 +583,6 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
           </div>
         )}
 
-        <Progress total={items.length} done={doneCount} />
       </div>
 
       <div className="flex-1 pb-16 pt-3">

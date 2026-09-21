@@ -193,6 +193,15 @@
     height: var(--book-h);
   }
 
+  /**
+   * 棚の高さ。**いちばん縦長の表紙が入る高さを取る。**
+   * 表紙の比率は本によって違う（縦長のものが多い）ので、
+   * `--book-h` ちょうどだと上が切れる。
+   */
+  .shelf-height {
+    min-height: calc(var(--book-h) * 1.24 + 26px);
+  }
+
   .book-width {
     width: var(--book-w);
   }
