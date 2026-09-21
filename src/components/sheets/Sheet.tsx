@@ -41,7 +41,7 @@ export function Sheet({ open, onClose, title, children }: Props) {
         }`}
       >
         <div className="mx-auto mb-0.5 mt-2.5 h-1 w-[34px] flex-none rounded-full bg-rule-strong" />
-        <div className="flex items-center justify-between px-4 pb-2.5 pt-2 text-[0.92rem] font-medium">
+        <div className="flex items-center justify-between px-4 pb-2.5 pt-2 text-[0.95rem] font-bold">
           <span>{title}</span>
           <button
             type="button"

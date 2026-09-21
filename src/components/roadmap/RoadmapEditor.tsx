@@ -18,6 +18,7 @@ import { allItems, isStageDone } from "@/types/roadmap";
 import type { Book, Roadmap, RoadmapItem, RoadmapStage, RoadmapSummary } from "@/types/roadmap";
 
 import { BookSpine } from "./BookSpine";
+import { Progress } from "./Progress";
 import { CompletionSheet } from "./CompletionSheet";
 import { RoadmapDrawer } from "./RoadmapDrawer";
 import { Shelf } from "./Shelf";
@@ -465,17 +466,6 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
     [doc.stages, sync],
   );
 
-  /** 別の段へ移す（シートから） */  /** 別の段へ移す */
-  const moveItemToStage = useCallback(
-    (itemId: string, stageId: string) => {
-      const target = doc.stages.find((s) => s.id === stageId);
-      if (!target) return;
-      moveItem(itemId, stageId, null);
-      setToast(`「${target.name || "名前のない段"}」へ移した`);
-    },
-    [doc.stages, moveItem],
-  );
-
   const addStage = useCallback(() => {
     const last = doc.stages[doc.stages.length - 1];
     const stage: RoadmapStage = {
@@ -596,7 +586,7 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
             rows={1}
             placeholder={UNTITLED}
             aria-label="ルートの名前"
-            className="w-full resize-none overflow-hidden border-0 bg-transparent p-0 font-serif text-[1.3rem] font-semibold leading-[1.4] text-ink text-balance outline-none placeholder:text-ink-faint md:text-[1.6rem]"
+            className="w-full resize-none overflow-hidden border-0 bg-transparent p-0 text-[1.45rem] font-bold leading-[1.35] tracking-[-0.01em] text-ink text-balance outline-none placeholder:font-semibold placeholder:text-ink-faint md:text-[1.8rem]"
           />
         </h1>
 
@@ -618,9 +608,7 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
           </div>
         )}
 
-        <span className="font-mono text-[0.66rem] text-ink-faint">
-          {items.length === 0 ? "まだ空" : `${doneCount}/${items.length} 終了`}
-        </span>
+        <Progress total={items.length} done={doneCount} />
       </div>
 
       <div className="flex-1 pb-16 pt-3">
@@ -668,9 +656,9 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
             <button
               type="button"
               onClick={addStage}
-              className="w-full rounded-xl border-[1.5px] border-dashed border-rule-strong px-3.5 py-2.5 text-left text-[0.88rem] text-ink-soft hover:border-accent hover:bg-accent-soft hover:text-accent-strong"
+              className="w-full rounded-xl border-2 border-dashed border-rule-strong px-3.5 py-3 text-left text-[0.9rem] font-bold text-ink-soft transition-colors hover:border-accent hover:bg-accent-soft hover:text-accent-strong"
             >
-              段を追加
+              ＋ 段を追加
             </button>
           </div>
           <div className="h-4" />
@@ -731,12 +719,9 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
       <DetailSheet
         item={detail?.item ?? null}
         book={detailBook}
-        stages={doc.stages}
-        currentStageId={detail?.stage.id ?? null}
         onClose={() => setDetailId(null)}
         onPatch={patchItem}
         onToggleDone={toggleItemDone}
-        onMoveToStage={moveItemToStage}
         onRemove={removeItem}
       />
 

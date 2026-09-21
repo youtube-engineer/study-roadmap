@@ -108,7 +108,7 @@ export function Shelf({
 
       <div className="flex min-h-7 items-baseline gap-2 pr-4 md:pr-6">
         {readOnly ? (
-          <span className={`text-[1rem] font-bold ${done ? "text-ink-soft" : ""}`}>
+          <span className={`text-[1.05rem] font-bold ${done ? "text-ink-soft" : ""}`}>
             {stage.name || "（名前なし）"}
           </span>
         ) : (
@@ -118,22 +118,22 @@ export function Shelf({
             onKeyDown={onNameKeyDown}
             placeholder="段の名前"
             aria-label="段の名前"
-            className={`min-w-0 flex-1 border-0 bg-transparent p-0 text-[1rem] font-bold outline-none placeholder:font-normal placeholder:text-ink-faint ${
+            className={`min-w-0 flex-1 border-0 bg-transparent p-0 text-[1.05rem] font-bold tracking-[-0.01em] outline-none placeholder:font-medium placeholder:text-ink-faint ${
               done ? "text-ink-soft" : "text-ink"
             }`}
           />
         )}
 
         <span
-          className={`ml-auto flex-none font-mono text-[0.72rem] ${
+          className={`ml-auto flex-none text-[0.78rem] font-bold tabular-nums ${
             done ? "text-thread" : "text-ink-faint"
           }`}
         >
           {stage.items.length === 0
             ? "まだ空"
             : done
-              ? `${stage.items.length}冊 ぜんぶ終了`
-              : `${stage.items.length}冊中 ${doneCount}冊`}
+              ? "すべて終了 ✓"
+              : `${doneCount}/${stage.items.length}`}
         </span>
 
         {!readOnly && (
@@ -176,6 +176,22 @@ export function Shelf({
           className="pointer-events-none absolute bottom-2 right-0 top-[18px] w-[34px] bg-gradient-to-r from-transparent to-raised"
         />
         <div className="shelf-board" />
+
+        {/*
+          どこまで進んだかを棚板の上に線で出す。玉と紐だけだと段の中の進み具合が
+          分からない。臙脂は経路と進捗（8章）なので役割も混ざらない
+        */}
+        {stage.items.length > 0 && (
+          <span
+            aria-hidden="true"
+            className="absolute inset-x-0 bottom-[7px] h-[3px] overflow-hidden rounded-full"
+          >
+            <span
+              className="block h-full rounded-full bg-thread transition-[width] duration-300"
+              style={{ width: `${(doneCount / stage.items.length) * 100}%` }}
+            />
+          </span>
+        )}
       </div>
     </section>
   );

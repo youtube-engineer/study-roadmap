@@ -44,18 +44,18 @@ export function CompletionSheet({ open, onClose, count, onShare, next }: Props) 
     <Sheet open={open} onClose={onClose} title="走りきった">
       <div className="flex flex-col gap-3 px-4 pb-6 pt-2">
         <div className="flex justify-center">
-          <span className="grid h-[30px] w-[30px] place-items-center rounded-full bg-thread text-white shadow-[0_0_0_6px_var(--thread-soft)]">
-            <FlagIcon size={15} />
+          <span className="grid h-[42px] w-[42px] place-items-center rounded-full bg-thread text-white shadow-[0_0_0_8px_var(--thread-soft)]">
+            <FlagIcon size={20} />
           </span>
         </div>
 
-        <p className="text-center font-serif text-[1.05rem] font-semibold leading-[1.45]">
-          {count}冊ぜんぶ、走りきった
+        <p className="text-center text-[1.35rem] font-bold leading-[1.35] tracking-[-0.01em]">
+          {count}冊、走りきった
         </p>
-        <p className="text-center text-[0.8rem] leading-[1.85] text-ink-soft">
-          組んだルートを最後まで通した記録は、
+        <p className="text-center text-[0.84rem] leading-[1.85] text-ink-soft">
+          最後まで通したルートは、
           <br />
-          これから同じところを目指す人の役に立つ。
+          同じところを目指す人の役に立つ。
         </p>
 
         <button
@@ -64,7 +64,7 @@ export function CompletionSheet({ open, onClose, count, onShare, next }: Props) 
             onClose();
             onShare();
           }}
-          className="mt-1 w-full rounded-[10px] bg-accent px-4 py-3 text-[0.92rem] font-medium text-white hover:bg-accent-strong"
+          className="mt-1 w-full rounded-xl bg-accent px-4 py-3.5 text-[0.98rem] font-bold text-white hover:bg-accent-strong"
         >
           このルートを共有する
         </button>

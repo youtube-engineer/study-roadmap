@@ -5,20 +5,16 @@ import { useState } from "react";
 import { BookCover } from "@/components/ui/BookCover";
 import { CheckIcon } from "@/components/ui/icons";
 import { ROUNDS_MAX, ROUNDS_MIN } from "@/types/roadmap";
-import type { Book, RoadmapItem, RoadmapStage } from "@/types/roadmap";
+import type { Book, RoadmapItem } from "@/types/roadmap";
 
 import { Sheet } from "./Sheet";
 
 type Props = {
   item: RoadmapItem | null;
   book: Book | null;
-  /** 移動先の候補 */
-  stages: RoadmapStage[];
-  currentStageId: string | null;
   onClose: () => void;
   onPatch: (itemId: string, patch: Partial<RoadmapItem>) => void;
   onToggleDone: (itemId: string) => void;
-  onMoveToStage: (itemId: string, stageId: string) => void;
   onRemove: (itemId: string) => void;
 };
 
@@ -29,12 +25,9 @@ type Props = {
 export function DetailSheet({
   item,
   book,
-  stages,
-  currentStageId,
   onClose,
   onPatch,
   onToggleDone,
-  onMoveToStage,
   onRemove,
 }: Props) {
   const [note, setNote] = useState(item?.note ?? "");
@@ -67,7 +60,7 @@ export function DetailSheet({
           <div className="flex items-start gap-3.5">
             <BookCover book={book} size="lg" />
             <div className="min-w-0 flex-1 pt-1">
-              <div className="text-[1rem] font-medium leading-[1.5]">{book.title}</div>
+              <div className="text-[1.02rem] font-bold leading-[1.5]">{book.title}</div>
               <div className="mt-0.5 text-[0.78rem] text-ink-faint">{book.author}</div>
               {book.publishedYear && (
                 <div className="mt-0.5 font-mono text-[0.7rem] text-ink-faint">
@@ -131,7 +124,7 @@ export function DetailSheet({
           </button>
 
           <div className="flex flex-col gap-2">
-            <span className="text-[0.78rem] font-medium text-ink-soft">周回の目標</span>
+            <span className="text-[0.8rem] font-bold text-ink-soft">周回の目標</span>
             <div className="flex items-center gap-2">
               <StepButton
                 label="減らす"
@@ -165,7 +158,7 @@ export function DetailSheet({
           </div>
 
           <div className="flex flex-col gap-2">
-            <label htmlFor="item-note" className="text-[0.78rem] font-medium text-ink-soft">
+            <label htmlFor="item-note" className="text-[0.8rem] font-bold text-ink-soft">
               この本を使うときのメモ
             </label>
             <textarea
@@ -181,32 +174,6 @@ export function DetailSheet({
             </p>
           </div>
 
-          {/*
-            段をまたぐ移動だけ残す。棚の中の並べ替えは握りをつまんで動かせるので、
-            同じことをするボタンを重ねて置かない。
-            段をまたぐのは縦の移動になり、棚の横スクロールと取り合いになるので
-            ドラッグでは扱えない（9章）。
-          */}
-          {stages.length > 1 && (
-            <label className="flex items-center gap-2 text-[0.78rem] text-ink-soft">
-              <span className="flex-none">別の段へ移す</span>
-              <select
-                value={currentStageId ?? ""}
-                onChange={(e) => {
-                  onMoveToStage(item.id, e.target.value);
-                  onClose();
-                }}
-                className="min-w-0 flex-1 rounded-lg border border-rule bg-sunk px-2.5 py-1.5 text-[0.82rem] text-ink outline-none focus:border-accent"
-              >
-                {stages.map((stage, index) => (
-                  <option key={stage.id} value={stage.id}>
-                    {stage.name || `${index + 1}番目の段`}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-
           <div className="flex items-center gap-2.5">
             <button
               type="button"
@@ -221,7 +188,7 @@ export function DetailSheet({
             <button
               type="button"
               onClick={commit}
-              className="ml-auto rounded-[9px] bg-accent px-4 py-2 text-[0.86rem] font-medium text-white hover:bg-accent-strong"
+              className="ml-auto rounded-[10px] bg-accent px-5 py-2.5 text-[0.88rem] font-bold text-white hover:bg-accent-strong"
             >
               保存して閉じる
             </button>
