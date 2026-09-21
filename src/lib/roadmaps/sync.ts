@@ -45,9 +45,32 @@ export function createRoadmapSync(target: SyncTarget, options: SyncOptions = {})
   let ensured = false;
   let ensuring: Promise<boolean> | null = null;
 
+  /** 同じ知らせを何度も出さない。1回の操作で複数の書き込みが走るため */
+  let warned = false;
+
   const fail = (where: string, error: unknown) => {
-    console.error(`[sync] ${where}`, error);
-    options.onError?.("保存できませんでした");
+    /**
+     * **Supabase のエラーはそのまま渡すと `{}` としか出ない。**
+     * プロトタイプに乗っていないプレーンオブジェクトなので、console が
+     * 展開してくれない。必要なものを取り出して文字列にする。
+     */
+    const e = error as { message?: string; code?: string; details?: string; hint?: string };
+    console.error(
+      `[sync] ${where}: ${e?.message ?? String(error)}`,
+      e?.code ? `code=${e.code}` : "",
+      e?.details ?? "",
+      e?.hint ?? "",
+    );
+
+    /**
+     * **「保存できませんでした」とは言わない。** IndexedDB には書けていて、
+     * 失敗したのは裏の同期だけ（5章。ローカルが主、Supabaseが従）。
+     * 操作は失われていないので、そう伝える。
+     */
+    if (!warned) {
+      warned = true;
+      options.onError?.("同期できませんでした。この端末には保存されています");
+    }
     return false;
   };
 
