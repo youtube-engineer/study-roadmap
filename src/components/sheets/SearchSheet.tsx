@@ -117,7 +117,19 @@ export function SearchSheet({ open, onClose, onPick, present }: Props) {
         />
       </div>
 
-      <div className="mt-1.5 overflow-y-auto px-2 pb-4">
+      {/*
+        何も打っていないときは人気の参考書を出す。空の一覧だと打ち始めた瞬間に
+        シートが伸びて入力欄が動くし、何を置けばいいのかの見当もつかない
+      */}
+      <div className="px-4 pb-1 pt-2.5 text-[0.72rem] text-ink-faint">
+        {query.trim() === "" ? "人気の参考書" : status === "loading" ? "さがしています…" : "検索結果"}
+      </div>
+
+      {/*
+        高さを固定する。結果の件数でシートが伸び縮みすると、入力欄が動いて
+        打ちにくい
+      */}
+      <div className="h-[46vh] overflow-y-auto px-2 pb-2">
         {status === "timeout" ? (
           <Notice
             title="検索が時間内に終わりませんでした"

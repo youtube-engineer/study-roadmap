@@ -2,7 +2,7 @@ import "server-only";
 
 import type { Book } from "@/types/roadmap";
 import { mockFindMany, mockSearch } from "./mock-source";
-import { findByIsbn, isRakutenConfigured, searchByTitle } from "./rakuten";
+import { findByIsbn, isRakutenConfigured, listPopular, searchByTitle } from "./rakuten";
 
 /**
  * 書誌データの取得経路。**ここが唯一の入口。**
@@ -19,11 +19,17 @@ export function usingLiveSource(): boolean {
   return isRakutenConfigured();
 }
 
+/**
+ * 参考書を探す。
+ *
+ * **何も打っていないときは人気の参考書を返す。** 空の一覧を出すと、
+ * 打ち始めた瞬間にシートが伸びて入力欄が動く。それに「何を置けばいいのか」の
+ * 見当もつかない。楽天は検索条件が空だと弾くので、ジャンルで引く。
+ */
 export async function searchBooks(query: string): Promise<Book[]> {
   if (!isRakutenConfigured()) return mockSearch(query);
   const q = query.trim();
-  // 楽天は検索条件が空だと弾くので、空クエリはAPIを叩かない
-  if (!q) return [];
+  if (!q) return listPopular();
   return searchByTitle(q);
 }
 

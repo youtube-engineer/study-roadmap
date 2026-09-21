@@ -166,6 +166,26 @@ async function call(params: Record<string, string>): Promise<RakutenItem[]> {
   return json.Items ?? [];
 }
 
+/**
+ * 語学・学習参考書のジャンルID。
+ *
+ * **検索では使わない。** ユーザーは書名で探すので、ジャンルで絞ると
+ * 取りこぼしのリスクだけ増える（CLAUDE.md 9章）。
+ * 使うのは「何も打っていないときに何を並べるか」を決めるときだけ。
+ */
+const GENRE_STUDY_AIDS = "001002";
+
+/**
+ * 何も打っていないときに出す本。
+ *
+ * 並び順は指定しない。`sort=sales` にすると児童書や図鑑が上位を占めて
+ * 参考書らしくなくなる（実測）。楽天の標準の並びがいちばん近い。
+ */
+export async function listPopular(): Promise<Book[]> {
+  const items = await call({ booksGenreId: GENRE_STUDY_AIDS });
+  return items.map(toBook).filter((b): b is Book => b !== null);
+}
+
 /** 書名で探す。ユーザーは書名で探すので title に入れる */
 export async function searchByTitle(query: string): Promise<Book[]> {
   const items = await call({ title: query });
