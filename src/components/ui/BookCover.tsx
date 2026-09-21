@@ -3,6 +3,8 @@ import Image from "next/image";
 import type { Book } from "@/types/roadmap";
 
 const SIZES = {
+  /** 詳細シートの見出し。どの本を触っているかが表紙で分かる大きさにする */
+  lg: { width: 92, height: 126 },
   md: { width: 38, height: 52 },
   sm: { width: 28, height: 38 },
 } as const;

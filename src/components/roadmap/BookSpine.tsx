@@ -93,7 +93,7 @@ export function BookSpine({ item, book, onOpen, drag, overlay = false }: Props) 
 
       <span
         className={`relative block overflow-hidden rounded-[2px_5px_5px_2px] ${
-          overlay ? "shadow-lift" : "shadow-card"
+          overlay ? "shadow-lift" : "shadow-book"
         } ${item.isDone ? "opacity-55" : ""}`}
         style={{ width: BOOK_WIDTH, height: BOOK_HEIGHT }}
       >
@@ -142,18 +142,14 @@ export function BookSpine({ item, book, onOpen, drag, overlay = false }: Props) 
           <span
             {...{ [GRIP_ATTRIBUTE]: "" }}
             aria-hidden="true"
-            className="absolute inset-x-0 bottom-0 flex cursor-grab touch-none items-center justify-center bg-gradient-to-t from-black/55 via-black/25 to-transparent transition-[filter] active:brightness-125"
+            className="absolute inset-x-0 bottom-0 flex cursor-grab touch-none items-center justify-center border-t border-black/15 bg-[#f4f1ea] transition-colors active:bg-[#e6e1d6]"
             style={{ height: GRIP_HEIGHT }}
           >
-            <svg viewBox="0 0 30 10" width="26" height="9" className="fill-white/90 drop-shadow-sm">
-              <circle cx="4" cy="3" r="1.5" />
-              <circle cx="11" cy="3" r="1.5" />
-              <circle cx="18" cy="3" r="1.5" />
-              <circle cx="25" cy="3" r="1.5" />
-              <circle cx="4" cy="8" r="1.5" />
-              <circle cx="11" cy="8" r="1.5" />
-              <circle cx="18" cy="8" r="1.5" />
-              <circle cx="25" cy="8" r="1.5" />
+            <svg viewBox="0 0 30 4" width="26" height="4" className="fill-black/30">
+              <circle cx="4" cy="2" r="1.4" />
+              <circle cx="11" cy="2" r="1.4" />
+              <circle cx="18" cy="2" r="1.4" />
+              <circle cx="25" cy="2" r="1.4" />
             </svg>
           </span>
         )}

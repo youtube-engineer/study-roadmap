@@ -349,30 +349,6 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
     [findItem, patchStage, sync],
   );
 
-  /**
-   * 棚の中で左右に動かす。ドラッグが使えないとき（キーボード、握りが細かい）
-   * のための経路としてシートにも残す。
-   */
-  const shiftItem = useCallback(
-    (itemId: string, direction: -1 | 1) => {
-      const found = findItem(itemId);
-      if (!found) return;
-      const to = found.index + direction;
-      if (to < 0 || to >= found.stage.items.length) return;
-
-      const next = [...found.stage.items];
-      const [moved] = next.splice(found.index, 1);
-      next.splice(to, 0, moved);
-
-      const fractionalIndex = keyBetween(next[to - 1], next[to + 1]);
-      next[to] = { ...next[to], fractionalIndex };
-
-      patchStage(found.stage.id, (s) => ({ ...s, items: next }));
-      void sync.patchItem(itemId, { fractionalIndex });
-    },
-    [findItem, patchStage, sync],
-  );
-
   /** 別の段へ移す */
   const moveItemToStage = useCallback(
     (itemId: string, stageId: string) => {
@@ -643,12 +619,9 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
         book={detailBook}
         stages={doc.stages}
         currentStageId={detail?.stage.id ?? null}
-        canMoveLeft={detail ? detail.index > 0 : false}
-        canMoveRight={detail ? detail.index < detail.stage.items.length - 1 : false}
         onClose={() => setDetailId(null)}
         onPatch={patchItem}
         onToggleDone={toggleItemDone}
-        onShift={shiftItem}
         onMoveToStage={moveItemToStage}
         onRemove={removeItem}
       />

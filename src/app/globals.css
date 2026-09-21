@@ -30,6 +30,8 @@
   --board-lip: #a8957a;
   --board-face: #dccdb4;
   --elev-sm: 0 1px 2px rgba(28, 32, 40, 0.05);
+  /* 棚に載っている本。落ちる影は最小限にしないと浮いて見える */
+  --elev-book: 0 1px 1px rgba(28, 32, 40, 0.1);
   --elev: 0 1px 3px rgba(28, 32, 40, 0.07), 0 10px 24px rgba(28, 32, 40, 0.09);
   --elev-lift: 0 14px 26px rgba(28, 32, 40, 0.2), 0 3px 8px rgba(28, 32, 40, 0.14);
 }
@@ -55,6 +57,7 @@
     --board-lip: #2e261d;
     --board-face: #5a4b3a;
     --elev-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --elev-book: 0 1px 1px rgba(0, 0, 0, 0.35);
     --elev: 0 1px 3px rgba(0, 0, 0, 0.45), 0 10px 24px rgba(0, 0, 0, 0.5);
     --elev-lift: 0 16px 28px rgba(0, 0, 0, 0.62), 0 3px 8px rgba(0, 0, 0, 0.5);
   }
@@ -80,6 +83,7 @@
   --board-lip: #2e261d;
   --board-face: #5a4b3a;
   --elev-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --elev-book: 0 1px 1px rgba(0, 0, 0, 0.35);
   --elev: 0 1px 3px rgba(0, 0, 0, 0.45), 0 10px 24px rgba(0, 0, 0, 0.5);
   --elev-lift: 0 16px 28px rgba(0, 0, 0, 0.62), 0 3px 8px rgba(0, 0, 0, 0.5);
 }
@@ -107,6 +111,7 @@
   --color-board-face: var(--board-face);
 
   --shadow-sm: var(--elev-sm);
+  --shadow-book: var(--elev-book);
   --shadow-card: var(--elev);
   --shadow-lift: var(--elev-lift);
 
