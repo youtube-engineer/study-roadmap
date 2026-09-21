@@ -1,17 +1,34 @@
 "use client";
 
 import Image from "next/image";
+import type { CSSProperties, HTMLAttributes, KeyboardEvent } from "react";
 
 import { CheckIcon } from "@/components/ui/icons";
+import { GRIP_ATTRIBUTE } from "@/lib/dnd/roadmap-sensor";
 import type { Book, RoadmapItem } from "@/types/roadmap";
 
-const WIDTH = 74;
-const HEIGHT = 101;
+/** 棚に立つ本の大きさ。表紙が読める大きさであることが優先（8章） */
+export const BOOK_WIDTH = 88;
+export const BOOK_HEIGHT = 120;
+
+/** 本の下端の握り。指で取れる高さを確保する（9章） */
+const GRIP_HEIGHT = 22;
+
+export type DragBindings = {
+  setNodeRef: (element: HTMLElement | null) => void;
+  style: CSSProperties;
+  isDragging: boolean;
+  /** dnd-kit の listeners と attributes をまとめたもの */
+  dragProps: HTMLAttributes<HTMLDivElement>;
+};
 
 type Props = {
   item: RoadmapItem;
   book: Book;
-  onOpen: (itemId: string) => void;
+  onOpen?: (itemId: string) => void;
+  drag?: DragBindings;
+  /** DragOverlay の中身として描くとき */
+  overlay?: boolean;
 };
 
 /**
@@ -21,14 +38,35 @@ type Props = {
  * 表紙が無いとき（手入力した教材、取得できなかったもの）は書名から決めた色で
  * 帯を作り、書名を小さく載せる。**レイアウトが崩れないことが条件**（7章）。
  */
-export function BookSpine({ item, book, onOpen }: Props) {
+export function BookSpine({ item, book, onOpen, drag, overlay = false }: Props) {
+  const open = () => onOpen?.(item.id);
+
+  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      open();
+      return;
+    }
+    drag?.dragProps.onKeyDown?.(e);
+  };
+
   return (
-    <button
-      type="button"
-      onClick={() => onOpen(item.id)}
-      aria-label={book.title}
-      className="relative flex-none snap-start focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
-      style={{ width: WIDTH }}
+    <div
+      ref={overlay ? undefined : drag?.setNodeRef}
+      style={{ width: BOOK_WIDTH, ...(overlay ? {} : drag?.style) }}
+      /*
+        **<button> にしない。** センサーはボタンの上でドラッグを始めない作りに
+        してあるので（誤爆を防ぐため）、ボタンにすると握りが効かなくなる。
+      */
+      role={overlay ? undefined : "button"}
+      tabIndex={overlay ? undefined : 0}
+      aria-label={overlay ? undefined : book.title}
+      onClick={overlay ? undefined : open}
+      onKeyDown={overlay ? undefined : onKeyDown}
+      {...(overlay ? {} : drag?.dragProps)}
+      className={`relative flex-none snap-start touch-pan-x focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent ${
+        drag?.isDragging ? "opacity-30" : ""
+      } ${overlay ? "cursor-grabbing" : ""}`}
     >
       {/* 周回の目標とメモの印は棚板の上に出す。表紙を隠さない */}
       <span className="flex h-[17px] items-end justify-between px-px">
@@ -49,40 +87,66 @@ export function BookSpine({ item, book, onOpen }: Props) {
       </span>
 
       <span
-        className={`relative block overflow-hidden rounded-[2px_5px_5px_2px] shadow-card ${
-          item.isDone ? "opacity-55" : ""
-        }`}
-        style={{ width: WIDTH, height: HEIGHT }}
+        className={`relative block overflow-hidden rounded-[2px_5px_5px_2px] ${
+          overlay ? "shadow-lift" : "shadow-card"
+        } ${item.isDone ? "opacity-55" : ""}`}
+        style={{ width: BOOK_WIDTH, height: BOOK_HEIGHT }}
       >
         {book.coverImageUrl ? (
           <Image
             src={book.coverImageUrl}
             alt=""
-            width={WIDTH}
-            height={HEIGHT}
+            width={BOOK_WIDTH}
+            height={BOOK_HEIGHT}
             unoptimized
+            draggable={false}
             className="h-full w-full object-cover"
           />
         ) : (
           <span
-            className="flex h-full w-full items-center justify-center px-1.5 text-center text-[0.62rem] leading-tight text-white"
+            className="flex h-full w-full items-center justify-center px-1.5 text-center text-[0.66rem] leading-tight text-white"
             style={{
               background: `linear-gradient(160deg, hsl(${book.hue} 42% 44%), hsl(${book.hue + 22} 38% 28%))`,
             }}
           >
-            {book.title.slice(0, 14)}
+            {book.title.slice(0, 16)}
           </span>
         )}
+
         {/* 背表紙。左だけ影と光を入れて厚みを出す */}
         <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-black/30" />
         <span aria-hidden="true" className="absolute inset-y-0 left-1 w-[1.5px] bg-white/20" />
-      </span>
 
-      {item.isDone && (
-        <span className="absolute -bottom-1.5 -right-1.5 grid h-[22px] w-[22px] place-items-center rounded-full bg-thread text-white shadow-[0_0_0_2.5px_var(--raised)]">
-          <CheckIcon size={11} />
-        </span>
-      )}
-    </button>
+        {/*
+          終了の印は**表紙の内側**に置く。外へはみ出すと、棚が縦にも
+          スクロールできる状態になって本が上下にずれる
+        */}
+        {item.isDone && (
+          <span className="absolute bottom-1 right-1 grid h-[22px] w-[22px] place-items-center rounded-full bg-thread text-white shadow-[0_0_0_2px_var(--raised)]">
+            <CheckIcon size={11} />
+          </span>
+        )}
+
+        {/*
+          本の下端が握り。**ここだけ touch-action: none** にして、つまんだ瞬間から
+          動かせるようにする（9章）。棚そのものは pan-x のままなので横スクロールは
+          そのまま効く。この2つはセットで意味を持つ。
+        */}
+        {!overlay && (
+          <span
+            {...{ [GRIP_ATTRIBUTE]: "" }}
+            aria-hidden="true"
+            className="absolute inset-x-0 bottom-0 flex cursor-grab touch-none items-center justify-center bg-gradient-to-t from-black/35 to-transparent opacity-0 transition-opacity hover:opacity-100 active:opacity-100"
+            style={{ height: GRIP_HEIGHT }}
+          >
+            <svg viewBox="0 0 22 8" width="20" height="7" className="fill-white/85">
+              <circle cx="4" cy="4" r="1.5" />
+              <circle cx="11" cy="4" r="1.5" />
+              <circle cx="18" cy="4" r="1.5" />
+            </svg>
+          </span>
+        )}
+      </span>
+    </div>
   );
 }

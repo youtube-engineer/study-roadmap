@@ -73,6 +73,19 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
     stageId: string;
     index: number;
   } | null>(null);
+
+  /**
+   * 消した段の控え。**中の参考書ごと控える。**
+   * 段を消すと本も一緒に消えるので、戻すときに本が無いと意味がない
+   */
+  const [removedStage, setRemovedStage] = useState<{
+    stage: RoadmapStage;
+    index: number;
+  } | null>(null);
+  const pendingStageRemove = useRef<{
+    flush: () => void;
+    timer: ReturnType<typeof setTimeout>;
+  } | null>(null);
   const pendingRemove = useRef<{
     flush: () => void;
     timer: ReturnType<typeof setTimeout>;
@@ -140,6 +153,11 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
         clearTimeout(pendingRemove.current.timer);
         pendingRemove.current.flush();
         pendingRemove.current = null;
+      }
+      if (pendingStageRemove.current) {
+        clearTimeout(pendingStageRemove.current.timer);
+        pendingStageRemove.current.flush();
+        pendingStageRemove.current = null;
       }
     },
     [],
@@ -310,9 +328,30 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
     setRemoved(null);
   }, [removed, patchStage]);
 
+  /** 棚の中でドラッグして並べ替えたとき */
+  const reorderInStage = useCallback(
+    (activeId: string, overId: string) => {
+      const found = findItem(activeId);
+      if (!found) return;
+      const to = found.stage.items.findIndex((i) => i.id === overId);
+      if (to < 0) return;
+
+      const next = [...found.stage.items];
+      const [moved] = next.splice(found.index, 1);
+      next.splice(to, 0, moved);
+
+      const fractionalIndex = keyBetween(next[to - 1], next[to + 1]);
+      next[to] = { ...next[to], fractionalIndex };
+
+      patchStage(found.stage.id, (s) => ({ ...s, items: next }));
+      void sync.patchItem(activeId, { fractionalIndex });
+    },
+    [findItem, patchStage, sync],
+  );
+
   /**
-   * 棚の中で左右に動かす。**ドラッグは使わない。**
-   * 横スクロールと掴む操作は両立しない（9章）ので、シートから動かす。
+   * 棚の中で左右に動かす。ドラッグが使えないとき（キーボード、握りが細かい）
+   * のための経路としてシートにも残す。
    */
   const shiftItem = useCallback(
     (itemId: string, direction: -1 | 1) => {
@@ -403,22 +442,50 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
     [doc.stages, sync],
   );
 
-  /** 段を消すと中の参考書も一緒に消える。最後の1段は残す */
+  /**
+   * 段を消す。中の参考書も一緒に消える。最後の1段は残す。
+   *
+   * **サーバーへの削除だけを数秒遅らせる**（ロードマップや参考書の削除と同じ作り）。
+   * 確認を二重にするより、まず実行して戻せる方がこの設計と揃う（画面設計 09）。
+   * 段は中の本ごと消えるので、確認だけでは事故ったときに取り返しがつかない。
+   */
   const removeStage = useCallback(
     (stageId: string) => {
       if (doc.stages.length <= 1) return;
-      const stage = doc.stages.find((s) => s.id === stageId);
+      const index = doc.stages.findIndex((s) => s.id === stageId);
+      const stage = doc.stages[index];
+      if (!stage) return;
+
       setStageMenuId(null);
       setDoc((d) => ({ ...d, stages: d.stages.filter((s) => s.id !== stageId) }));
-      void sync.removeStage(stageId);
-      setToast(
-        stage && stage.items.length > 0
-          ? `段と、中の${stage.items.length}冊を消した`
-          : "段を消した",
-      );
+      setRemovedStage({ stage, index });
+
+      const flush = () => void sync.removeStage(stageId);
+      const timer = setTimeout(() => {
+        pendingStageRemove.current = null;
+        setRemovedStage(null);
+        flush();
+      }, 8000);
+      pendingStageRemove.current = { flush, timer };
     },
     [doc.stages, sync],
   );
+
+  const undoRemoveStage = useCallback(() => {
+    if (pendingStageRemove.current) {
+      clearTimeout(pendingStageRemove.current.timer);
+      pendingStageRemove.current = null;
+    }
+    if (removedStage) {
+      // サーバーへの削除はまだ走っていないので、手元に戻すだけでよい
+      setDoc((d) => {
+        const next = [...d.stages];
+        next.splice(Math.min(removedStage.index, next.length), 0, removedStage.stage);
+        return { ...d, stages: next };
+      });
+    }
+    setRemovedStage(null);
+  }, [removedStage]);
 
   const detail = detailId ? findItem(detailId) : null;
   const detailBook = detail ? (books[detail.item.bookId] ?? null) : null;
@@ -489,6 +556,7 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
               onToggleStage={toggleStage}
               onRenameStage={renameStage}
               onOpenItem={setDetailId}
+              onReorder={reorderInStage}
               onAddBook={setAddingTo}
               onOpenStageMenu={setStageMenuId}
             />
@@ -534,6 +602,19 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
       </div>
 
       <Toast message={toast} onDismiss={() => setToast(null)} />
+
+      <Toast
+        message={
+          removedStage
+            ? removedStage.stage.items.length > 0
+              ? `「${removedStage.stage.name || "名前のない段"}」と${removedStage.stage.items.length}冊を消した`
+              : `「${removedStage.stage.name || "名前のない段"}」を消した`
+            : null
+        }
+        onDismiss={() => setRemovedStage(null)}
+        durationMs={8000}
+        action={{ label: "取り消す", onClick: undoRemoveStage }}
+      />
 
       <Toast
         message={removed ? `「${books[removed.item.bookId]?.title ?? "参考書"}」を外した` : null}
@@ -615,7 +696,9 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
             {doc.stages.length > 1 ? (
               <>
                 <p className="text-[0.82rem] leading-relaxed text-ink-faint">
-                  中の参考書も一緒に消えます。
+                  {stageMenu.items.length > 0
+                    ? `中の${stageMenu.items.length}冊も一緒に消えます。消したあと数秒は取り消せます。`
+                    : "消したあと数秒は取り消せます。"}
                 </p>
                 <button
                   type="button"

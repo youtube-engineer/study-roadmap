@@ -184,6 +184,14 @@
     touch-action: pan-x;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
+    /**
+     * **縦を明示的に止める。**
+     *
+     * `overflow-x: auto` だけだと、仕様上 `overflow-y` が `visible` から
+     * `auto` に変わる。中身が数px でもはみ出していると縦にも動いてしまい、
+     * 棚の上で本が上下にずれる。
+     */
+    overflow-y: hidden;
   }
 
   .shelf-books::-webkit-scrollbar {

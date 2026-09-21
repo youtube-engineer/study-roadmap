@@ -1,12 +1,30 @@
 "use client";
 
-import type { KeyboardEvent } from "react";
+import { useEffect, useState } from "react";
+import type { ComponentType, KeyboardEvent } from "react";
 
 import { CheckIcon } from "@/components/ui/icons";
 import { isStageDone } from "@/types/roadmap";
 import type { Book, RoadmapStage } from "@/types/roadmap";
 
-import { BookSpine } from "./BookSpine";
+import { BookSpine, BOOK_HEIGHT, BOOK_WIDTH } from "./BookSpine";
+import type { BooksProps } from "./SortableBooks";
+
+/**
+ * 並べ替えできない棚。dnd-kit のチャンクが届くまでのあいだ表示する。
+ * 空の枠ではなく本物の棚を出すので、読む分には最初から成立している。
+ */
+function StaticBooks({ items, books, onOpen }: BooksProps) {
+  return (
+    <>
+      {items.map((item) => {
+        const book = books[item.bookId];
+        if (!book) return null;
+        return <BookSpine key={item.id} item={item} book={book} onOpen={onOpen} />;
+      })}
+    </>
+  );
+}
 
 type Props = {
   stage: RoadmapStage;
@@ -17,6 +35,8 @@ type Props = {
   onToggleStage?: (stageId: string) => void;
   onRenameStage?: (stageId: string, name: string) => void;
   onOpenItem?: (itemId: string) => void;
+  /** 同じ段の中での並べ替え */
+  onReorder?: (activeId: string, overId: string) => void;
   onAddBook?: (stageId: string) => void;
   onOpenStageMenu?: (stageId: string) => void;
 };
@@ -35,9 +55,26 @@ export function Shelf({
   onToggleStage,
   onRenameStage,
   onOpenItem,
+  onReorder,
   onAddBook,
   onOpenStageMenu,
 }: Props) {
+  /**
+   * dnd-kit は初回表示に不要なので初期バンドルから外し、描画後に読み込んで
+   * 差し替える（CLAUDE.md 10章）。届くまでは並べ替えできない棚を出しておく。
+   */
+  const [Books, setBooks] = useState<ComponentType<BooksProps>>(() => StaticBooks);
+  useEffect(() => {
+    if (readOnly) return;
+    let alive = true;
+    import("./SortableBooks").then((mod) => {
+      if (alive) setBooks(() => mod.SortableBooks);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [readOnly]);
+
   const done = isStageDone(stage);
   const doneCount = stage.items.filter((i) => i.isDone).length;
 
@@ -120,25 +157,20 @@ export function Shelf({
       <div className="relative mt-0.5">
         {/* 横スクロールを通す。掴む操作は載せない（9章） */}
         <div className="shelf-books flex snap-x snap-proximity items-end gap-[11px] overflow-x-auto pr-4 pt-0.5">
-          {stage.items.map((item) => {
-            const book = books[item.bookId];
-            if (!book) return null;
-            return (
-              <BookSpine
-                key={item.id}
-                item={item}
-                book={book}
-                onOpen={(id) => onOpenItem?.(id)}
-              />
-            );
-          })}
+          <Books
+            items={stage.items}
+            books={books}
+            onOpen={(id) => onOpenItem?.(id)}
+            onReorder={(a, b) => onReorder?.(a, b)}
+          />
 
           {!readOnly && (
             <button
               type="button"
               onClick={() => onAddBook?.(stage.id)}
               aria-label="この段に参考書を追加"
-              className="mt-[17px] grid h-[101px] w-[74px] flex-none place-items-center rounded-[5px] border-[1.5px] border-dashed border-rule-strong text-[1.2rem] text-ink-faint hover:border-accent hover:bg-accent-soft hover:text-accent-strong"
+              style={{ width: BOOK_WIDTH, height: BOOK_HEIGHT }}
+              className="mt-[17px] grid flex-none place-items-center rounded-[5px] border-[1.5px] border-dashed border-rule-strong text-[1.2rem] text-ink-faint hover:border-accent hover:bg-accent-soft hover:text-accent-strong"
             >
               ＋
             </button>

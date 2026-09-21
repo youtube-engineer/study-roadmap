@@ -36,7 +36,7 @@ export function Sheet({ open, onClose, title, children }: Props) {
         role="dialog"
         aria-label={title}
         aria-modal={open}
-        className={`absolute bottom-0 left-1/2 flex max-h-[82vh] w-[min(520px,100%)] flex-col rounded-t-[18px] border-t border-rule bg-raised pb-[env(safe-area-inset-bottom)] shadow-lift transition-transform duration-[280ms] ease-[cubic-bezier(0.2,0,0,1)] ${
+        className={`absolute bottom-0 left-1/2 flex max-h-[82vh] w-[min(430px,100%)] flex-col rounded-t-[18px] border-t border-rule bg-raised pb-[env(safe-area-inset-bottom)] shadow-lift transition-transform duration-[280ms] ease-[cubic-bezier(0.2,0,0,1)] ${
           open ? "translate-x-[-50%] translate-y-0" : "translate-x-[-50%] translate-y-full"
         }`}
       >
