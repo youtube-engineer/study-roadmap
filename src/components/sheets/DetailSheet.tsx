@@ -108,7 +108,12 @@ export function DetailSheet({
 
           <button
             type="button"
-            onClick={() => onToggleDone(item.id)}
+            onClick={() => {
+              onToggleDone(item.id);
+              // 終えたら本は棚の右端へ動く。シートを開いたままだと
+              // 動いたことに気づけないので、閉じて棚を見せる
+              onClose();
+            }}
             className={`flex w-full items-center gap-2 rounded-[10px] border px-3.5 py-2.5 text-[0.88rem] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
               item.isDone
                 ? "border-thread/45 bg-thread-soft font-medium text-thread"

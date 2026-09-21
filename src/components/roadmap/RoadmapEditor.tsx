@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { FocusEvent, KeyboardEvent } from "react";
+import type { ComponentType, FocusEvent, KeyboardEvent } from "react";
 
 import { LoginButton } from "@/components/auth/LoginButton";
 import { DetailSheet } from "@/components/sheets/DetailSheet";
@@ -17,9 +17,38 @@ import { UNTITLED } from "@/lib/roadmaps/title";
 import { allItems, isStageDone } from "@/types/roadmap";
 import type { Book, Roadmap, RoadmapItem, RoadmapStage, RoadmapSummary } from "@/types/roadmap";
 
+import { BookSpine } from "./BookSpine";
 import { CompletionSheet } from "./CompletionSheet";
 import { RoadmapDrawer } from "./RoadmapDrawer";
 import { Shelf } from "./Shelf";
+import type { RoadmapListProps } from "./SortableRoadmap";
+
+/**
+ * 並べ替えできない棚。dnd-kit のチャンクが届くまでのあいだ表示する。
+ * 空の枠ではなく本物の棚を出すので、読む分には最初から成立している。
+ */
+function StaticRoadmap({ stages, books, ...handlers }: RoadmapListProps) {
+  return (
+    <>
+      {stages.map((stage, index) => (
+        <Shelf key={stage.id} stage={stage} index={index} {...handlers}>
+          {stage.items.map((item) => {
+            const book = books[item.bookId];
+            if (!book) return null;
+            return (
+              <BookSpine
+                key={item.id}
+                item={item}
+                book={book}
+                onOpen={handlers.onOpenItem}
+              />
+            );
+          })}
+        </Shelf>
+      ))}
+    </>
+  );
+}
 
 /**
  * 走りきった知らせを出したか。ルートごとに覚える。
@@ -64,6 +93,23 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
   const [shareOpen, setShareOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [stageMenuId, setStageMenuId] = useState<string | null>(null);
+  /** 段の削除は中身ごと消えるので、押した先でもう一度確かめる */
+  const [confirmingStageId, setConfirmingStageId] = useState<string | null>(null);
+
+  /**
+   * dnd-kit は初回表示に不要なので初期バンドルから外し、描画後に読み込んで
+   * 差し替える（CLAUDE.md 10章）。届くまでは並べ替えできない棚を出しておく。
+   */
+  const [List, setList] = useState<ComponentType<RoadmapListProps>>(() => StaticRoadmap);
+  useEffect(() => {
+    let alive = true;
+    import("./SortableRoadmap").then((mod) => {
+      if (alive) setList(() => mod.SortableRoadmap);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
   const [toast, setToast] = useState<string | null>(null);
   const [completed, setCompleted] = useState(false);
 
@@ -243,27 +289,43 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
     [doc.stages, doc.id, items.length, patchStage, sync],
   );
 
-  /** 本ごとの終了。段が全部終わったらそこで祝う */
+  /**
+   * 本ごとの終了。
+   *
+   * **終えた本は棚の右端へ寄せる。** 手前に残っていると、次にやる本が
+   * 埋もれて見える。並び順のキーも打ち替えるので、リロードしても同じ位置にいる。
+   */
   const toggleItemDone = useCallback(
     (itemId: string) => {
       const found = findItem(itemId);
       if (!found) return;
       const isDone = !found.item.isDone;
-      patchItem(itemId, { isDone });
+
+      const rest = found.stage.items.filter((i) => i.id !== itemId);
+      // 終えたら末尾へ、戻したらまだ終えていない本の最後へ
+      const at = isDone ? rest.length : rest.filter((i) => !i.isDone).length;
+      const fractionalIndex = keyBetween(rest[at - 1], rest[at]);
+
+      const moved = { ...found.item, isDone, fractionalIndex };
+      const next = [...rest];
+      next.splice(at, 0, moved);
+
+      patchStage(found.stage.id, (st) => ({ ...st, items: next }));
+      void sync.patchItem(itemId, { isDone, fractionalIndex });
 
       const allDone =
         isDone &&
-        doc.stages.every((s) =>
-          s.id === found.stage.id
-            ? s.items.every((i) => i.id === itemId || i.isDone)
-            : isStageDone(s),
+        doc.stages.every((st) =>
+          st.id === found.stage.id
+            ? st.items.every((i) => i.id === itemId || i.isDone)
+            : isStageDone(st),
         );
       if (allDone && items.length > 0 && !seenCompletion(doc.id)) {
         rememberCompletion(doc.id);
         setCompleted(true);
       }
     },
-    [doc.stages, doc.id, findItem, items.length, patchItem],
+    [doc.stages, doc.id, findItem, items.length, patchStage, sync],
   );
 
   const addBook = useCallback(
@@ -328,51 +390,88 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
     setRemoved(null);
   }, [removed, patchStage]);
 
-  /** 棚の中でドラッグして並べ替えたとき */
-  const reorderInStage = useCallback(
-    (activeId: string, overId: string) => {
-      const found = findItem(activeId);
-      if (!found) return;
-      const to = found.stage.items.findIndex((i) => i.id === overId);
-      if (to < 0) return;
-
-      const next = [...found.stage.items];
-      const [moved] = next.splice(found.index, 1);
-      next.splice(to, 0, moved);
-
-      const fractionalIndex = keyBetween(next[to - 1], next[to + 1]);
-      next[to] = { ...next[to], fractionalIndex };
-
-      patchStage(found.stage.id, (s) => ({ ...s, items: next }));
-      void sync.patchItem(activeId, { fractionalIndex });
-    },
-    [findItem, patchStage, sync],
-  );
-
-  /** 別の段へ移す */
-  const moveItemToStage = useCallback(
-    (itemId: string, stageId: string) => {
+  /**
+   * 参考書を（別の段かもしれない）位置へ移す。
+   *
+   * 段をまたぐ移動も同じ経路で扱う。握りは `touch-action: none` なので、
+   * いったん掴めば方向の制限は無い（9章）。
+   */
+  const moveItem = useCallback(
+    (itemId: string, toStageId: string, toIndex: number | null) => {
       const found = findItem(itemId);
-      const target = doc.stages.find((s) => s.id === stageId);
-      if (!found || !target || found.stage.id === stageId) return;
+      if (!found) return;
+      if (found.stage.id === toStageId && found.index === toIndex) return;
 
-      const fractionalIndex = keyBetween(target.items[target.items.length - 1], undefined);
+      const target = doc.stages.find((s) => s.id === toStageId);
+      if (!target) return;
+
+      const remaining =
+        found.stage.id === toStageId
+          ? found.stage.items.filter((i) => i.id !== itemId)
+          : target.items;
+      const at = toIndex === null ? remaining.length : Math.min(toIndex, remaining.length);
+
+      const fractionalIndex = keyBetween(remaining[at - 1], remaining[at]);
       const moved = { ...found.item, fractionalIndex };
 
       setDoc((d) => ({
         ...d,
         stages: d.stages.map((s) => {
+          if (s.id === found.stage.id && s.id === toStageId) {
+            const next = s.items.filter((i) => i.id !== itemId);
+            next.splice(at, 0, moved);
+            return { ...s, items: next };
+          }
           if (s.id === found.stage.id) {
             return { ...s, items: s.items.filter((i) => i.id !== itemId) };
           }
-          if (s.id === stageId) return { ...s, items: [...s.items, moved] };
+          if (s.id === toStageId) {
+            const next = [...s.items];
+            next.splice(at, 0, moved);
+            return { ...s, items: next };
+          }
           return s;
         }),
       }));
-      void sync.moveItem(itemId, stageId, fractionalIndex);
-      setToast(`「${target.name || "名前のない段"}」へ移した`);
+
+      if (found.stage.id === toStageId) {
+        void sync.patchItem(itemId, { fractionalIndex });
+      } else {
+        void sync.moveItem(itemId, toStageId, fractionalIndex);
+      }
     },
     [doc.stages, findItem, sync],
+  );
+
+  /** 段の並び替え。玉を掴んで動かしたとき */
+  const reorderStages = useCallback(
+    (activeId: string, overId: string) => {
+      const from = doc.stages.findIndex((s) => s.id === activeId);
+      const to = doc.stages.findIndex((s) => s.id === overId);
+      if (from < 0 || to < 0 || from === to) return;
+
+      const next = [...doc.stages];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+
+      const fractionalIndex = keyBetween(next[to - 1], next[to + 1]);
+      next[to] = { ...next[to], fractionalIndex };
+
+      setDoc((d) => ({ ...d, stages: next }));
+      void sync.moveStage(activeId, fractionalIndex);
+    },
+    [doc.stages, sync],
+  );
+
+  /** 別の段へ移す（シートから） */  /** 別の段へ移す */
+  const moveItemToStage = useCallback(
+    (itemId: string, stageId: string) => {
+      const target = doc.stages.find((s) => s.id === stageId);
+      if (!target) return;
+      moveItem(itemId, stageId, null);
+      setToast(`「${target.name || "名前のない段"}」へ移した`);
+    },
+    [doc.stages, moveItem],
   );
 
   const addStage = useCallback(() => {
@@ -523,24 +622,36 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
       </div>
 
       <div className="flex-1 pb-16 pt-3">
-        {doc.stages.map((stage, index) => (
-          <div key={stage.id}>
-            <Shelf
-              stage={stage}
-              index={index}
-              books={books}
-              onToggleStage={toggleStage}
-              onRenameStage={renameStage}
-              onOpenItem={setDetailId}
-              onReorder={reorderInStage}
-              onAddBook={setAddingTo}
-              onOpenStageMenu={setStageMenuId}
+        {/*
+          **読み込み中に空の棚を出さない。** 参考書は IndexedDB から読むので
+          一瞬かかる。その間に空の棚が見えると「消えた」と読めてしまう。
+        */}
+        {!hydrated ? (
+          <div className="flex items-center justify-center gap-2.5 py-16 text-ink-faint">
+            <span
+              aria-hidden="true"
+              className="h-4 w-4 animate-spin rounded-full border-2 border-rule-strong border-t-thread"
             />
-            <div className="h-4" />
+            <span className="text-[0.82rem]">読み込んでいます…</span>
           </div>
-        ))}
+        ) : (
+        <List
+          stages={doc.stages}
+          books={books}
+          onToggleStage={toggleStage}
+          onRenameStage={renameStage}
+          onOpenItem={setDetailId}
+          onAddBook={setAddingTo}
+          onOpenStageMenu={setStageMenuId}
+          onMoveItem={moveItem}
+          onReorderStages={reorderStages}
+        />
+        )}
+
+        <div className="h-4" />
 
         {/* 段を追加 */}
+        {hydrated && (
         <section className="relative pl-[46px]">
           <span className="absolute inset-y-0 left-[15px] flex w-[22px] justify-center">
             <span aria-hidden="true" className="absolute inset-y-0 w-[3px] rounded-sm bg-thread opacity-20" />
@@ -562,6 +673,7 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
           </div>
           <div className="h-4" />
         </section>
+        )}
 
         {/* GOAL */}
         <section className="relative pl-[46px]">
@@ -628,7 +740,10 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
 
       <Sheet
         open={stageMenu !== undefined && stageMenu !== null}
-        onClose={() => setStageMenuId(null)}
+        onClose={() => {
+          setStageMenuId(null);
+          setConfirmingStageId(null);
+        }}
         title="段の設定"
       >
         {stageMenu && (
@@ -673,13 +788,38 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
                     ? `中の${stageMenu.items.length}冊も一緒に消えます。消したあと数秒は取り消せます。`
                     : "消したあと数秒は取り消せます。"}
                 </p>
-                <button
-                  type="button"
-                  onClick={() => removeStage(stageMenu.id)}
-                  className="w-full rounded-[10px] border border-thread px-4 py-3 text-[0.9rem] font-medium text-thread hover:bg-thread-soft"
-                >
-                  この段を消す
-                </button>
+                {confirmingStageId === stageMenu.id ? (
+                  <div className="flex flex-col gap-2 rounded-[10px] border border-thread bg-thread-soft px-3.5 py-3">
+                    <p className="text-[0.86rem] font-medium text-thread">
+                      本当に消しますか？
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setConfirmingStageId(null);
+                        removeStage(stageMenu.id);
+                      }}
+                      className="w-full rounded-[9px] bg-thread px-4 py-2.5 text-[0.88rem] font-medium text-white"
+                    >
+                      消す
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingStageId(null)}
+                      className="w-full py-1 text-[0.8rem] text-ink-soft underline underline-offset-[3px]"
+                    >
+                      やめる
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingStageId(stageMenu.id)}
+                    className="w-full rounded-[10px] border border-thread px-4 py-3 text-[0.9rem] font-medium text-thread hover:bg-thread-soft"
+                  >
+                    この段を消す
+                  </button>
+                )}
               </>
             ) : (
               <p className="text-[0.82rem] leading-relaxed text-ink-faint">

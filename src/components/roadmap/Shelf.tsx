@@ -1,44 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import type { ComponentType, KeyboardEvent } from "react";
+import type { HTMLAttributes, KeyboardEvent, ReactNode, Ref } from "react";
 
 import { CheckIcon } from "@/components/ui/icons";
 import { isStageDone } from "@/types/roadmap";
-import type { Book, RoadmapStage } from "@/types/roadmap";
+import type { RoadmapStage } from "@/types/roadmap";
 
-import { BookSpine, BOOK_HEIGHT, BOOK_WIDTH } from "./BookSpine";
-import type { BooksProps } from "./SortableBooks";
+import { BOOK_HEIGHT, BOOK_WIDTH } from "./BookSpine";
 
-/**
- * 並べ替えできない棚。dnd-kit のチャンクが届くまでのあいだ表示する。
- * 空の枠ではなく本物の棚を出すので、読む分には最初から成立している。
- */
-function StaticBooks({ items, books, onOpen }: BooksProps) {
-  return (
-    <>
-      {items.map((item) => {
-        const book = books[item.bookId];
-        if (!book) return null;
-        return <BookSpine key={item.id} item={item} book={book} onOpen={onOpen} />;
-      })}
-    </>
-  );
-}
-
-type Props = {
-  stage: RoadmapStage;
-  index: number;
-  books: Record<string, Book>;
-  /** 読み取り専用（共有ページ）では操作を出さない */
-  readOnly?: boolean;
+/** 棚が外へ渡す操作。並べ替えの層をまたいで運ぶので型をまとめておく */
+export type ShelfHandlers = {
   onToggleStage?: (stageId: string) => void;
   onRenameStage?: (stageId: string, name: string) => void;
   onOpenItem?: (itemId: string) => void;
-  /** 同じ段の中での並べ替え */
-  onReorder?: (activeId: string, overId: string) => void;
   onAddBook?: (stageId: string) => void;
   onOpenStageMenu?: (stageId: string) => void;
+};
+
+type Props = ShelfHandlers & {
+  stage: RoadmapStage;
+  index: number;
+  /** 読み取り専用（共有ページ）では操作を出さない */
+  readOnly?: boolean;
+  /** 段の玉に付けるドラッグの手。段はここを掴んで動かす */
+  beadProps?: HTMLAttributes<HTMLDivElement>;
+  /** 空の棚にも本を落とせるようにするための参照 */
+  shelfDropRef?: Ref<HTMLDivElement>;
+  /** 棚に並ぶ本。並べ替えの有無で中身が変わる */
+  children: ReactNode;
 };
 
 /**
@@ -50,31 +39,15 @@ type Props = {
 export function Shelf({
   stage,
   index,
-  books,
   readOnly = false,
+  beadProps,
+  shelfDropRef,
+  children,
   onToggleStage,
   onRenameStage,
-  onOpenItem,
-  onReorder,
   onAddBook,
   onOpenStageMenu,
 }: Props) {
-  /**
-   * dnd-kit は初回表示に不要なので初期バンドルから外し、描画後に読み込んで
-   * 差し替える（CLAUDE.md 10章）。届くまでは並べ替えできない棚を出しておく。
-   */
-  const [Books, setBooks] = useState<ComponentType<BooksProps>>(() => StaticBooks);
-  useEffect(() => {
-    if (readOnly) return;
-    let alive = true;
-    import("./SortableBooks").then((mod) => {
-      if (alive) setBooks(() => mod.SortableBooks);
-    });
-    return () => {
-      alive = false;
-    };
-  }, [readOnly]);
-
   const done = isStageDone(stage);
   const doneCount = stage.items.filter((i) => i.isDone).length;
 
@@ -86,6 +59,11 @@ export function Shelf({
     e.currentTarget.blur();
   };
 
+  const toggle = () => {
+    if (readOnly || stage.items.length === 0) return;
+    onToggleStage?.(stage.id);
+  };
+
   return (
     <section className="relative pl-[46px]">
       <span className="absolute inset-y-0 left-[15px] flex w-[22px] justify-center">
@@ -95,19 +73,39 @@ export function Shelf({
             done ? "opacity-100" : "opacity-[0.28]"
           }`}
         />
-        {/* 玉は24pxだが、当たり判定は44pxまで広げる */}
-        <button
-          type="button"
-          disabled={readOnly || stage.items.length === 0}
-          onClick={() => onToggleStage?.(stage.id)}
-          aria-pressed={done}
-          aria-label={done ? "この段を未終了に戻す" : "この段を終了にする"}
-          className={`relative z-[2] mt-0.5 grid h-6 w-6 flex-none place-items-center self-start rounded-full border-[2.5px] border-thread font-mono text-[0.72rem] shadow-[0_0_0_4px_var(--raised)] after:absolute after:left-1/2 after:top-1/2 after:h-11 after:w-11 after:-translate-x-1/2 after:-translate-y-1/2 after:content-[''] disabled:cursor-default ${
+        {/*
+          玉は2つの役割を持つ。押せば段の終了を切り替え、つまめば段を動かせる。
+          **`<button>` にしない。** センサーはボタンの上でドラッグを始めない作り
+          なので、ボタンにすると掴めなくなる（9章）。
+          当たり判定は 24px の玉に対して 44px まで広げる。
+        */}
+        <div
+          {...beadProps}
+          role={readOnly ? undefined : "button"}
+          tabIndex={readOnly ? undefined : 0}
+          aria-pressed={readOnly ? undefined : done}
+          aria-label={
+            readOnly ? undefined : done ? "この段を未終了に戻す" : "この段を終了にする"
+          }
+          onClick={readOnly ? undefined : toggle}
+          onKeyDown={
+            readOnly
+              ? undefined
+              : (e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    toggle();
+                    return;
+                  }
+                  beadProps?.onKeyDown?.(e);
+                }
+          }
+          className={`relative z-[2] mt-0.5 grid h-6 w-6 flex-none touch-none place-items-center self-start rounded-full border-[2.5px] border-thread font-mono text-[0.72rem] shadow-[0_0_0_4px_var(--raised)] after:absolute after:left-1/2 after:top-1/2 after:h-11 after:w-11 after:-translate-x-1/2 after:-translate-y-1/2 after:content-[''] focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-accent ${
             done ? "bg-thread text-white" : "bg-raised text-thread"
-          }`}
+          } ${readOnly ? "" : "cursor-grab active:cursor-grabbing"}`}
         >
           {done ? <CheckIcon size={12} /> : index + 1}
-        </button>
+        </div>
       </span>
 
       <div className="flex min-h-7 items-baseline gap-2 pr-4">
@@ -155,14 +153,12 @@ export function Shelf({
       </div>
 
       <div className="relative mt-0.5">
-        {/* 横スクロールを通す。掴む操作は載せない（9章） */}
-        <div className="shelf-books flex snap-x snap-proximity items-end gap-[11px] overflow-x-auto pr-4 pt-0.5">
-          <Books
-            items={stage.items}
-            books={books}
-            onOpen={(id) => onOpenItem?.(id)}
-            onReorder={(a, b) => onReorder?.(a, b)}
-          />
+        {/* 横スクロールを通す。掴む操作は本の握りだけが持つ（9章） */}
+        <div
+          ref={shelfDropRef}
+          className="shelf-books flex min-h-[137px] snap-x snap-proximity items-end gap-[11px] overflow-x-auto pr-4 pt-0.5"
+        >
+          {children}
 
           {!readOnly && (
             <button
