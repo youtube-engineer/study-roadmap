@@ -5,15 +5,24 @@ import { useState } from "react";
 import { BookCover } from "@/components/ui/BookCover";
 import { CheckIcon } from "@/components/ui/icons";
 import { ROUNDS_MAX, ROUNDS_MIN } from "@/types/roadmap";
-import type { Book, RoadmapItem } from "@/types/roadmap";
+import type { Book, RoadmapItem, RoadmapStage } from "@/types/roadmap";
 
 import { Sheet } from "./Sheet";
 
 type Props = {
   item: RoadmapItem | null;
   book: Book | null;
+  /** 移動先の候補 */
+  stages: RoadmapStage[];
+  currentStageId: string | null;
+  canMoveLeft: boolean;
+  canMoveRight: boolean;
   onClose: () => void;
   onPatch: (itemId: string, patch: Partial<RoadmapItem>) => void;
+  onToggleDone: (itemId: string) => void;
+  /** 棚の中で左右に動かす */
+  onShift: (itemId: string, direction: -1 | 1) => void;
+  onMoveToStage: (itemId: string, stageId: string) => void;
   onRemove: (itemId: string) => void;
 };
 
@@ -21,7 +30,20 @@ type Props = {
  * 参考書ごとの設定。**削除はここに置き、カード上には置かない。**
  * 破壊的操作の誤爆を防ぐため（CLAUDE.md 8章）。
  */
-export function DetailSheet({ item, book, onClose, onPatch, onRemove }: Props) {
+export function DetailSheet({
+  item,
+  book,
+  stages,
+  currentStageId,
+  canMoveLeft,
+  canMoveRight,
+  onClose,
+  onPatch,
+  onToggleDone,
+  onShift,
+  onMoveToStage,
+  onRemove,
+}: Props) {
   const [note, setNote] = useState(item?.note ?? "");
   const [rounds, setRounds] = useState<number | null>(item?.roundsTarget ?? null);
 
@@ -87,7 +109,7 @@ export function DetailSheet({ item, book, onClose, onPatch, onRemove }: Props) {
 
           <button
             type="button"
-            onClick={() => onPatch(item.id, { isDone: !item.isDone })}
+            onClick={() => onToggleDone(item.id)}
             className={`flex w-full items-center gap-2 rounded-[10px] border px-3.5 py-2.5 text-[0.88rem] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
               item.isDone
                 ? "border-thread/45 bg-thread-soft font-medium text-thread"
@@ -155,6 +177,46 @@ export function DetailSheet({ item, book, onClose, onPatch, onRemove }: Props) {
             </p>
           </div>
 
+          {/*
+            並べ替え。**ドラッグは使わない。** 棚は横スクロールするので、
+            掴む操作を載せると9章の touch-action 問題が横方向で再発する。
+          */}
+          <div className="flex flex-col gap-2">
+            <span className="text-[0.78rem] font-medium text-ink-soft">並べ替え</span>
+            <div className="flex gap-2">
+              <ShiftButton
+                label="‹ 左へ"
+                disabled={!canMoveLeft}
+                onClick={() => onShift(item.id, -1)}
+              />
+              <ShiftButton
+                label="右へ ›"
+                disabled={!canMoveRight}
+                onClick={() => onShift(item.id, 1)}
+              />
+            </div>
+
+            {stages.length > 1 && (
+              <label className="flex items-center gap-2 text-[0.78rem] text-ink-soft">
+                <span className="flex-none">別の段へ移す</span>
+                <select
+                  value={currentStageId ?? ""}
+                  onChange={(e) => {
+                    onMoveToStage(item.id, e.target.value);
+                    onClose();
+                  }}
+                  className="min-w-0 flex-1 rounded-lg border border-rule bg-sunk px-2.5 py-1.5 text-[0.82rem] text-ink outline-none focus:border-accent"
+                >
+                  {stages.map((stage, index) => (
+                    <option key={stage.id} value={stage.id}>
+                      {stage.name || `${index + 1}番目の段`}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+          </div>
+
           <div className="flex items-center gap-2.5">
             <button
               type="button"
@@ -200,6 +262,27 @@ function StepButton({
       className="h-8 w-8 flex-none rounded-lg border border-rule bg-sunk text-base leading-none text-ink-soft disabled:cursor-default disabled:opacity-40 enabled:hover:border-accent enabled:hover:text-accent-strong"
     >
       {children}
+    </button>
+  );
+}
+
+function ShiftButton({
+  label,
+  disabled,
+  onClick,
+}: {
+  label: string;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="flex-1 rounded-lg border border-rule bg-sunk py-2 text-[0.82rem] text-ink-soft disabled:opacity-40 enabled:hover:border-accent enabled:hover:text-accent-strong"
+    >
+      {label}
     </button>
   );
 }

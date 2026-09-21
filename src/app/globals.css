@@ -25,6 +25,10 @@
   --thread: #9c3f33;
   --thread-soft: #f4e4e0;
   --amber: #8c6115;
+  /* 棚板。本が載っていることを地の色で示す */
+  --board: #c8b79c;
+  --board-lip: #a8957a;
+  --board-face: #dccdb4;
   --elev-sm: 0 1px 2px rgba(28, 32, 40, 0.05);
   --elev: 0 1px 3px rgba(28, 32, 40, 0.07), 0 10px 24px rgba(28, 32, 40, 0.09);
   --elev-lift: 0 14px 26px rgba(28, 32, 40, 0.2), 0 3px 8px rgba(28, 32, 40, 0.14);
@@ -47,6 +51,9 @@
     --thread: #c9584a;
     --thread-soft: #33211e;
     --amber: #d9a055;
+    --board: #4a3e31;
+    --board-lip: #2e261d;
+    --board-face: #5a4b3a;
     --elev-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
     --elev: 0 1px 3px rgba(0, 0, 0, 0.45), 0 10px 24px rgba(0, 0, 0, 0.5);
     --elev-lift: 0 16px 28px rgba(0, 0, 0, 0.62), 0 3px 8px rgba(0, 0, 0, 0.5);
@@ -69,6 +76,9 @@
   --thread: #c9584a;
   --thread-soft: #33211e;
   --amber: #d9a055;
+  --board: #4a3e31;
+  --board-lip: #2e261d;
+  --board-face: #5a4b3a;
   --elev-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --elev: 0 1px 3px rgba(0, 0, 0, 0.45), 0 10px 24px rgba(0, 0, 0, 0.5);
   --elev-lift: 0 16px 28px rgba(0, 0, 0, 0.62), 0 3px 8px rgba(0, 0, 0, 0.5);
@@ -92,6 +102,9 @@
   --color-thread: var(--thread);
   --color-thread-soft: var(--thread-soft);
   --color-amber: var(--amber);
+  --color-board: var(--board);
+  --color-board-lip: var(--board-lip);
+  --color-board-face: var(--board-face);
 
   --shadow-sm: var(--elev-sm);
   --shadow-card: var(--elev);
@@ -140,5 +153,40 @@
       transition-duration: 0.001ms !important;
       animation-duration: 0.001ms !important;
     }
+  }
+}
+
+@layer components {
+  /**
+   * 棚板。本が載っていることを示す（画面設計）。
+   * 上面・側面・影の3層で厚みを出す。
+   */
+  .shelf-board {
+    height: 7px;
+    border-radius: 0 2px 2px 0;
+    background: linear-gradient(
+      180deg,
+      var(--board-face) 0 45%,
+      var(--board) 45% 72%,
+      var(--board-lip) 72% 100%
+    );
+    box-shadow: 0 3px 5px rgb(28 32 40 / 0.13);
+  }
+
+  /**
+   * 本が並ぶ帯。**横スクロールを通す。**
+   *
+   * 掴む操作は載せない。載せると9章の touch-action 問題が横方向で再発する
+   * （pan-x を許した要素の上ではドラッグが成立しない）。
+   * 並べ替えは詳細シートから行う。
+   */
+  .shelf-books {
+    touch-action: pan-x;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .shelf-books::-webkit-scrollbar {
+    display: none;
   }
 }

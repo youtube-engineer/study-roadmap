@@ -2,6 +2,7 @@
 
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
 
+import { allItems } from "@/types/roadmap";
 import type { Book, Roadmap, RoadmapSummary } from "@/types/roadmap";
 
 /**
@@ -26,8 +27,9 @@ const DB_NAME = "roadmap";
  * 1 … 初版
  * 2 … Roadmap に createdAt を追加
  * 3 … Roadmap に updatedAt を追加
+ * 4 … items を stages でまとめる形にした
  */
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 interface RoadmapDB extends DBSchema {
   roadmaps: { key: string; value: Roadmap };
@@ -69,6 +71,21 @@ function getDb() {
             }
           }
         }
+
+        // 段が無かった頃のものは、全部が1つの段に入っていたのと同じ。
+        // 名前は空にする（勝手に名前を付けない）
+        if (oldVersion >= 1 && oldVersion < 4) {
+          const store = tx.objectStore("roadmaps");
+          for (const roadmap of await store.getAll()) {
+            if (roadmap.stages) continue;
+            const legacy =
+              (roadmap as unknown as { items?: Roadmap["stages"][number]["items"] }).items ?? [];
+            await store.put({
+              ...roadmap,
+              stages: [{ id: crypto.randomUUID(), name: "", items: legacy }],
+            });
+          }
+        }
       },
     });
   }
@@ -91,14 +108,15 @@ async function withDb<T>(fn: (db: IDBPDatabase<RoadmapDB>) => Promise<T>): Promi
 export type LocalSnapshot = { roadmap: Roadmap; books: Book[] };
 
 function toSummary(roadmap: Roadmap): RoadmapSummary {
+  const items = allItems(roadmap);
   return {
     id: roadmap.id,
     title: roadmap.title,
     tags: roadmap.tags,
     isPublic: roadmap.isPublic,
     shareSlug: roadmap.shareSlug,
-    totalCount: roadmap.items.length,
-    doneCount: roadmap.items.filter((i) => i.isDone).length,
+    totalCount: items.length,
+    doneCount: items.filter((i) => i.isDone).length,
     createdAt: roadmap.createdAt,
     updatedAt: roadmap.updatedAt,
     copiedFromName: roadmap.copiedFrom?.authorName ?? null,
@@ -118,7 +136,7 @@ export async function loadLocalRoadmap(id: string): Promise<LocalSnapshot | null
     const roadmap = await db.get("roadmaps", id);
     if (!roadmap) return null;
 
-    const bookIds = [...new Set(roadmap.items.map((i) => i.bookId))];
+    const bookIds = [...new Set(allItems(roadmap).map((i) => i.bookId))];
     const books = (await Promise.all(bookIds.map((bookId) => db.get("books", bookId)))).filter(
       (b): b is Book => b !== undefined,
     );

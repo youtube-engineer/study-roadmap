@@ -91,6 +91,18 @@ function toYear(salesDate: string | undefined): string | null {
   return m ? m[1] : null;
 }
 
+/**
+ * 表紙のURL。
+ *
+ * 楽天は `?_ex=120x120` のような寸法をURLに載せてくる。棚に並べると粗いので
+ * 大きめに差し替える。**URLだけを持つという約束は変えない**（画像は複製しない）。
+ */
+function coverUrl(item: RakutenItem): string | null {
+  const url = item.largeImageUrl || item.mediumImageUrl || item.smallImageUrl;
+  if (!url) return null;
+  return url.replace(/_ex=\d+x\d+/, "_ex=240x240");
+}
+
 function toBook(item: RakutenItem): Book | null {
   const title = item.title?.trim();
   if (!title) return null;
@@ -105,8 +117,7 @@ function toBook(item: RakutenItem): Book | null {
     author: item.author?.trim() || item.publisherName?.trim() || "",
     publishedYear: toYear(item.salesDate),
     // URLだけを持つ。画像ファイルは複製しない
-    coverImageUrl:
-      item.mediumImageUrl || item.largeImageUrl || item.smallImageUrl || null,
+    coverImageUrl: coverUrl(item),
     /**
      * 出典であり購入先。
      *

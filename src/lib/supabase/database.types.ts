@@ -62,10 +62,27 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["roadmaps"]["Insert"]>;
         Relationships: [];
       };
+      roadmap_stages: {
+        Row: {
+          id: string;
+          roadmap_id: string;
+          name: string;
+          fractional_index: string;
+        };
+        Insert: {
+          id?: string;
+          roadmap_id: string;
+          name?: string;
+          fractional_index: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["roadmap_stages"]["Insert"]>;
+        Relationships: [];
+      };
       roadmap_items: {
         Row: {
           id: string;
           roadmap_id: string;
+          stage_id: string;
           book_id: string;
           fractional_index: string;
           is_done: boolean;
@@ -75,6 +92,7 @@ export type Database = {
         Insert: {
           id?: string;
           roadmap_id: string;
+          stage_id: string;
           book_id: string;
           fractional_index: string;
           is_done?: boolean;

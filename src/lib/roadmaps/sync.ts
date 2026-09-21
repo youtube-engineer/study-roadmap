@@ -105,6 +105,34 @@ export function createRoadmapSync(target: SyncTarget, options: SyncOptions = {})
     }
   }
 
+  /**
+   * 段を用意する。
+   *
+   * **`upsert` にしているのは、最初の段がサーバーに無いまま参考書を入れようとして
+   * 外部キーで落ちるのを防ぐため。** 新しいロードマップの1段目は画面側で
+   * 作られるだけで、ここを通っていない。
+   */
+  async function ensureStage(stage: {
+    id: string;
+    name: string;
+    fractionalIndex?: string;
+  }): Promise<void> {
+    const supabase = getBrowserClient();
+    if (!supabase) return;
+    if (!(await ensureRoadmap())) return;
+
+    const { error } = await supabase.from("roadmap_stages").upsert(
+      {
+        id: stage.id,
+        roadmap_id: roadmapId,
+        name: stage.name,
+        fractional_index: stage.fractionalIndex ?? generateKeyBetween(null, null),
+      },
+      { onConflict: "id", ignoreDuplicates: true },
+    );
+    if (error) fail("ensureStage", error);
+  }
+
   return {
     /** どのロードマップ用に作られたものか。編集画面が作り直しの要否を判断する */
     roadmapId,
@@ -119,10 +147,52 @@ export function createRoadmapSync(target: SyncTarget, options: SyncOptions = {})
       }
     },
 
-    async addItem(item: RoadmapItem, book: Book): Promise<void> {
+    addStage: ensureStage,
+
+    async renameStage(stageId: string, name: string): Promise<void> {
       const supabase = getBrowserClient();
       if (!supabase) return;
       if (!(await ensureRoadmap())) return;
+
+      const { error } = await supabase
+        .from("roadmap_stages")
+        .update({ name })
+        .eq("id", stageId);
+      if (error) fail("renameStage", error);
+    },
+
+    /** 段の並び順。動かした段だけ更新すれば済む */
+    async moveStage(stageId: string, fractionalIndex: string): Promise<void> {
+      const supabase = getBrowserClient();
+      if (!supabase || !ensured) return;
+
+      const { error } = await supabase
+        .from("roadmap_stages")
+        .update({ fractional_index: fractionalIndex })
+        .eq("id", stageId);
+      if (error) fail("moveStage", error);
+    },
+
+    /** 段を消すと中の参考書も消える（on delete cascade） */
+    async removeStage(stageId: string): Promise<void> {
+      const supabase = getBrowserClient();
+      if (!supabase || !ensured) return;
+
+      const { error } = await supabase.from("roadmap_stages").delete().eq("id", stageId);
+      if (error) fail("removeStage", error);
+    },
+
+    async addItem(
+      item: RoadmapItem,
+      book: Book,
+      stage: { id: string; name: string; fractionalIndex?: string },
+    ): Promise<void> {
+      const supabase = getBrowserClient();
+      if (!supabase) return;
+      if (!(await ensureRoadmap())) return;
+
+      // 段がまだサーバーに無いことがある（新しいロードマップの1段目）
+      await ensureStage(stage);
 
       const bookId = await persistBook(book);
       if (!bookId) return;
@@ -130,6 +200,7 @@ export function createRoadmapSync(target: SyncTarget, options: SyncOptions = {})
       const { error } = await supabase.from("roadmap_items").insert({
         id: item.id,
         roadmap_id: roadmapId,
+        stage_id: stage.id,
         book_id: bookId,
         fractional_index: item.fractionalIndex ?? generateKeyBetween(null, null),
         is_done: item.isDone,
@@ -138,6 +209,18 @@ export function createRoadmapSync(target: SyncTarget, options: SyncOptions = {})
       });
 
       if (error) fail("addItem", error);
+    },
+
+    /** 別の段へ移す。並び順のキーも一緒に打ち替える */
+    async moveItem(itemId: string, stageId: string, fractionalIndex: string): Promise<void> {
+      const supabase = getBrowserClient();
+      if (!supabase || !ensured) return;
+
+      const { error } = await supabase
+        .from("roadmap_items")
+        .update({ stage_id: stageId, fractional_index: fractionalIndex })
+        .eq("id", itemId);
+      if (error) fail("moveItem", error);
     },
 
     async patchItem(itemId: string, patch: Partial<RoadmapItem>): Promise<void> {

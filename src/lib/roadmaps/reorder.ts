@@ -1,21 +1,17 @@
-/**
- * 並び替え。
- *
- * TODO(Supabase): 永続化するときは fractional indexing にして、動かした行だけ
- * fractional_index を更新する。1冊動かすたびに全行を書き換えない（CLAUDE.md 4章）。
- * 配列の順番はあくまで画面上の表現。
- */
-export function moveItem<T extends { id: string }>(
-  items: readonly T[],
-  activeId: string,
-  overId: string,
-): T[] {
-  const from = items.findIndex((i) => i.id === activeId);
-  const to = items.findIndex((i) => i.id === overId);
-  if (from < 0 || to < 0 || from === to) return [...items];
+import { generateKeyBetween } from "fractional-indexing";
 
-  const next = [...items];
-  const [moved] = next.splice(from, 1);
-  next.splice(to, 0, moved);
-  return next;
+/**
+ * 並び順のキーを作る。前後の行の間に挟むので、**動かした行だけ**更新すれば済む
+ * （fractional indexing。CLAUDE.md 4章）。
+ */
+export function keyBetween(
+  before: { fractionalIndex?: string } | undefined,
+  after: { fractionalIndex?: string } | undefined,
+): string {
+  try {
+    return generateKeyBetween(before?.fractionalIndex ?? null, after?.fractionalIndex ?? null);
+  } catch {
+    // 前後が壊れている（同じキーが並んでいる等）ときの逃げ道
+    return generateKeyBetween(null, null);
+  }
 }

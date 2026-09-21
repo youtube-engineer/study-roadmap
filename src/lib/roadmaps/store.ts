@@ -4,7 +4,8 @@ import { hueFromTitle } from "@/lib/books/hue";
 import { mockFindMany } from "@/lib/books/mock-source";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getServerClient } from "@/lib/supabase/server";
-import type { Book, Roadmap, RoadmapItem, RoadmapSummary } from "@/types/roadmap";
+import { allItems } from "@/types/roadmap";
+import type { Book, Roadmap, RoadmapStage, RoadmapSummary } from "@/types/roadmap";
 
 import {
   getOwnRoadmap as mockOwnRoadmap,
@@ -72,14 +73,14 @@ function toBook(row: BookRow): Book {
   };
 }
 
-function toRoadmap(row: RoadmapRow, items: RoadmapItem[]): Roadmap {
+function toRoadmap(row: RoadmapRow, stages: RoadmapStage[]): Roadmap {
   return {
     id: row.id,
     title: row.title,
     isPublic: row.is_public,
     shareSlug: row.share_slug,
     tags: [],
-    items,
+    stages,
     // 作成者名を出すにはログインが必要（CLAUDE.md 13章）
     authorName: null,
     createdAt: row.created_at,
@@ -106,44 +107,62 @@ export function placeholderRoadmap(id: string): Roadmap {
     isPublic: false,
     shareSlug: newShareSlug(),
     tags: [],
-    items: [],
+    stages: [{ id: crypto.randomUUID(), name: "", items: [] }],
     authorName: null,
     copiedFrom: null,
     createdAt: new Date().toISOString(),
   };
 }
 
-async function loadItemsAndBooks(
+/**
+ * 段と、その中の参考書と、表示に要る書誌データ。
+ *
+ * 段が1つも無ければ空の段を1つ返す。棚が無いと「ここに置く」が見えない（8章）。
+ */
+async function loadStagesAndBooks(
   roadmapId: string,
-): Promise<{ items: RoadmapItem[]; books: Book[] }> {
+): Promise<{ stages: RoadmapStage[]; books: Book[] }> {
   const supabase = await getServerClient();
-  if (!supabase) return { items: [], books: [] };
+  const empty = { stages: [{ id: crypto.randomUUID(), name: "", items: [] }], books: [] };
+  if (!supabase) return empty;
 
-  const { data: itemRows, error } = await supabase
-    .from("roadmap_items")
-    .select("*")
-    .eq("roadmap_id", roadmapId)
-    .order("fractional_index", { ascending: true });
+  const [{ data: stageRows }, { data: itemRows, error }] = await Promise.all([
+    supabase
+      .from("roadmap_stages")
+      .select("*")
+      .eq("roadmap_id", roadmapId)
+      .order("fractional_index", { ascending: true }),
+    supabase
+      .from("roadmap_items")
+      .select("*")
+      .eq("roadmap_id", roadmapId)
+      .order("fractional_index", { ascending: true }),
+  ]);
 
-  if (error || !itemRows) {
-    console.error("[roadmaps/store] items", error);
-    return { items: [], books: [] };
-  }
+  if (error) console.error("[roadmaps/store] items", error);
+  if (!stageRows || stageRows.length === 0) return empty;
 
-  const items: RoadmapItem[] = itemRows.map((row) => ({
-    id: row.id,
-    bookId: row.book_id,
-    isDone: row.is_done,
-    roundsTarget: row.rounds_target,
-    note: row.note,
-    fractionalIndex: row.fractional_index,
+  const stages: RoadmapStage[] = stageRows.map((stage) => ({
+    id: stage.id,
+    name: stage.name,
+    fractionalIndex: stage.fractional_index,
+    items: (itemRows ?? [])
+      .filter((row) => row.stage_id === stage.id)
+      .map((row) => ({
+        id: row.id,
+        bookId: row.book_id,
+        isDone: row.is_done,
+        roundsTarget: row.rounds_target,
+        note: row.note,
+        fractionalIndex: row.fractional_index,
+      })),
   }));
 
-  const bookIds = [...new Set(items.map((i) => i.bookId))];
-  if (bookIds.length === 0) return { items, books: [] };
+  const bookIds = [...new Set((itemRows ?? []).map((row) => row.book_id))];
+  if (bookIds.length === 0) return { stages, books: [] };
 
   const { data: bookRows } = await supabase.from("books").select("*").in("id", bookIds);
-  return { items, books: (bookRows ?? []).map(toBook) };
+  return { stages, books: (bookRows ?? []).map(toBook) };
 }
 
 /**
@@ -162,8 +181,8 @@ export async function loadOwnSummaries(): Promise<RoadmapSummary[]> {
         tags: roadmap.tags,
         isPublic: roadmap.isPublic,
         shareSlug: roadmap.shareSlug,
-        totalCount: roadmap.items.length,
-        doneCount: roadmap.items.filter((i) => i.isDone).length,
+        totalCount: allItems(roadmap).length,
+        doneCount: allItems(roadmap).filter((i) => i.isDone).length,
         createdAt: roadmap.createdAt,
         copiedFromName: roadmap.copiedFrom?.authorName ?? null,
         isCopy: roadmap.copiedFrom !== null,
@@ -223,7 +242,7 @@ export async function loadRoadmap(id: string): Promise<LoadedRoadmap> {
     if (roadmap.id === id) {
       return {
         roadmap,
-        books: mockFindMany(roadmap.items.map((i) => i.bookId)),
+        books: mockFindMany(allItems(roadmap).map((i) => i.bookId)),
         source: "stored",
       };
     }
@@ -236,8 +255,8 @@ export async function loadRoadmap(id: string): Promise<LoadedRoadmap> {
   const { data: row } = await supabase.from("roadmaps").select("*").eq("id", id).maybeSingle();
   if (!row) return { roadmap: placeholderRoadmap(id), books: [], source: "placeholder" };
 
-  const { items, books } = await loadItemsAndBooks(row.id);
-  return { roadmap: toRoadmap(row, items), books, source: "stored" };
+  const { stages, books } = await loadStagesAndBooks(row.id);
+  return { roadmap: toRoadmap(row, stages), books, source: "stored" };
 }
 
 export async function loadSharedRoadmap(slug: string): Promise<LoadedRoadmap | null> {
@@ -246,7 +265,7 @@ export async function loadSharedRoadmap(slug: string): Promise<LoadedRoadmap | n
     if (!roadmap) return null;
     return {
       roadmap,
-      books: mockFindMany(roadmap.items.map((i) => i.bookId)),
+      books: mockFindMany(allItems(roadmap).map((i) => i.bookId)),
       source: "stored",
     };
   }
@@ -264,6 +283,6 @@ export async function loadSharedRoadmap(slug: string): Promise<LoadedRoadmap | n
 
   if (!row) return null;
 
-  const { items, books } = await loadItemsAndBooks(row.id);
-  return { roadmap: toRoadmap(row, items), books, source: "stored" };
+  const { stages, books } = await loadStagesAndBooks(row.id);
+  return { roadmap: toRoadmap(row, stages), books, source: "stored" };
 }

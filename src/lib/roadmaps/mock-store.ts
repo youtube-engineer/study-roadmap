@@ -15,7 +15,11 @@ const OWN_ROADMAP: Roadmap = {
   authorName: null,
   copiedFrom: null,
   createdAt: "2026-08-01T00:00:00.000Z",
-  items: [
+  stages: [
+    {
+      id: "st-own",
+      name: "単語・文法",
+      items: [
     {
       id: "i1",
       bookId: "b8",
@@ -37,7 +41,9 @@ const OWN_ROADMAP: Roadmap = {
       bookId: "b6",
       isDone: false,
       roundsTarget: null,
-      note: "一次に受かってから着手でいい。",
+        note: "一次に受かってから着手でいい。",
+      },
+      ],
     },
   ],
 };
@@ -51,7 +57,11 @@ const SHARED_ROADMAP: Roadmap = {
   authorName: "ひなた",
   copiedFrom: null,
   createdAt: "2026-07-01T00:00:00.000Z",
-  items: [
+  stages: [
+    {
+      id: "st-shared",
+      name: "単語",
+      items: [
     {
       id: "s1",
       bookId: "b9",
@@ -85,7 +95,9 @@ const SHARED_ROADMAP: Roadmap = {
       bookId: "b17",
       isDone: false,
       roundsTarget: 1,
-      note: "一次に受かってからで間に合う。音読は毎日やる。",
+        note: "一次に受かってからで間に合う。音読は毎日やる。",
+      },
+      ],
     },
   ],
 };
@@ -127,10 +139,14 @@ export async function copyRoadmap(slug: string): Promise<Roadmap | null> {
       title: source.title,
       authorName: source.authorName,
     },
-    items: source.items.map((item) => ({
-      ...item,
+    stages: source.stages.map((stage) => ({
+      ...stage,
       id: crypto.randomUUID(),
-      isDone: false,
+      items: stage.items.map((item) => ({
+        ...item,
+        id: crypto.randomUUID(),
+        isDone: false,
+      })),
     })),
   };
   return own;

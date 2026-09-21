@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { RouteGoal, RouteStart } from "@/components/roadmap/RouteMarkers";
-import { SharedStop } from "@/components/roadmap/SharedStop";
+import { SharedStage } from "@/components/roadmap/SharedStage";
 import { RakutenCredit } from "@/components/sheets/RakutenCredit";
 import { StartBlankButton } from "@/components/roadmap/StartBlankButton";
+import { FlagIcon } from "@/components/ui/icons";
 import { copyRoadmapAction } from "@/lib/roadmaps/actions";
 import { loadSharedRoadmap } from "@/lib/roadmaps/store";
+import { allItems } from "@/types/roadmap";
 import { displayTitle } from "@/lib/roadmaps/title";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -25,7 +26,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { roadmap } = loaded;
 
   const by = roadmap.authorName ? `${roadmap.authorName}さんの` : "";
-  const description = `${by}参考書${roadmap.items.length}冊のルート。`;
+  const description = `${by}参考書${allItems(roadmap).length}冊のルート。`;
   const title = displayTitle(roadmap.title);
 
   return {
@@ -48,7 +49,8 @@ export default async function SharedRoadmapPage({ params }: Props) {
   if (!loaded) notFound();
 
   const { roadmap, books } = loaded;
-  const bookById = new Map(books.map((b) => [b.id, b]));
+  const bookMap = Object.fromEntries(books.map((b) => [b.id, b]));
+  const count = allItems(roadmap).length;
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -85,27 +87,34 @@ export default async function SharedRoadmapPage({ params }: Props) {
           {/* タグは今は出さない。テーブルと型は残してあるので、使うときに戻す */}
           <span className="flex-1" />
           <span className="flex-none font-mono text-[0.66rem] text-ink-faint">
-            参考書 {roadmap.items.length} 冊
+            参考書 {count} 冊
           </span>
         </div>
       </div>
 
-      <div className="px-4 pb-6 pt-4">
-        <RouteStart />
-        {roadmap.items.map((item, index) => {
-          const book = bookById.get(item.bookId);
-          if (!book) return null;
-          return (
-            <SharedStop
-              key={item.id}
-              item={item}
-              book={book}
-              index={index}
-              priority={index < 2}
+      <div className="pb-6 pt-4">
+        {roadmap.stages.map((stage, index) => (
+          <div key={stage.id}>
+            <SharedStage stage={stage} index={index} books={bookMap} />
+            <div className="h-4" />
+          </div>
+        ))}
+
+        {/* GOAL */}
+        <section className="relative pl-[46px]">
+          <span className="absolute left-[15px] top-0 flex h-8 w-[22px] justify-center">
+            <span
+              aria-hidden="true"
+              className="absolute top-0 h-2.5 w-[3px] rounded-sm bg-thread opacity-70"
             />
-          );
-        })}
-        <RouteGoal />
+            <span className="relative z-[2] mt-0.5 grid h-6 w-6 place-items-center self-start rounded-full bg-thread text-white shadow-[0_0_0_4px_var(--raised)]">
+              <FlagIcon size={12} />
+            </span>
+          </span>
+          <span className="inline-block pt-1 font-mono text-[0.68rem] tracking-[0.16em] text-ink-faint">
+            GOAL
+          </span>
+        </section>
       </div>
 
       <div className="mx-4 mb-6 rounded-[14px] bg-deep px-4 py-5 text-center">

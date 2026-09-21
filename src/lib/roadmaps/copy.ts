@@ -48,11 +48,18 @@ export async function copyRoadmapForCurrentUser(slug: string): Promise<string | 
 
   if (!source) return null;
 
-  const { data: sourceItems } = await supabase
-    .from("roadmap_items")
-    .select("*")
-    .eq("roadmap_id", source.id)
-    .order("fractional_index", { ascending: true });
+  const [{ data: sourceStages }, { data: sourceItems }] = await Promise.all([
+    supabase
+      .from("roadmap_stages")
+      .select("*")
+      .eq("roadmap_id", source.id)
+      .order("fractional_index", { ascending: true }),
+    supabase
+      .from("roadmap_items")
+      .select("*")
+      .eq("roadmap_id", source.id)
+      .order("fractional_index", { ascending: true }),
+  ]);
 
   const user = await requireUser(supabase);
   if (!user) return null;
@@ -79,19 +86,48 @@ export async function copyRoadmapForCurrentUser(slug: string): Promise<string | 
     return null;
   }
 
-  if (sourceItems && sourceItems.length > 0) {
-    const { error: itemsError } = await supabase.from("roadmap_items").insert(
-      sourceItems.map((item) => ({
+  /**
+   * 段ごと作り直す。段のidは新しくするので、元id → 新id の対応を持っておかないと
+   * 参考書をどの段に入れればいいか分からなくなる。
+   */
+  const stageIds = new Map<string, string>();
+  if (sourceStages && sourceStages.length > 0) {
+    const rows = sourceStages.map((stage) => {
+      const newStageId = crypto.randomUUID();
+      stageIds.set(stage.id, newStageId);
+      return {
+        id: newStageId,
         roadmap_id: created.id,
-        book_id: item.book_id,
-        fractional_index: item.fractional_index,
-        // 進捗は引き継がない
-        is_done: false,
-        rounds_target: item.rounds_target,
-        note: item.note,
-      })),
-    );
-    if (itemsError) console.error("[copy] roadmap_items", itemsError);
+        name: stage.name,
+        fractional_index: stage.fractional_index,
+      };
+    });
+    const { error: stagesError } = await supabase.from("roadmap_stages").insert(rows);
+    if (stagesError) console.error("[copy] roadmap_stages", stagesError);
+  }
+
+  if (sourceItems && sourceItems.length > 0) {
+    const rows = sourceItems
+      .map((item) => {
+        const stageId = stageIds.get(item.stage_id);
+        if (!stageId) return null;
+        return {
+          roadmap_id: created.id,
+          stage_id: stageId,
+          book_id: item.book_id,
+          fractional_index: item.fractional_index,
+          // 進捗は引き継がない
+          is_done: false,
+          rounds_target: item.rounds_target,
+          note: item.note,
+        };
+      })
+      .filter((r): r is NonNullable<typeof r> => r !== null);
+
+    if (rows.length > 0) {
+      const { error: itemsError } = await supabase.from("roadmap_items").insert(rows);
+      if (itemsError) console.error("[copy] roadmap_items", itemsError);
+    }
   }
 
   return created.id;

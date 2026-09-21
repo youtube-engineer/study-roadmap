@@ -17,7 +17,8 @@ export function newRoadmap(): Roadmap {
     isPublic: false,
     shareSlug: newShareSlug(),
     tags: [],
-    items: [],
+    // 段は最初から1つ置く。空の棚があることで「ここに置く」が見える（8章）
+    stages: [{ id: crypto.randomUUID(), name: "", items: [] }],
     authorName: null,
     copiedFrom: null,
     createdAt: new Date().toISOString(),

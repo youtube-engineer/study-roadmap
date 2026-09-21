@@ -126,22 +126,48 @@ export async function carryLocalRoadmapsToCurrentUser(): Promise<CarryResult> {
       continue;
     }
 
-    const rows = local.roadmap.items
-      .map((item, index) => {
-        const bookId = bookIds.get(item.bookId);
-        // 上で全冊ぶん揃っていることを確かめてあるので、ここには来ない
-        if (!bookId) return null;
-        return {
-          roadmap_id: newId,
-          book_id: bookId,
-          fractional_index: item.fractionalIndex ?? `a${index}`,
-          // 進捗は自分のものなので、こちらは引き継ぐ（他人のコピーとは違う）
-          is_done: item.isDone,
-          rounds_target: item.roundsTarget,
-          note: item.note,
-        };
-      })
-      .filter((r): r is NonNullable<typeof r> => r !== null);
+    /** 段を作り直す。元id → 新id を持っておかないと参考書の行き先が決まらない */
+    const stageRows = local.roadmap.stages.map((stage, index) => ({
+      from: stage.id,
+      row: {
+        id: crypto.randomUUID(),
+        roadmap_id: newId,
+        name: stage.name,
+        fractional_index: stage.fractionalIndex ?? `a${index}`,
+      },
+    }));
+
+    if (stageRows.length > 0) {
+      const { error: stagesError } = await supabase
+        .from("roadmap_stages")
+        .insert(stageRows.map((s) => s.row));
+      if (stagesError) {
+        console.error("[carry] roadmap_stages", stagesError);
+        continue;
+      }
+    }
+
+    const stageIds = new Map(stageRows.map((s) => [s.from, s.row.id]));
+
+    const rows = local.roadmap.stages.flatMap((stage) =>
+      stage.items
+        .map((item, index) => {
+          const bookId = bookIds.get(item.bookId);
+          const stageId = stageIds.get(stage.id);
+          if (!bookId || !stageId) return null;
+          return {
+            roadmap_id: newId,
+            stage_id: stageId,
+            book_id: bookId,
+            fractional_index: item.fractionalIndex ?? `a${index}`,
+            // 進捗は自分のものなので、こちらは引き継ぐ（他人のコピーとは違う）
+            is_done: item.isDone,
+            rounds_target: item.roundsTarget,
+            note: item.note,
+          };
+        })
+        .filter((r): r is NonNullable<typeof r> => r !== null),
+    );
 
     if (rows.length > 0) {
       const { error: itemsError } = await supabase.from("roadmap_items").insert(rows);

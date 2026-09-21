@@ -32,6 +32,21 @@ export type Book = {
   hue: number;
 };
 
+/**
+ * 段。参考書をまとめる単位（「単語・文法」「長文」など）。
+ *
+ * 枝分かれ（8章で取り下げたもの）とは別物。あれは「本線か補助か」という
+ * 性質の分岐だったが、これは順番に進む区切り。経路は1本のまま。
+ */
+export type RoadmapStage = {
+  id: string;
+  /** 自由入力。空でも構わない */
+  name: string;
+  items: RoadmapItem[];
+  /** 並び順のキー（fractional indexing） */
+  fractionalIndex?: string;
+};
+
 export type RoadmapItem = {
   id: string;
   bookId: string;
@@ -62,7 +77,7 @@ export type Roadmap = {
   isPublic: boolean;
   shareSlug: string;
   tags: string[];
-  items: RoadmapItem[];
+  stages: RoadmapStage[];
   /** 匿名のままでも共有はできる。名前を出すにはログインが必要（CLAUDE.md 13章） */
   authorName: string | null;
   copiedFrom: CopiedFrom | null;
@@ -94,3 +109,13 @@ export type RoadmapSummary = {
 
 export const ROUNDS_MIN = 1;
 export const ROUNDS_MAX = 20;
+
+/** 段をまたいで全部の参考書を順に見る。冊数や進捗を数えるときに使う */
+export function allItems(roadmap: Pick<Roadmap, "stages">): RoadmapItem[] {
+  return roadmap.stages.flatMap((stage) => stage.items);
+}
+
+/** 段が終わったか。全部の本に印が付いていれば終わり。空の段は終わっていない */
+export function isStageDone(stage: RoadmapStage): boolean {
+  return stage.items.length > 0 && stage.items.every((i) => i.isDone);
+}
