@@ -561,7 +561,8 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
             rows={1}
             placeholder={UNTITLED}
             aria-label="ロードマップの名前"
-            className="w-full resize-none overflow-hidden border-0 bg-transparent p-0 text-[1.45rem] font-bold leading-[1.35] tracking-[-0.01em] text-ink-title text-balance outline-none placeholder:font-semibold placeholder:text-ink-faint md:text-[1.8rem]"
+            /* 太字にしない。大きさで見出しらしさは足りるし、太いと紙の上で重く出る */
+            className="w-full resize-none overflow-hidden border-0 bg-transparent p-0 text-[1.45rem] font-semibold leading-[1.35] tracking-[-0.005em] text-ink-title text-balance outline-none placeholder:font-normal placeholder:text-ink-faint md:text-[1.75rem]"
           />
         </h1>
 

@@ -66,7 +66,7 @@ export default async function SharedRoadmapPage({ params }: Props) {
       </header>
 
       <div className="px-4 pb-1 pt-4">
-        <h1 className="mb-2.5 text-[1.45rem] font-bold leading-[1.35] tracking-[-0.01em] text-ink-title text-balance md:text-[1.8rem]">
+        <h1 className="mb-2.5 text-[1.45rem] font-semibold leading-[1.35] tracking-[-0.005em] text-ink-title text-balance md:text-[1.75rem]">
           {displayTitle(roadmap.title)}
         </h1>
 

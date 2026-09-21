@@ -221,13 +221,12 @@ export function RoadmapDrawer({ serverSummaries, currentId }: Props) {
             open ? "translate-x-0" : "-translate-x-full"
           }`}
         >
-          <div className="border-b border-rule px-3.5 pb-2.5 pt-3.5">
-            <span className="font-serif text-[0.9rem] font-semibold tracking-[0.1em] text-ink-soft">
-              参考書ロードマップ
-            </span>
-          </div>
-
-          <ul className="flex-1 overflow-y-auto px-2 py-2">
+          {/*
+            サービス名は出さない。**中にいる人には要らない。**
+            名乗る必要があるのは共有ページ（外から来た人が見る画面）だけ。
+            ここに置くと、切り替える道具として使う画面の一等地を説明語が占める。
+          */}
+          <ul className="flex-1 overflow-y-auto px-2 py-3">
             {summaries.length === 0 && (
               <li className="px-2 py-6 text-[0.8rem] leading-relaxed text-ink-faint">
                 まだ1本もありません。
