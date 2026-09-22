@@ -93,11 +93,13 @@ export default async function SharedRoadmapPage({ params }: Props) {
       </div>
 
       <div className="pb-6 pt-4">
+        {/*
+          **段と段のあいだに余白を置かない。** 読む側は一度に何冊あるかを見たいので、
+          縦に入る冊数を優先する。区切りは段の見出しが付けるので余白は要らないし、
+          空けると紐がそこで途切れて1本の経路に見えなくなる（CLAUDE.md 8章）。
+        */}
         {roadmap.stages.map((stage, index) => (
-          <div key={stage.id}>
-            <SharedStage stage={stage} index={index} books={bookMap} />
-            <div className="h-4" />
-          </div>
+          <SharedStage key={stage.id} stage={stage} index={index} books={bookMap} />
         ))}
 
         {/* GOAL */}

@@ -26,19 +26,26 @@ export function SharedStage({ stage, index, books }: Props) {
         </span>
       </span>
 
-      <div className="flex min-h-7 items-baseline gap-2">
-        <span className="text-[1rem] font-bold">{stage.name || "　"}</span>
-        <span className="ml-auto flex-none font-mono text-[0.72rem] text-ink-faint">
-          {stage.items.length}冊
-        </span>
-      </div>
+      {/*
+        **名前が無い段では見出しの行ごと出さない。** 場所取りのための空白を置くと、
+        段の数だけ何も書いていない行が縦を食う。玉は自前で位置を持っているので
+        見出しが無くてもずれない。
+      */}
+      {stage.name ? (
+        <div className="flex min-h-7 items-baseline gap-2">
+          <span className="text-[1rem] font-bold">{stage.name}</span>
+          <span className="ml-auto flex-none font-mono text-[0.72rem] text-ink-faint">
+            {stage.items.length}冊
+          </span>
+        </div>
+      ) : null}
 
-      <div className="mt-1 flex flex-col gap-2">
+      <div className={`flex flex-col gap-1.5 pb-3 ${stage.name ? "mt-1" : "pt-0.5"}`}>
         {stage.items.map((item, i) => {
           const book = books[item.bookId];
           if (!book) return null;
           return (
-            <div key={item.id} className="rounded-[10px] bg-sunk px-3.5 py-3">
+            <div key={item.id} className="rounded-[10px] bg-sunk px-3.5 py-2.5">
               <div className="flex items-center gap-3">
                 <BookCover book={book} priority={index === 0 && i < 2} />
                 <div className="min-w-0 flex-1">
