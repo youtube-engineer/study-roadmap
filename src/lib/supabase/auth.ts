@@ -1,5 +1,7 @@
 "use client";
 
+import { clearLocal } from "@/lib/db/local";
+
 import { getBrowserClient } from "./client";
 
 /**
@@ -119,8 +121,19 @@ export function onAuthChange(callback: () => void): () => void {
   return () => subscription.unsubscribe();
 }
 
+/**
+ * ログアウト。**手元のものも消す。**
+ *
+ * 残すと、次に匿名で書き始めたときに所有者の違う行へ書こうとして RLS に
+ * 弾かれ続ける（手元では動いて見えるのにサーバーには何も入らない）。
+ * 別のアカウントの記録を端末に残さないためでもある。
+ *
+ * ログアウトできるのはログイン済みのときだけなので、消えるのは
+ * 「サーバーにもある記録」。ログインし直せば戻る。
+ */
 export async function signOut(): Promise<void> {
   const supabase = getBrowserClient();
   if (!supabase) return;
   await supabase.auth.signOut();
+  await clearLocal();
 }

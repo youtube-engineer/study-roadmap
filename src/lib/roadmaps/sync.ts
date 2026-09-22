@@ -18,6 +18,13 @@ import type { Book, Roadmap, RoadmapItem } from "@/types/roadmap";
 
 type SyncOptions = {
   onError?: (message: string) => void;
+  /**
+   * その id が既に他人のものだったときに呼ばれる。
+   *
+   * 手元のロードマップに別のidを振り直してもらうための合図。サーバーには
+   * まだ何も入っていないので、振り直せばそのまま書けるようになる。
+   */
+  onIdTaken?: () => void;
 };
 
 /** ロードマップを特定するための最小限。中身（items）も名前もここでは持たない */
@@ -28,6 +35,9 @@ export type RoadmapSync = ReturnType<typeof createRoadmapSync>;
 export function createRoadmapSync(target: SyncTarget, options: SyncOptions = {}) {
   const { id: roadmapId, shareSlug } = target;
 
+  /** id が取られていた。振り直しを待つあいだ、書き込みを試み続けない */
+  let idTaken = false;
+
   /**
    * roadmaps の行を作るときに使う名前。
    *
@@ -37,6 +47,7 @@ export function createRoadmapSync(target: SyncTarget, options: SyncOptions = {})
    * 名前を付けずに1冊置いた場合は空のまま入る。表示側で「無題のルート」を補う。
    */
   let title = "";
+  let goal = "";
 
   /**
    * roadmaps の行を用意したか。セッション内で1回だけ走らせる。
@@ -82,25 +93,54 @@ export function createRoadmapSync(target: SyncTarget, options: SyncOptions = {})
     const supabase = getBrowserClient();
     if (!supabase) return false;
     if (ensured) return true;
+    if (idTaken) return false;
     if (ensuring) return ensuring;
 
     ensuring = (async () => {
       const userId = await ensureSession();
       if (!userId) return false;
 
-      const { error } = await supabase
+      /**
+       * **`upsert` の `ignoreDuplicates` に頼らない。**
+       *
+       * 行が既にあって所有者が違う場合、upsert は何もせずエラーも返さない。
+       * そのまま `ensured = true` にすると、以降の書き込みが RLS に弾かれ続ける
+       * ——手元では動いて見えるのにサーバーには何も入らない、という壊れ方になる。
+       * 誰のものかを先に確かめる。
+       */
+      const { data: existing, error: lookupError } = await supabase
         .from("roadmaps")
-        .upsert(
-          {
-            id: roadmapId,
-            owner_id: userId,
-            title,
-            share_slug: shareSlug,
-            is_public: false,
-          },
-          { onConflict: "id", ignoreDuplicates: true },
-        );
+        .select("id, owner_id")
+        .eq("id", roadmapId)
+        .maybeSingle();
 
+      if (lookupError) return fail("ensureRoadmap", lookupError);
+
+      if (existing) {
+        if (existing.owner_id !== userId) return takeNewId();
+        ensured = true;
+        return true;
+      }
+
+      const { error } = await supabase.from("roadmaps").insert({
+        id: roadmapId,
+        owner_id: userId,
+        title,
+        goal,
+        share_slug: shareSlug,
+        is_public: false,
+      });
+
+      /**
+       * **重複キーは「他人のもの」を意味する。**
+       *
+       * 上の lookup では見つからなかったのに insert が重複で落ちるのは、
+       * その行が RLS で見えないから——つまり別のアカウントのもの。
+       * ログアウト時に手元を消しているので普通は起きないが、起きたときに
+       * 黙って書けないままにしない（手元では動いて見えるのに
+       * サーバーには何も入らない、という一番たちの悪い壊れ方になる）。
+       */
+      if (error?.code === "23505") return takeNewId();
       if (error) return fail("ensureRoadmap", error);
       ensured = true;
       return true;
@@ -126,6 +166,14 @@ export function createRoadmapSync(target: SyncTarget, options: SyncOptions = {})
       fail("persistBook", e);
       return null;
     }
+  }
+
+  /** id が他人のものだった。振り直しを頼んで、今回の書き込みは諦める */
+  function takeNewId(): false {
+    idTaken = true;
+    console.warn("[sync] この id は既に使われているので振り直す");
+    options.onIdTaken?.();
+    return false;
   }
 
   /**
@@ -281,6 +329,26 @@ export function createRoadmapSync(target: SyncTarget, options: SyncOptions = {})
      */
     rememberTitle(next: string): void {
       title = next;
+    },
+
+    /** ゴールを覚えておくだけ。通信はしない（rememberTitle と同じ） */
+    rememberGoal(next: string): void {
+      goal = next;
+    },
+
+    /**
+     * ゴール。打鍵のたびには送らない。入力欄から離れたときだけ（setTitle と同じ）
+     */
+    async setGoal(next: string): Promise<void> {
+      goal = next;
+
+      const supabase = getBrowserClient();
+      if (!supabase) return;
+      if (!(await ensureRoadmap())) return;
+
+      const { error } = await supabase.from("roadmaps").update({ goal: next }).eq("id", roadmapId);
+
+      if (error) fail("setGoal", error);
     },
 
     async setTitle(next: string): Promise<void> {

@@ -69,6 +69,8 @@ export async function copyRoadmapForCurrentUser(slug: string): Promise<string | 
     .insert({
       owner_id: user.id,
       title: source.title,
+      // ゴールは引き継ぐ。何を目指すルートなのかはコピーする側が見ていたもの
+      goal: source.goal,
       share_slug: newShareSlug(),
       is_public: false,
       copied_from_id: source.id,

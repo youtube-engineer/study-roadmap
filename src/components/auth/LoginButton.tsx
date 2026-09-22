@@ -178,6 +178,18 @@ export function LoginButton({ next }: Props) {
   }, [next]);
 
   const logout = useCallback(async () => {
+    /**
+     * ログインの往復で使う目印を残さない。残ったまま次のログインへ入ると、
+     * 身に覚えのない持ち込みが走ったり、切り替えが即失敗したりする。
+     */
+    try {
+      sessionStorage.removeItem(CARRY_FLAG);
+      sessionStorage.removeItem(SWITCH_ATTEMPTED);
+      sessionStorage.removeItem(CARRY_RETURN_ID);
+    } catch {
+      /* 使えない環境でも動作は変わらない */
+    }
+
     await signOut();
     router.push("/");
     // サーバーコンポーネントが持っている一覧も取り直す

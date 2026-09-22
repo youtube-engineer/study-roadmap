@@ -74,6 +74,14 @@ export type CopiedFrom = {
 export type Roadmap = {
   id: string;
   title: string;
+  /**
+   * 何を目指すのか。終点の旗に出る自由入力（「英検2級に受かる」など）。
+   *
+   * タイトルとは別物。タイトルは「英語」のような分野名になりやすいが、
+   * ここは到達点そのもので、**進めているあいだ見続けるための文**。
+   * 空なら旗には GOAL とだけ出る。
+   */
+  goal: string;
   isPublic: boolean;
   shareSlug: string;
   tags: string[];

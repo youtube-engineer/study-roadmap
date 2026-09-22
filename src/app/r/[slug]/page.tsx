@@ -111,9 +111,17 @@ export default async function SharedRoadmapPage({ params }: Props) {
               <FlagIcon size={12} />
             </span>
           </span>
-          <span className="inline-block pt-1 font-mono text-[0.68rem] tracking-[0.16em] text-ink-faint">
-            GOAL
-          </span>
+          <div className="pt-0.5">
+            <span className="block font-mono text-[0.68rem] tracking-[0.16em] text-ink-faint">
+              GOAL
+            </span>
+            {/* 書いてあるときだけ出す。無いロードマップに空行を作らない */}
+            {roadmap.goal && (
+              <p className="mt-0.5 text-[1.02rem] font-bold leading-[1.45] text-thread md:text-[1.15rem]">
+                {roadmap.goal}
+              </p>
+            )}
+          </div>
         </section>
       </div>
 

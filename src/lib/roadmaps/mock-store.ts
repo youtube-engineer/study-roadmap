@@ -9,6 +9,7 @@ import type { Roadmap } from "@/types/roadmap";
 const OWN_ROADMAP: Roadmap = {
   id: "r-own",
   title: "英検2級までのロードマップ",
+  goal: "",
   isPublic: true,
   shareSlug: "8k2m4p",
   tags: ["英検", "英検2級"],
@@ -51,6 +52,7 @@ const OWN_ROADMAP: Roadmap = {
 const SHARED_ROADMAP: Roadmap = {
   id: "r-shared",
   title: "独学で英検準1級に受かるまで",
+  goal: "",
   isPublic: true,
   shareSlug: "hinata-eiken1",
   tags: ["英検", "英検準1級", "独学"],
@@ -129,6 +131,7 @@ export async function copyRoadmap(slug: string): Promise<Roadmap | null> {
   own = {
     id: crypto.randomUUID(),
     title: source.title,
+    goal: source.goal,
     isPublic: false,
     shareSlug: crypto.randomUUID().slice(0, 6),
     tags: [...source.tags],

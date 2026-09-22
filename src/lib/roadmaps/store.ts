@@ -40,6 +40,7 @@ export type LoadedRoadmap = { roadmap: Roadmap; books: Book[]; source: RoadmapSo
 type RoadmapRow = {
   id: string;
   title: string;
+  goal: string | null;
   is_public: boolean;
   share_slug: string;
   copied_from_id: string | null;
@@ -77,6 +78,7 @@ function toRoadmap(row: RoadmapRow, stages: RoadmapStage[]): Roadmap {
   return {
     id: row.id,
     title: row.title,
+    goal: row.goal ?? "",
     isPublic: row.is_public,
     shareSlug: row.share_slug,
     tags: [],
@@ -104,6 +106,7 @@ export function placeholderRoadmap(id: string): Roadmap {
   return {
     id,
     title: "",
+    goal: "",
     isPublic: false,
     shareSlug: newShareSlug(),
     tags: [],

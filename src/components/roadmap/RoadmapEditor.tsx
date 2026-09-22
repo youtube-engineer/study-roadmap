@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { ComponentType, FocusEvent, KeyboardEvent } from "react";
 
 import { LoginButton } from "@/components/auth/LoginButton";
@@ -10,8 +11,9 @@ import { ShareSheet } from "@/components/sheets/ShareSheet";
 import { Sheet } from "@/components/sheets/Sheet";
 import { Toast } from "@/components/ui/Toast";
 import { FlagIcon, ShareIcon } from "@/components/ui/icons";
-import { loadLocalRoadmap, saveLocal } from "@/lib/db/local";
+import { deleteLocalRoadmap, loadLocalRoadmap, saveLocal } from "@/lib/db/local";
 import { keyBetween } from "@/lib/roadmaps/reorder";
+import { newShareSlug } from "@/lib/roadmaps/slug";
 import { createRoadmapSync } from "@/lib/roadmaps/sync";
 import { UNTITLED } from "@/lib/roadmaps/title";
 import { allItems, isStageDone } from "@/types/roadmap";
@@ -84,6 +86,7 @@ type Props = {
 };
 
 export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props) {
+  const router = useRouter();
   const [doc, setDoc] = useState<Roadmap>(roadmap);
   const [books, setBooks] = useState<Record<string, Book>>(() =>
     Object.fromEntries(initialBooks.map((b) => [b.id, b])),
@@ -140,6 +143,8 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
   } | null>(null);
 
   const titleRef = useRef<HTMLTextAreaElement>(null);
+  const goalRef = useRef<HTMLTextAreaElement>(null);
+
 
   const items = useMemo(() => allItems(doc), [doc]);
 
@@ -153,6 +158,13 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
     el.style.height = "auto";
     el.style.height = `${el.scrollHeight}px`;
   }, [doc.title]);
+
+  useEffect(() => {
+    const el = goalRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [doc.goal]);
 
   /**
    * 起動時にローカルの内容で置き換える。
@@ -183,15 +195,39 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
     void saveLocal({ roadmap: doc, books: Object.values(books) });
   }, [hydrated, doc, books, items.length]);
 
+  /**
+   * その id が既に他人のものだったら、**手元のロードマップに別の id を振り直す。**
+   *
+   * サーバーにはまだ何も入っていないので、振り直せばそのまま書けるようになる。
+   * ログアウト時に手元を消しているので普通は起きないが、起きたときに
+   * 「手元では動いて見えるのにサーバーには何も入らない」状態で止まらないようにする。
+   */
+  const previousId = doc.id;
+  const reissueId = useCallback(() => {
+    const id = crypto.randomUUID();
+    setDoc((d) => ({ ...d, id, shareSlug: newShareSlug() }));
+    void deleteLocalRoadmap(previousId);
+    router.replace(`/roadmaps/${id}`);
+  }, [previousId, router]);
+
   const sync = useMemo(
-    () => createRoadmapSync({ id: doc.id, shareSlug: doc.shareSlug }, { onError: setToast }),
-    [doc.id, doc.shareSlug],
+    () =>
+      createRoadmapSync(
+        { id: doc.id, shareSlug: doc.shareSlug },
+        { onError: setToast, onIdTaken: reissueId },
+      ),
+    [doc.id, doc.shareSlug, reissueId],
   );
 
   // 名前を預けておく。まだ roadmaps の行が無いとき、作る瞬間の名前になる
   useEffect(() => {
     sync.rememberTitle(doc.title);
   }, [sync, doc.title]);
+
+  // 同じ理由でゴールも預けておく
+  useEffect(() => {
+    sync.rememberGoal(doc.goal);
+  }, [sync, doc.goal]);
 
   /** 猶予のあいだに画面を離れたら、その場でサーバーからも消す */
   useEffect(
@@ -247,10 +283,25 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
 
   const onTitleKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key !== "Enter") return;
+    // 変換中の Enter は確定なので拾わない。拾うと名前が二重に入る
     if (e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) return;
     e.preventDefault();
     e.currentTarget.blur();
   }, []);
+
+  const changeGoal = useCallback((next: string) => {
+    setDoc((d) => ({ ...d, goal: next }));
+  }, []);
+
+  /** ゴールも名前と同じで、送るのは入力欄から離れたときだけ */
+  const commitGoal = useCallback(
+    (e: FocusEvent<HTMLTextAreaElement>) => {
+      const goal = e.currentTarget.value.trim();
+      setDoc((d) => (d.goal === goal ? d : { ...d, goal }));
+      void sync.setGoal(goal);
+    },
+    [sync],
+  );
 
   const patchItem = useCallback(
     (itemId: string, next: Partial<RoadmapItem>) => {
@@ -648,9 +699,28 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
               <FlagIcon size={12} />
             </span>
           </span>
-          <span className="inline-block pt-1 font-mono text-[0.68rem] tracking-[0.16em] text-ink-faint">
-            GOAL
-          </span>
+          <div className="pt-0.5">
+            <span className="block font-mono text-[0.68rem] tracking-[0.16em] text-ink-faint">
+              GOAL
+            </span>
+            {/*
+              **目標は本人に書かせる。** タイトルは「英語」のような分野名になりやすく、
+              到達点とは別物。ここは進めているあいだ見続けるための文なので、
+              紐と同じ色を当てて経路の終わりだと分かるようにする。
+            */}
+            <textarea
+              ref={goalRef}
+              value={doc.goal}
+              onChange={(e) => changeGoal(e.target.value)}
+              onBlur={commitGoal}
+              onKeyDown={onTitleKeyDown}
+              rows={1}
+              maxLength={60}
+              placeholder="ここに目標を書く"
+              aria-label="このロードマップの目標"
+              className="mt-0.5 w-full resize-none overflow-hidden border-0 bg-transparent p-0 text-[1.02rem] font-bold leading-[1.45] text-thread outline-none placeholder:font-semibold placeholder:text-ink-faint md:text-[1.15rem]"
+            />
+          </div>
         </section>
       </div>
 

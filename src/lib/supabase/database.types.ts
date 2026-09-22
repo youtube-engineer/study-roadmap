@@ -41,6 +41,8 @@ export type Database = {
           id: string;
           owner_id: string;
           title: string;
+          /** 終点の旗に出る目標。空なら GOAL とだけ出る（0008_goal.sql） */
+          goal: string;
           is_public: boolean;
           share_slug: string;
           copied_from_id: string | null;
@@ -52,6 +54,7 @@ export type Database = {
           id?: string;
           owner_id?: string;
           title?: string;
+          goal?: string;
           is_public?: boolean;
           share_slug?: string;
           copied_from_id?: string | null;

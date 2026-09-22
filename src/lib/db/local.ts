@@ -28,8 +28,9 @@ const DB_NAME = "roadmap";
  * 2 … Roadmap に createdAt を追加
  * 3 … Roadmap に updatedAt を追加
  * 4 … items を stages でまとめる形にした
+ * 5 … Roadmap に goal（終点に出す目標）を追加
  */
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
 interface RoadmapDB extends DBSchema {
   roadmaps: { key: string; value: Roadmap };
@@ -84,6 +85,16 @@ function getDb() {
               ...roadmap,
               stages: [{ id: crypto.randomUUID(), name: "", items: legacy }],
             });
+          }
+        }
+
+        // goal は後から足したので、それ以前のものには無い。
+        // 空文字で埋める（勝手に目標を作らない）
+        if (oldVersion >= 1 && oldVersion < 5) {
+          const store = tx.objectStore("roadmaps");
+          for (const roadmap of await store.getAll()) {
+            if (typeof roadmap.goal === "string") continue;
+            await store.put({ ...roadmap, goal: "" });
           }
         }
       },
@@ -161,4 +172,25 @@ export async function saveLocal({ roadmap, books }: LocalSnapshot): Promise<void
 /** 本人による明示的な削除。ここで消したものは戻らない */
 export async function deleteLocalRoadmap(id: string): Promise<void> {
   await withDb((db) => db.delete("roadmaps", id));
+}
+
+/**
+ * 手元のものを全部消す。**ログアウトで呼ぶ。**
+ *
+ * 理由は2つある。
+ *  - 別のアカウントの記録を端末に残さない（他人がその端末を使うことがある）
+ *  - 残すと、次に匿名で書き始めたときに**所有者の違う行**へ書こうとして
+ *    RLS に弾かれ続ける。手元では動いて見えるのにサーバーには何も入らない、
+ *    という一番たちの悪い壊れ方になる
+ */
+export async function clearLocal(): Promise<void> {
+  await withDb(async (db) => {
+    const tx = db.transaction(["roadmaps", "books", "meta"], "readwrite");
+    await Promise.all([
+      tx.objectStore("roadmaps").clear(),
+      tx.objectStore("books").clear(),
+      tx.objectStore("meta").clear(),
+      tx.done,
+    ]);
+  });
 }

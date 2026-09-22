@@ -117,6 +117,7 @@ export async function carryLocalRoadmapsToCurrentUser(): Promise<CarryResult> {
       id: newId,
       owner_id: user.id,
       title: local.roadmap.title,
+      goal: local.roadmap.goal ?? "",
       share_slug: newShareSlug(),
       // 持ち込んだものは非公開から始める。元の公開状態を引き継がない
       is_public: false,

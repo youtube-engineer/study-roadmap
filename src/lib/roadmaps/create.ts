@@ -14,6 +14,8 @@ export function newRoadmap(): Roadmap {
     id: crypto.randomUUID(),
     // 空で始める。見出しに「無題のルート」が薄く出るので、白紙には見えない
     title: "",
+    // 目標も空で始める。旗には GOAL とだけ出て、押せば書ける
+    goal: "",
     isPublic: false,
     shareSlug: newShareSlug(),
     tags: [],
