@@ -32,32 +32,53 @@ export type SessionState = {
 
 const EMPTY: SessionState = { signedIn: false, anonymous: true, email: null };
 
+/** 本アカウントに紐づいているか。匿名ユーザーは identity を持たない */
+function linked(user: { is_anonymous?: boolean; identities?: unknown[] | null }): boolean {
+  return user.is_anonymous === false || (user.identities ?? []).length > 0;
+}
+
+/**
+ * いまログインしているか。**ボタンの出し分けにしか使わない。**
+ *
+ * ★ **手元のセッションで判定する。通信を挟まない。**
+ *
+ * 以前は毎回 `getUser()`（＝Supabaseへの往復）で確かめていたが、
+ * 失敗したときに EMPTY を返していたので、**セッションは生きているのに
+ * 「ログインしていない」ことになって「ログイン」ボタンが出ていた。**
+ * ログイン直後は carry や refresh で通信が立て込むので、そこで一番起きやすい。
+ * 画面が切り替わるたびに往復していたぶん、出るまでの間も空いていた。
+ *
+ * ここが決めるのはボタンの表示だけで、**誰が何を読めるかは RLS が決める**
+ * （CLAUDE.md 6章）。だから手元の値を信じてよい。
+ */
 export async function getSessionState(): Promise<SessionState> {
   const supabase = getBrowserClient();
   if (!supabase) return EMPTY;
 
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  if (!user) return EMPTY;
+  if (!session) return EMPTY;
+
+  const user = session.user;
+  if (linked(user)) return { signedIn: true, anonymous: false, email: user.email ?? null };
 
   /**
-   * **is_anonymous を信用しない。**
+   * 手元のセッションが匿名に見えるときだけサーバーに確かめる。
    *
-   * linkIdentity() で昇格しても、手元にあるトークンは発行時のまま
-   * `is_anonymous: true` を主張し続ける（更新されるまで古い claim が残る）。
-   * それを見て判定すると、ログインしてもボタンが「ログイン」のまま残る。
-   *
-   * 紐づいた identity があるかどうかで見る。匿名ユーザーは identity を持たない。
+   * `is_anonymous` は linkIdentity() で昇格しても発行時のまま
+   * `true` を主張し続けることがあるため（CLAUDE.md 14章）。
+   * ここで失敗しても EMPTY には落とさない。**セッションはあるのだから
+   * ログアウト扱いにしてはいけない。**
    */
-  const linked = (user.identities ?? []).length > 0;
+  const {
+    data: { user: fresh },
+  } = await supabase.auth.getUser();
 
-  return {
-    signedIn: true,
-    anonymous: !linked,
-    email: user.email ?? null,
-  };
+  if (!fresh) return { signedIn: true, anonymous: true, email: null };
+
+  return { signedIn: true, anonymous: !linked(fresh), email: fresh.email ?? null };
 }
 
 /**
@@ -77,7 +98,7 @@ export async function startGoogleLogin(next: string): Promise<void> {
   const options = { redirectTo: callbackUrl(next) };
 
   // 匿名かどうかは identity の有無で見る（is_anonymous は古いままのことがある）
-  const anonymous = user !== null && (user.identities ?? []).length === 0;
+  const anonymous = user !== null && !linked(user);
 
   if (anonymous) {
     const { error } = await supabase.auth.linkIdentity({ provider: "google", options });

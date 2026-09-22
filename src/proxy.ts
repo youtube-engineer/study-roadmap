@@ -34,9 +34,16 @@ export async function proxy(request: NextRequest) {
     },
   });
 
-  // getClaims() / getUser() を呼ぶことでトークンの更新が走る。
-  // ここを消すとセッションが静かに切れる
-  await supabase.auth.getUser();
+  /**
+   * トークンの更新を走らせる。**ここを消すとセッションが静かに切れる。**
+   *
+   * ★ `getUser()` ではなく `getClaims()` を使う。
+   * `getUser()` は毎回 Supabase の `/auth/v1/user` まで往復するので、
+   * **画面を移るたびにその往復ぶん待たされる**（ロードマップの切り替えが
+   * 遅いのはこれが効いていた）。`getClaims()` は中で `getSession()` を
+   * 呼ぶので更新は同じように走り、検証は手元で JWT の署名を見るだけで済む。
+   */
+  await supabase.auth.getClaims();
 
   return response;
 }
