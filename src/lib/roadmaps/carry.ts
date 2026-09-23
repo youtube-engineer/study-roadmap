@@ -112,16 +112,38 @@ export async function carryLocalRoadmapsToCurrentUser(): Promise<CarryResult> {
       continue;
     }
 
-    const newId = crypto.randomUUID();
-    const { error } = await supabase.from("roadmaps").insert({
-      id: newId,
-      owner_id: user.id,
-      title: local.roadmap.title,
-      goal: local.roadmap.goal ?? "",
-      share_slug: newShareSlug(),
-      // 持ち込んだものは非公開から始める。元の公開状態を引き継がない
-      is_public: false,
-    });
+    /**
+     * **空いていれば元の id のまま置く。**
+     *
+     * 手元にしか無かったぶん——ログインする前に作ったもの——は、サーバーに
+     * 行が無いので同じ id で入れられる。id が変わらなければURLも共有リンクも
+     * そのままで済む。
+     *
+     * 埋まっていた（`23505`）ときだけ振り直す。**見えないだけで他人の行がある**
+     * 場合がそれで、RLS 越しには引けないので insert のエラーコードでしか分からない
+     * （sync.ts の ensureRoadmap と同じ理由）。
+     */
+    const insertRoadmap = (id: string) =>
+      supabase.from("roadmaps").insert({
+        id,
+        owner_id: user.id,
+        title: local.roadmap.title,
+        goal: local.roadmap.goal ?? "",
+        share_slug: newShareSlug(),
+        // 持ち込んだものは非公開から始める。元の公開状態を引き継がない
+        is_public: false,
+      });
+
+    let newId = local.roadmap.id;
+    let { error } = UUID.test(newId)
+      ? await insertRoadmap(newId)
+      : { error: { code: "23505" } as { code: string } };
+
+    if (error?.code === "23505") {
+      newId = crypto.randomUUID();
+      ({ error } = await insertRoadmap(newId));
+    }
+
     if (error) {
       console.error("[carry] roadmaps", error);
       continue;
@@ -175,7 +197,6 @@ export async function carryLocalRoadmapsToCurrentUser(): Promise<CarryResult> {
       if (itemsError) console.error("[carry] roadmap_items", itemsError);
     }
 
-    // 手元も新しいidに置き換える。古い方は誰からも辿れなくなるので消す
     await saveLocal({
       roadmap: {
         ...local.roadmap,
@@ -186,8 +207,13 @@ export async function carryLocalRoadmapsToCurrentUser(): Promise<CarryResult> {
       },
       books: local.books,
     });
-    await deleteLocalRoadmap(local.roadmap.id);
-    moved.set(local.roadmap.id, newId);
+
+    // id を振り直したときだけ、古い方を消して行き先を控える。
+    // 同じ id のまま置けたなら消すものは無いし、画面も動かさなくていい
+    if (newId !== local.roadmap.id) {
+      await deleteLocalRoadmap(local.roadmap.id);
+      moved.set(local.roadmap.id, newId);
+    }
     carried += 1;
   }
 

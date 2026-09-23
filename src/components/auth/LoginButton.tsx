@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 
 import { Sheet } from "@/components/sheets/Sheet";
 import { Toast } from "@/components/ui/Toast";
@@ -60,7 +59,6 @@ type Props = {
 };
 
 export function LoginButton({ next }: Props) {
-  const router = useRouter();
   const [state, setState] = useState<SessionState | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [conflict, setConflict] = useState(false);
@@ -133,6 +131,10 @@ export function LoginButton({ next }: Props) {
       }
 
       if (login !== "taken") {
+        // 入れなかったのだから持ち込みもしない。残すと次に開いたときに走る
+        sessionStorage.removeItem(CARRY_FLAG);
+        sessionStorage.removeItem(CARRY_RETURN_ID);
+
         /**
          * **理由を隠さない。** access_denied は「本人がやめた」ことも
          * 「Google側に拒否された」（同意画面がテスト中で、そのアカウントが
@@ -168,6 +170,24 @@ export function LoginButton({ next }: Props) {
      * 「ログインできませんでした」が出続ける。
      */
     sessionStorage.removeItem(SWITCH_ATTEMPTED);
+
+    /**
+     * ★ **持ち込みの目印は、どの入り口から入っても立てる。**
+     *
+     * 以前は「既に紐づいている」で切り替えたときだけ立てていた。だが
+     * **セッションが無い状態で押すと `signInWithOAuth` に入る**
+     * （`startGoogleLogin` は匿名ユーザーが居るときしか昇格を試さない）。
+     * その経路には目印が無かったので、**ログインする前に作ったロードマップが
+     * アカウントに入らないまま手元にだけ残っていた。**
+     * 画面には出るので気付きにくく、端末を変えると消えたように見える。
+     *
+     * 持ち込みは冪等（既に自分のものはそのまま）なので、昇格が成功した
+     * ときに通っても何も起きない。
+     */
+    sessionStorage.setItem(CARRY_FLAG, "1");
+    const current = /^\/roadmaps\/([^/?#]+)/.exec(next)?.[1];
+    if (current) sessionStorage.setItem(CARRY_RETURN_ID, current);
+
     try {
       await startGoogleLogin(next);
     } catch (e) {
@@ -191,10 +211,18 @@ export function LoginButton({ next }: Props) {
     }
 
     await signOut();
-    router.push("/");
-    // サーバーコンポーネントが持っている一覧も取り直す
-    router.refresh();
-  }, [router]);
+
+    /**
+     * ★ **読み込み直す。`router.push` では前の描画が残る。**
+     *
+     * App Router はルーターキャッシュを持っているので、`push("/")` は
+     * **ログイン中に作られた RSC の結果**をそのまま出せてしまう。
+     * そこに入っているのは当然そのアカウントの一覧なので、
+     * **ログアウトしたのにログイン後のロードマップが降りてくる。**
+     * `refresh()` を後から呼んでも、入口の画面は先に動いてしまっている。
+     */
+    window.location.replace("/");
+  }, []);
 
   const loggedIn = Boolean(state?.signedIn && !state.anonymous);
   const initial = state?.email?.trim()?.[0]?.toUpperCase() ?? null;
