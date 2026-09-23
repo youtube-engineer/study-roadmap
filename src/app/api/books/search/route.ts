@@ -20,7 +20,13 @@ export async function GET(request: Request) {
       // 「該当なし」とは別の表現に切り替えられるよう、種類を返す（CLAUDE.md 10章）
       return NextResponse.json({ error: "timeout" }, { status: 504 });
     }
-    console.error("[books/search]", e);
-    return NextResponse.json({ error: "failed" }, { status: 502 });
+    /**
+     * **理由を返す。** 「失敗しました」だけだと、本番で設定のどれが
+     * 欠けているのかを画面からもログからも追えない（楽天の403には種類がある）。
+     * 鍵そのものは載せない——載るのは状態コードと Origin と楽天の文言だけ。
+     */
+    const reason = e instanceof Error ? e.message : "unknown";
+    console.error("[books/search]", reason);
+    return NextResponse.json({ error: "failed", reason }, { status: 502 });
   }
 }

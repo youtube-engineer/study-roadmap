@@ -81,6 +81,17 @@ function accessKey(): string {
   return process.env.RAKUTEN_ACCESS_KEY?.trim() ?? "";
 }
 
+/**
+ * 許可リストに登録したドメイン。**これも必須。**
+ *
+ * サーバーサイドの fetch は Origin を自動送信しないので、無いと必ず 403 になる。
+ * 空文字を「無い」として扱うのは鍵と同じ理由（Vercel では名前だけ作られて
+ * 値が空、という状態が普通に起きる）。
+ */
+function originHeader(): string {
+  return process.env.RAKUTEN_ORIGIN?.trim().replace(/\/$/, "") ?? "";
+}
+
 export function isRakutenConfigured(): boolean {
   return Boolean(applicationId() && accessKey());
 }
@@ -173,9 +184,17 @@ async function call(params: Record<string, string>): Promise<RakutenItem[]> {
    * 名前に反して `Referer` では通らない。**`Origin` でないと駄目**（実測）。
    * 値は楽天の許可リストに登録したドメイン。
    */
-  const headers: HeadersInit = { accessKey: key };
-  const origin = process.env.RAKUTEN_ORIGIN?.trim();
-  if (origin) headers.Origin = origin.replace(/\/$/, "");
+  const origin = originHeader();
+  if (!origin) {
+    /**
+     * 黙って送らずに、**理由を名指しで落とす。**
+     * 付けなければ必ず 403 になるので、ここで止めた方が原因に辿り着ける。
+     */
+    throw new BookSearchError(
+      "RAKUTEN_ORIGIN が空です（楽天の許可リストに登録したドメインを入れる）",
+    );
+  }
+  const headers: HeadersInit = { accessKey: key, Origin: origin };
 
   let res: Response;
   try {
@@ -194,7 +213,19 @@ async function call(params: Record<string, string>): Promise<RakutenItem[]> {
   }
 
   if (!res.ok) {
-    throw new BookSearchError(`楽天ブックスAPIが ${res.status} を返しました`);
+    /**
+     * ★ **楽天が返した中身を捨てない。**
+     *
+     * 403 には種類があり、どちらなのかで直し方が変わる。
+     *  - `HTTP_REFERRER_NOT_ALLOWED` … Origin が許可リストに無い
+     *  - `REQUEST_CONTEXT_BODY_HTTP_REFERRER_MISSING` … Origin を送っていない
+     * 状態コードだけ残して捨てると、**本番で「失敗しました」としか分からなくなる。**
+     */
+    const body = await res.text().catch(() => "");
+    const detail = body.replace(/\s+/g, " ").slice(0, 200);
+    throw new BookSearchError(
+      `楽天ブックスAPIが ${res.status} を返しました（Origin: ${origin}）${detail ? ` ${detail}` : ""}`,
+    );
   }
 
   const json = (await res.json()) as RakutenResponse;
