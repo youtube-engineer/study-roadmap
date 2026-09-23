@@ -801,6 +801,30 @@ Supabase が `Invalid API key`（401）を返す。実際にこれで半日溶�
 
 `lib/supabase/config.ts` の `firstNonEmpty` を通すこと。
 
+### ★ Supabase の Redirect URLs に localhost を入れる
+
+`redirectTo` が**許可リスト（Authentication → URL Configuration → Redirect URLs）に
+無いと、Supabase は黙って Site URL に差し替える。**
+
+localhost を入れ忘れると、**手元でログインしたのに本番のURLへ飛ばされる。**
+しかも飛ばされる先は `/auth/callback` ではなく Site URL の根なので、
+**認可コードを誰も交換しないまま捨てる。** セッションはどちらの環境にもできず、
+「ログインしたのにログインボタンのままだ」という形で現れる。
+さらに localhost と本番はオリジンが違うので IndexedDB も別物になり、
+**手元のロードマップが持ち込まれていないように見える。**
+
+入れるもの（`**` が使える）:
+
+```
+http://localhost:3000/**
+https://<本番ドメイン>/**
+https://*-<チーム名>.vercel.app/**   ← Vercelのプレビューは毎回ドメインが変わる
+```
+
+保険として、`/` に `?code=` が落ちてきたら `/auth/callback` へ渡している
+（`app/page.tsx`）。**設定の代わりにはならない**——飛ばされた先が本番なら、
+セッションができるのも本番側になる。
+
 ### OAuthのコールバックはCookieを自分でレスポンスに載せる
 
 `next/headers` の `cookies()` に書いても、**Route Handler 内で自分が作った
