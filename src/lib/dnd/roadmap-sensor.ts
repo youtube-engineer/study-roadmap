@@ -2,6 +2,8 @@ import { PointerSensor } from "@dnd-kit/core";
 import type { PointerSensorProps } from "@dnd-kit/core";
 import type { PointerEvent as ReactPointerEvent } from "react";
 
+import { GRIP_ATTRIBUTE } from "./grip";
+
 /**
  * 並び替えのセンサー。**プロトタイプで実機検証済みの実装をそのまま持ってきている。**
  *
@@ -26,7 +28,7 @@ const GRIP_CONSTRAINT = { distance: 4 };
 const BODY_CONSTRAINT = { delay: 220, tolerance: 8 };
 
 /** 握りの目印。CSS 側の touch-action: none もこの属性に当てる */
-export const GRIP_ATTRIBUTE = "data-grip";
+
 
 /**
  * activators のハンドラで立てて constructor で読む。

@@ -4,7 +4,7 @@ import Image from "next/image";
 import type { CSSProperties, HTMLAttributes, KeyboardEvent } from "react";
 
 import { CheckIcon } from "@/components/ui/icons";
-import { GRIP_ATTRIBUTE } from "@/lib/dnd/roadmap-sensor";
+import { GRIP_ATTRIBUTE } from "@/lib/dnd/grip";
 import type { Book, RoadmapItem } from "@/types/roadmap";
 
 /**
@@ -38,6 +38,10 @@ type Props = {
   drag?: DragBindings;
   /** DragOverlay の中身として描くとき */
   overlay?: boolean;
+  /** 共有ページ。掴めないし押せない——見るだけ */
+  readOnly?: boolean;
+  /** 画面内に最初から入っている1〜2冊だけ true（CLAUDE.md 10章） */
+  priority?: boolean;
 };
 
 /**
@@ -47,7 +51,11 @@ type Props = {
  * 表紙が無いとき（手入力した教材、取得できなかったもの）は書名から決めた色で
  * 帯を作り、書名を小さく載せる。**レイアウトが崩れないことが条件**（7章）。
  */
-export function BookSpine({ item, book, onOpen, drag, overlay = false }: Props) {
+export function BookSpine({ item, book, onOpen, drag, overlay = false, readOnly = false, priority = false }: Props) {
+  /** 掴めない（握りもドラッグも無い）。押して開くのは readOnly でもできる */
+  const inert = overlay || readOnly;
+  /** 共有ページでは他人の進捗を出さない（CLAUDE.md 8章） */
+  const showDone = item.isDone && !readOnly;
   const open = () => onOpen?.(item.id);
 
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -61,8 +69,8 @@ export function BookSpine({ item, book, onOpen, drag, overlay = false }: Props) 
 
   return (
     <div
-      ref={overlay ? undefined : drag?.setNodeRef}
-      style={overlay ? undefined : drag?.style}
+      ref={inert ? undefined : drag?.setNodeRef}
+      style={inert ? undefined : drag?.style}
       /*
         **<button> にしない。** センサーはボタンの上でドラッグを始めない作りに
         してあるので（誤爆を防ぐため）、ボタンにすると握りが効かなくなる。
@@ -72,7 +80,7 @@ export function BookSpine({ item, book, onOpen, drag, overlay = false }: Props) 
       aria-label={overlay ? undefined : book.title}
       onClick={overlay ? undefined : open}
       onKeyDown={overlay ? undefined : onKeyDown}
-      {...(overlay ? {} : drag?.dragProps)}
+      {...(inert ? {} : drag?.dragProps)}
       className={`book-width relative flex-none touch-pan-x focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent ${
         drag?.isDragging ? "opacity-30" : ""
       } ${overlay ? "cursor-grabbing" : ""}`}
@@ -104,7 +112,7 @@ export function BookSpine({ item, book, onOpen, drag, overlay = false }: Props) 
       <span
         className={`book-width relative block overflow-hidden rounded-[2px_5px_5px_2px] ${
           overlay ? "shadow-lift" : "shadow-book"
-        } ${item.isDone ? "opacity-55" : ""} ${book.coverImageUrl ? "" : "book-size"}`}
+        } ${showDone ? "opacity-55" : ""} ${book.coverImageUrl ? "" : "book-size"}`}
       >
         {book.coverImageUrl ? (
           <Image
@@ -113,6 +121,7 @@ export function BookSpine({ item, book, onOpen, drag, overlay = false }: Props) 
             width={IMAGE_WIDTH}
             height={IMAGE_HEIGHT}
             unoptimized
+            priority={priority}
             draggable={false}
             className="block h-auto w-full"
           />
@@ -136,7 +145,7 @@ export function BookSpine({ item, book, onOpen, drag, overlay = false }: Props) 
           スクロールできる状態になって本が上下にずれる。
           下端は握りなので、重ならないよう右上へ。
         */}
-        {item.isDone && (
+        {showDone && (
           <span className="absolute right-1 top-1 grid h-[22px] w-[22px] place-items-center rounded-full bg-thread text-white shadow-[0_0_0_2px_rgba(255,255,255,0.75)]">
             <CheckIcon size={11} />
           </span>
@@ -147,7 +156,7 @@ export function BookSpine({ item, book, onOpen, drag, overlay = false }: Props) 
           動かせるようにする（9章）。棚そのものは pan-x のままなので横スクロールは
           そのまま効く。この2つはセットで意味を持つ。
         */}
-        {!overlay && (
+        {!inert && (
           <span
             {...{ [GRIP_ATTRIBUTE]: "" }}
             aria-hidden="true"

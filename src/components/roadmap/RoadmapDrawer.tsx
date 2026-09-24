@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+import { CheckIcon } from "@/components/ui/icons";
+
 import {
   CARRY_FLAG,
   CARRY_RETURN_ID,
@@ -35,19 +37,21 @@ function byRecency(a: RoadmapSummary, b: RoadmapSummary): number {
 }
 
 /** 「5冊 · 2冊終了 · 3日前」。数えるのではなく、状態が一目で読めればいい */
+/** 全部に印が付いたか。空のロードマップは終わっていない（8章の段と同じ導出） */
+function isFinished(s: RoadmapSummary): boolean {
+  return s.totalCount > 0 && s.doneCount === s.totalCount;
+}
+
 function metaLine(s: RoadmapSummary): string {
   const parts: string[] = [];
   if (s.totalCount === 0) {
     parts.push("まだ空");
   } else {
     parts.push(`${s.totalCount}冊`);
-    parts.push(
-      s.doneCount === 0
-        ? "まだ始めていない"
-        : s.doneCount === s.totalCount
-          ? "ぜんぶ終了"
-          : `${s.doneCount}冊終了`,
-    );
+    // 走りきったぶんは見出しの印が言うので、ここでは繰り返さない
+    if (!isFinished(s)) {
+      parts.push(s.doneCount === 0 ? "まだ始めていない" : `${s.doneCount}冊終了`);
+    }
   }
   const when = relativeTime(touchedAt(s));
   if (when) parts.push(when);
@@ -264,6 +268,21 @@ export function RoadmapDrawer({ serverSummaries, currentId }: Props) {
                       }`}
                     >
                       {displayTitle(s.title)}
+                      {/*
+                        走りきったものには印を付ける。一覧で見分けがつかないと、
+                        終わったルートを開いて確かめることになる。
+                        朱は経路と進捗（8章）なので、段の玉と同じ意味で読める。
+                      */}
+                      {isFinished(s) && (
+                        <span
+                          role="img"
+                          aria-label="すべて終了"
+                          title="すべて終了"
+                          className="ml-1.5 inline-grid h-[15px] w-[15px] translate-y-[1px] place-items-center rounded-full bg-thread align-middle text-white"
+                        >
+                          <CheckIcon size={9} />
+                        </span>
+                      )}
                       {s.isCopy && (
                         <span className="font-sans text-[0.72rem] font-normal text-ink-faint">
                           {s.copiedFromName

@@ -17,7 +17,8 @@ type Props = { params: Promise<{ slug: string }> };
  *
  * 公開URL1つ1つが「特定の参考書ルートについてのページ」になる。これが本命の
  * 検索対策なので、クライアント側の描画に依存させない（CLAUDE.md 12章）。
- * dnd-kit もシートもこのページには載らない。
+ * dnd-kit はこのページに載らない。参考書を押したときのシートだけは載せる
+ * ——メモを読む道が無いと、他人のロードマップを見る意味が薄いため。
  */
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
@@ -99,7 +100,13 @@ export default async function SharedRoadmapPage({ params }: Props) {
           空けると紐がそこで途切れて1本の経路に見えなくなる（CLAUDE.md 8章）。
         */}
         {roadmap.stages.map((stage, index) => (
-          <SharedStage key={stage.id} stage={stage} index={index} books={bookMap} />
+          <SharedStage
+            key={stage.id}
+            stage={stage}
+            index={index}
+            books={bookMap}
+            priority={index === 0}
+          />
         ))}
 
         {/* GOAL */}

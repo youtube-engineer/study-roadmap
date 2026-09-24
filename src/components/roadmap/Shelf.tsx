@@ -46,7 +46,12 @@ export function Shelf({
   onAddBook,
   onOpenStageMenu,
 }: Props) {
-  const done = isStageDone(stage);
+  /**
+   * **共有ページでは進捗を出さない。**
+   * 他人がどこまで終えたかは読む側に関係が無く、計画として読ませたい
+   * （CLAUDE.md 8章）。玉は数字のまま、棚板の線も出さない。
+   */
+  const done = !readOnly && isStageDone(stage);
   const doneCount = stage.items.filter((i) => i.isDone).length;
 
   const onNameKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -108,9 +113,11 @@ export function Shelf({
 
       <div className="flex min-h-7 items-baseline gap-2 pr-4 md:pr-6">
         {readOnly ? (
-          <span className={`text-[1.05rem] font-bold ${done ? "text-ink-soft" : ""}`}>
-            {stage.name || "（名前なし）"}
-          </span>
+          /*
+            **名前が無いなら何も出さない。** 「（名前なし）」と書くと、
+            名前を付けなかったことの方が目立ってしまう。場所だけ空けておく。
+          */
+          <span className="text-[1.05rem] font-bold">{stage.name}</span>
         ) : (
           <input
             defaultValue={stage.name}
@@ -129,11 +136,15 @@ export function Shelf({
             done ? "text-thread" : "text-ink-faint"
           }`}
         >
-          {stage.items.length === 0
-            ? "まだ空"
-            : done
-              ? "すべて終了 ✓"
-              : `${doneCount}/${stage.items.length}`}
+          {readOnly
+            ? stage.items.length > 0
+              ? `${stage.items.length}冊`
+              : ""
+            : stage.items.length === 0
+              ? "まだ空"
+              : done
+                ? "すべて終了 ✓"
+                : `${doneCount}/${stage.items.length}`}
         </span>
 
         {!readOnly && (
@@ -221,7 +232,7 @@ export function Shelf({
           どこまで進んだかを棚板の上に線で出す。玉と紐だけだと段の中の進み具合が
           分からない。臙脂は経路と進捗（8章）なので役割も混ざらない
         */}
-        {stage.items.length > 0 && (
+        {!readOnly && stage.items.length > 0 && (
           <span
             aria-hidden="true"
             className="absolute inset-x-0 bottom-[14px] h-[3px] overflow-hidden rounded-full"
