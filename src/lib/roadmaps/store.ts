@@ -74,7 +74,11 @@ function toBook(row: BookRow): Book {
   };
 }
 
-function toRoadmap(row: RoadmapRow, stages: RoadmapStage[]): Roadmap {
+function toRoadmap(
+  row: RoadmapRow,
+  stages: RoadmapStage[],
+  copiedFromSlug: string | null = null,
+): Roadmap {
   return {
     id: row.id,
     title: row.title,
@@ -91,6 +95,7 @@ function toRoadmap(row: RoadmapRow, stages: RoadmapStage[]): Roadmap {
           roadmapId: row.copied_from_id,
           title: row.copied_from_title,
           authorName: row.copied_from_name,
+          shareSlug: copiedFromSlug,
         }
       : null,
   };
@@ -259,7 +264,32 @@ export async function loadRoadmap(id: string): Promise<LoadedRoadmap> {
   if (!row) return { roadmap: placeholderRoadmap(id), books: [], source: "placeholder" };
 
   const { stages, books } = await loadStagesAndBooks(row.id);
-  return { roadmap: toRoadmap(row, stages), books, source: "stored" };
+  const copiedFromSlug = await resolveCopiedFromSlug(supabase, row.copied_from_id);
+  return { roadmap: toRoadmap(row, stages, copiedFromSlug), books, source: "stored" };
+}
+
+/**
+ * コピー元へのリンク先を引き直す。
+ *
+ * 持っているのは `copied_from_id` なので、**そのままURLには使えない**
+ * （共有ページは `share_slug` で引く）。ここで引き直す。
+ *
+ * 元が非公開に戻されていれば RLS が弾いて `null` になり、リンクだけが消える。
+ * 元が消えていても同じ。**それが正しい壊れ方**で、表示は
+ * スナップショット（`copied_from_title`）が受け持つ（CLAUDE.md 6章）。
+ */
+async function resolveCopiedFromSlug(
+  supabase: Awaited<ReturnType<typeof getServerClient>>,
+  copiedFromId: string | null,
+): Promise<string | null> {
+  if (!supabase || !copiedFromId) return null;
+  const { data } = await supabase
+    .from("roadmaps")
+    .select("share_slug, is_public")
+    .eq("id", copiedFromId)
+    .maybeSingle();
+  if (!data?.is_public) return null;
+  return data.share_slug;
 }
 
 export async function loadSharedRoadmap(slug: string): Promise<LoadedRoadmap | null> {
@@ -287,5 +317,6 @@ export async function loadSharedRoadmap(slug: string): Promise<LoadedRoadmap | n
   if (!row) return null;
 
   const { stages, books } = await loadStagesAndBooks(row.id);
-  return { roadmap: toRoadmap(row, stages), books, source: "stored" };
+  const copiedFromSlug = await resolveCopiedFromSlug(supabase, row.copied_from_id);
+  return { roadmap: toRoadmap(row, stages, copiedFromSlug), books, source: "stored" };
 }

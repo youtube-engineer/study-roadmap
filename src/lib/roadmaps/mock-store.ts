@@ -138,9 +138,11 @@ export async function copyRoadmap(slug: string): Promise<Roadmap | null> {
     authorName: null,
     createdAt: new Date().toISOString(),
     copiedFrom: {
-      roadmapId: source.shareSlug,
+      // id と slug を取り違えない。リンクに使うのは slug の方（6章）
+      roadmapId: source.id,
       title: source.title,
       authorName: source.authorName,
+      shareSlug: source.shareSlug,
     },
     stages: source.stages.map((stage) => ({
       ...stage,

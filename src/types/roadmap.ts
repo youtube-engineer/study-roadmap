@@ -69,6 +69,17 @@ export type CopiedFrom = {
   roadmapId: string | null;
   title: string;
   authorName: string | null;
+  /**
+   * コピー元の共有URL用の識別子。**`roadmapId` とは別物。**
+   *
+   * 共有ページは `share_slug` で引くので、`roadmapId` をURLに入れても必ず外れる。
+   * **辿るための値と、記録として残す値を取り違えないこと**（6章）。
+   *
+   * 元が削除されたり非公開に戻されると引けなくなるので `null` になる。
+   * そのときリンクだけが消え、「◯◯さんのロードマップをもとにしています」は残る
+   * ——スナップショットを持っている狙いがここ。
+   */
+  shareSlug: string | null;
 };
 
 export type Roadmap = {

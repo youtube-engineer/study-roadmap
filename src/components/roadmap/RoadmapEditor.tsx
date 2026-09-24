@@ -648,9 +648,15 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
                 ? `${doc.copiedFrom.authorName}さんのロードマップをもとにしています`
                 : "他の人のロードマップをもとにしています"}
             </span>
-            {doc.copiedFrom.roadmapId && (
+            {/*
+              **リンクは `shareSlug`。`roadmapId` ではない。**
+              共有ページは share_slug で引くので、id を入れると必ず外れる。
+              元が消えた／非公開に戻ったときは slug が null になり、
+              リンクだけが消えて「もとにしています」の表示は残る（6章）。
+            */}
+            {doc.copiedFrom.shareSlug && (
               <a
-                href={`/r/${doc.copiedFrom.roadmapId}`}
+                href={`/r/${doc.copiedFrom.shareSlug}`}
                 className="ml-auto text-thread underline underline-offset-2"
               >
                 元を見る
