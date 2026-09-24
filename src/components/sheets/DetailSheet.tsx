@@ -13,14 +13,22 @@ type Props = {
   item: RoadmapItem | null;
   book: Book | null;
   onClose: () => void;
-  onPatch: (itemId: string, patch: Partial<RoadmapItem>) => void;
-  onToggleDone: (itemId: string) => void;
-  onRemove: (itemId: string) => void;
+  onPatch?: (itemId: string, patch: Partial<RoadmapItem>) => void;
+  onToggleDone?: (itemId: string) => void;
+  onRemove?: (itemId: string) => void;
+  /**
+   * 共有ページ。**同じ見た目のまま、触れなくする。**
+   * 別のシートを用意すると、同じ情報が2通りの並びで出ることになる。
+   */
+  readOnly?: boolean;
 };
 
 /**
  * 参考書ごとの設定。**削除はここに置き、カード上には置かない。**
  * 破壊的操作の誤爆を防ぐため（CLAUDE.md 8章）。
+ *
+ * 共有ページでは `readOnly` で開く。並びも余白も変えずに、入力欄を本文に、
+ * 操作を出さないだけにする。他人の終了状態も出さない（8章）。
  */
 export function DetailSheet({
   item,
@@ -29,6 +37,7 @@ export function DetailSheet({
   onPatch,
   onToggleDone,
   onRemove,
+  readOnly = false,
 }: Props) {
   const [note, setNote] = useState(item?.note ?? "");
   const [rounds, setRounds] = useState<number | null>(item?.roundsTarget ?? null);
@@ -44,27 +53,42 @@ export function DetailSheet({
   }
 
   const commit = () => {
-    if (item) onPatch(item.id, { note, roundsTarget: rounds });
+    if (item && !readOnly) onPatch?.(item.id, { note, roundsTarget: rounds });
     onClose();
   };
 
   /**
-   * 買える場所。
+   * 買える場所。**どの本にも出す。** 出たり出なかったりすると、
+   * 買えない本があるのか壊れているのかが読む側に分からない。
    *
-   * **保存済みの出典が無くても ISBN から引き直せる。** 出典を保存する前に
-   * 追加した本や、提供元が URL を返さなかった本でも買える場所を出したい。
-   * ISBN は国際標準の識別子なので、これだけあれば辿れる（CLAUDE.md 6章）。
+   * 3段構えにする。上から順に確かさが落ちるだけで、行き先は必ず楽天。
+   *
+   *  1. 保存してある出典（提供元が返した商品ページ）
+   *  2. **ISBN で引き直す。** 出典を保存する前に追加した本や、提供元が
+   *     URL を返さなかった本がこれに当たる。ISBN は国際標準の識別子なので、
+   *     これだけあれば辿れる（CLAUDE.md 6章）。実データでは楽天由来の本の
+   *     大半がここで拾われる
+   *  3. 書名で探す。手入力した教材には出典もISBNも無いため
+   *
+   * `??` ではなく `||` にしてあるのは、**「無い」が空文字で来るから**（14章）。
+   *
+   * 文言は「見る」にとどめる。購入やクリックを呼びかけるのは
+   * 楽天ウェブサービス規約 第10条1項(1) の禁止事項（7章）。
    */
+  const search = (term: string) =>
+    `https://books.rakuten.co.jp/search?sitem=${encodeURIComponent(term)}`;
+
   const buyUrl =
-    book?.sourceUrl ||
-    (book?.isbn ? `https://books.rakuten.co.jp/search?sitem=${book.isbn}` : null);
+    book?.sourceUrl?.trim() ||
+    (book?.isbn?.trim() ? search(book.isbn.trim()) : null) ||
+    (book?.title?.trim() ? search(book.title.trim()) : null);
 
   const setRoundsClamped = (value: number | null) => {
     setRounds(value === null ? null : Math.max(ROUNDS_MIN, Math.min(ROUNDS_MAX, value)));
   };
 
   return (
-    <Sheet open={Boolean(item)} onClose={commit} title="参考書の設定">
+    <Sheet open={Boolean(item)} onClose={commit} title={readOnly ? "参考書" : "参考書の設定"}>
       {item && book && (
         <div className="flex flex-col gap-4 overflow-y-auto px-4 pb-5 pt-1.5">
           {/* どの本を触っているかが表紙で分かるように、ここは大きく見せる */}
@@ -86,10 +110,6 @@ export function DetailSheet({
           {/*
             買える場所。**カードではなくここに置く。** カードは紐と玉で構造を
             担っていて、ボタンを足すと経路が買い物リストに戻る（CLAUDE.md 8章）。
-
-            文言は「見る」にとどめる。購入やクリックを呼びかけるのは
-            楽天ウェブサービス規約 第10条1項(1) の禁止事項（7章）。
-            手入力した教材には出典が無いので出ない。
           */}
           {buyUrl && (
             <a
@@ -112,10 +132,11 @@ export function DetailSheet({
             </a>
           )}
 
+          {!readOnly && (
           <button
             type="button"
             onClick={() => {
-              onToggleDone(item.id);
+              onToggleDone?.(item.id);
               // 終えたら本は棚の右端へ動く。シートを開いたままだと
               // 動いたことに気づけないので、閉じて棚を見せる
               onClose();
@@ -135,7 +156,16 @@ export function DetailSheet({
             </span>
             {item.isDone ? "この参考書は終了した" : "終了にする"}
           </button>
+          )}
 
+          {readOnly ? (
+            item.roundsTarget ? (
+              <div className="flex flex-col gap-1">
+                <span className="text-[0.8rem] font-bold text-ink-soft">周回の目標</span>
+                <span className="font-mono text-[0.9rem] text-ink">{item.roundsTarget}周</span>
+              </div>
+            ) : null
+          ) : (
           <div className="flex flex-col gap-2">
             <span className="text-[0.8rem] font-bold text-ink-soft">周回の目標</span>
             <div className="flex items-center gap-2">
@@ -169,7 +199,22 @@ export function DetailSheet({
               最初に決めるだけの目標。今何周目かは記録しない。
             </p>
           </div>
+          )}
 
+          {readOnly ? (
+            <div className="flex flex-col gap-2">
+              <span className="text-[0.8rem] font-bold text-ink-soft">
+                この本を使うときのメモ
+              </span>
+              {item.note ? (
+                <p className="whitespace-pre-wrap rounded-[10px] bg-sunk px-3 py-2.5 text-[0.88rem] leading-[1.8] text-ink-soft">
+                  {item.note}
+                </p>
+              ) : (
+                <p className="text-[0.8rem] text-ink-faint">メモはありません。</p>
+              )}
+            </div>
+          ) : (
           <div className="flex flex-col gap-2">
             <label htmlFor="item-note" className="text-[0.8rem] font-bold text-ink-soft">
               この本を使うときのメモ
@@ -186,12 +231,22 @@ export function DetailSheet({
               共有したとき、このメモが相手に読まれる部分になる。
             </p>
           </div>
+          )}
 
+          {readOnly ? (
+            <button
+              type="button"
+              onClick={onClose}
+              className="ml-auto rounded-[10px] bg-accent px-5 py-2.5 text-[0.88rem] font-bold text-white hover:bg-accent-strong"
+            >
+              閉じる
+            </button>
+          ) : (
           <div className="flex items-center gap-2.5">
             <button
               type="button"
               onClick={() => {
-                onRemove(item.id);
+                onRemove?.(item.id);
                 onClose();
               }}
               className="rounded-[9px] border border-rule-strong px-3 py-2 text-[0.82rem] text-ink-soft hover:border-thread hover:text-thread"
@@ -206,6 +261,7 @@ export function DetailSheet({
               保存して閉じる
             </button>
           </div>
+          )}
         </div>
       )}
     </Sheet>

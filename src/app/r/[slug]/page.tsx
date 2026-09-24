@@ -57,7 +57,12 @@ export default async function SharedRoadmapPage({ params }: Props) {
     <div className="flex min-h-dvh flex-col">
       <header className="flex items-center gap-1.5 border-b border-rule px-4 pb-2.5 pt-3">
         {/* 他人のページなので、どこのサービスかが分かるようにする */}
-        <span className="font-serif text-[0.92rem] font-semibold tracking-[0.1em] text-ink-soft">
+        {/*
+          **明朝はやめた。** ここだけ書体が違うと、下に続く棚や見出し
+          （角ゴ）と揃わず、同じ画面に見えない。名乗る役目は変わらないので
+          大きさと字間で出す（CLAUDE.md 8章 規則3）。
+        */}
+        <span className="text-[0.92rem] font-bold tracking-[0.08em] text-ink-title">
           参考書ロードマップ
         </span>
         <span className="flex-1" />
