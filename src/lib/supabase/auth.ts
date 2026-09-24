@@ -87,7 +87,7 @@ export async function getSessionState(): Promise<SessionState> {
  * - 匿名で使っている → 昇格を試す（今のデータを保ったままにする）
  * - まだ何も無い     → そのままログイン（失うものが無い）
  */
-export async function startGoogleLogin(next: string): Promise<void> {
+export async function startGoogleLogin(next: string, keepAnonymousWork = true): Promise<void> {
   const supabase = getBrowserClient();
   if (!supabase) return;
 
@@ -100,7 +100,19 @@ export async function startGoogleLogin(next: string): Promise<void> {
   // 匿名かどうかは identity の有無で見る（is_anonymous は古いままのことがある）
   const anonymous = user !== null && !linked(user);
 
-  if (anonymous) {
+  /**
+   * ★ **昇格を試すのは、守るものがあるときだけ。**
+   *
+   * `linkIdentity()` の目的は「匿名のまま作ったものを、IDを変えずに残す」こと。
+   * 守るものが無いときに試すと、そのGoogleアカウントが既にアカウントとして
+   * 存在する場合に必ず失敗し、**切り替えのためにもう一度Googleへ行かされる。**
+   * ログイン→ログアウト→またログイン、で毎回2往復になる
+   * （説明を一度見た後は確認も出ないので、ただ2回ログインさせられたように見える）。
+   *
+   * `keepAnonymousWork` が false のときは最初から `signInWithOAuth`。
+   * 手元のぶんは持ち込み（carry.ts）が運ぶので、失うものは無い。
+   */
+  if (anonymous && keepAnonymousWork) {
     const { error } = await supabase.auth.linkIdentity({ provider: "google", options });
     if (error) throw error;
     return;

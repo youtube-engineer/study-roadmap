@@ -35,6 +35,15 @@ export const CARRY_RETURN_ID = "carryReturnRoadmapId";
  */
 const SEEN_SWITCH_NOTICE = "seenAccountSwitchNotice";
 
+/**
+ * このGoogleアカウントは既にアカウントとして存在している、と分かった印。
+ *
+ * 一度そうと分かれば次も同じ結果になるので、**以降は昇格を試さない。**
+ * 試すと必ず失敗して、切り替えのためにもう一度Googleへ行くことになる
+ * ——ログインし直すたびに2回ログインさせられる、という形で出る。
+ */
+const LINK_UNAVAILABLE = "accountAlreadyExists";
+
 function remembered(key: string): boolean {
   try {
     return localStorage.getItem(key) !== null;
@@ -145,6 +154,9 @@ export function LoginButton({ next }: Props) {
         return;
       }
 
+      // 次からは昇格を試さない。同じ結果にしかならない
+      remember(LINK_UNAVAILABLE);
+
       if (sessionStorage.getItem(SWITCH_ATTEMPTED)) {
         // 一度切り替えを試してまた弾かれた。往復し続けても直らない
         sessionStorage.removeItem(SWITCH_ATTEMPTED);
@@ -188,8 +200,20 @@ export function LoginButton({ next }: Props) {
     const current = /^\/roadmaps\/([^/?#]+)/.exec(next)?.[1];
     if (current) sessionStorage.setItem(CARRY_RETURN_ID, current);
 
+    /**
+     * 昇格を試す価値があるか。
+     *
+     * - 手元に何も無い（ログアウト直後など）… 守るものが無い
+     * - 既に「そのアカウントは在る」と分かっている … 試しても必ず失敗する
+     *
+     * どちらでも最初から `signInWithOAuth` に行く。**Googleへの往復が1回で済む。**
+     * 手元のぶんは持ち込みが運ぶので失われない。
+     */
+    const hasLocalWork = (await listLocal()).length > 0;
+    const keepAnonymousWork = hasLocalWork && !remembered(LINK_UNAVAILABLE);
+
     try {
-      await startGoogleLogin(next);
+      await startGoogleLogin(next, keepAnonymousWork);
     } catch (e) {
       console.error("[login]", e);
       const detail = e instanceof Error ? e.message.slice(0, 60) : "";
