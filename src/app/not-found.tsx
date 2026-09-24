@@ -9,7 +9,7 @@ export default function NotFound() {
       </p>
       <Link
         href="/"
-        className="mt-2 rounded-[10px] bg-accent px-4 py-2.5 text-[0.88rem] font-medium text-white hover:bg-accent-strong"
+        className="mt-2 rounded-[10px] bg-accent px-4 py-2.5 text-[0.88rem] font-medium text-accent-ink hover:bg-accent-strong"
       >
         自分のロードマップを作る
       </Link>

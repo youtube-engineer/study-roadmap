@@ -232,7 +232,7 @@ export function SearchSheet({ open, onClose, onPick, present }: Props) {
                 type="button"
                 onClick={addManual}
                 disabled={manualTitle.trim() === ""}
-                className="flex-1 rounded-[10px] bg-accent px-4 py-2.5 text-[0.88rem] font-bold text-white disabled:opacity-40 enabled:hover:bg-accent-strong"
+                className="flex-1 rounded-[10px] bg-accent px-4 py-2.5 text-[0.88rem] font-bold text-accent-ink disabled:opacity-40 enabled:hover:bg-accent-strong"
               >
                 この教材を追加
               </button>

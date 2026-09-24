@@ -64,7 +64,7 @@ export function CompletionSheet({ open, onClose, count, onShare, next }: Props) 
             onClose();
             onShare();
           }}
-          className="mt-1 w-full rounded-xl bg-accent px-4 py-3.5 text-[0.98rem] font-bold text-white hover:bg-accent-strong"
+          className="mt-1 w-full rounded-xl bg-accent px-4 py-3.5 text-[0.98rem] font-bold text-accent-ink hover:bg-accent-strong"
         >
           このロードマップを共有する
         </button>

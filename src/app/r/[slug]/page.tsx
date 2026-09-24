@@ -150,7 +150,7 @@ export default async function SharedRoadmapPage({ params }: Props) {
           <input type="hidden" name="slug" value={roadmap.shareSlug} />
           <button
             type="submit"
-            className="w-full rounded-[10px] bg-accent px-4 py-3 text-[0.95rem] font-medium text-white hover:bg-accent-strong"
+            className="w-full rounded-[10px] bg-accent px-4 py-3 text-[0.95rem] font-medium text-accent-ink hover:bg-accent-strong"
           >
             このロードマップをコピーして使う
           </button>

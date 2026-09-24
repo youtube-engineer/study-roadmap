@@ -237,7 +237,7 @@ export function DetailSheet({
             <button
               type="button"
               onClick={onClose}
-              className="ml-auto rounded-[10px] bg-accent px-5 py-2.5 text-[0.88rem] font-bold text-white hover:bg-accent-strong"
+              className="ml-auto rounded-[10px] bg-accent px-5 py-2.5 text-[0.88rem] font-bold text-accent-ink hover:bg-accent-strong"
             >
               閉じる
             </button>
@@ -256,7 +256,7 @@ export function DetailSheet({
             <button
               type="button"
               onClick={commit}
-              className="ml-auto rounded-[10px] bg-accent px-5 py-2.5 text-[0.88rem] font-bold text-white hover:bg-accent-strong"
+              className="ml-auto rounded-[10px] bg-accent px-5 py-2.5 text-[0.88rem] font-bold text-accent-ink hover:bg-accent-strong"
             >
               保存して閉じる
             </button>

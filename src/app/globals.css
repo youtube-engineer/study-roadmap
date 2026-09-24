@@ -21,10 +21,17 @@
   --ink-faint: #8a909b;
   --rule: #e0ded5;
   --rule-strong: #c6c3b8;
-  /* 操作の青 */
-  --accent: #1b6cf2;
-  --accent-strong: #0f52c4;
-  --accent-soft: #e3edfe;
+  /*
+    操作の色。**墨。** 以前は青だったが、参考書の表紙は青が非常に多く
+    （でる順パス単・公式TOEIC・Next Stage…）、棚の中の青と操作の青がぶつかって
+    「本が主役」が弱まっていた。紫＋ピンクを却下したのと同じ理由（8章 規則2）。
+    色を1本に絞っても「朱＝経路、墨＝操作」で読み分けは保てる。
+    --accent-ink は accent の面に載る文字色。明暗で反転するので text-white を直書きしない。
+  */
+  --accent: #1c1f26;
+  --accent-strong: #0b0d11;
+  --accent-soft: #e9e7df;
+  --accent-ink: #ffffff;
   /* 進捗の朱。経路と進捗だけに使う */
   --thread: #e4572e;
   --thread-soft: #fde8e0;
@@ -52,9 +59,11 @@
     --ink-faint: #6e7683;
     --rule: #2b303a;
     --rule-strong: #3a414d;
-    --accent: #6fa3ff;
-    --accent-strong: #9cc0ff;
-    --accent-soft: #1a2436;
+    /* 暗い地では明暗が反転する。ボタンは明るく、載る字は暗く */
+    --accent: #e9eae6;
+    --accent-strong: #ffffff;
+    --accent-soft: #2a2f3a;
+    --accent-ink: #12151b;
     --thread: #ff7a52;
     --thread-soft: #3a1f16;
     --amber: #d9a055;
@@ -79,9 +88,10 @@
   --ink-faint: #6e7683;
   --rule: #2b303a;
   --rule-strong: #3a414d;
-  --accent: #6fa3ff;
-  --accent-strong: #9cc0ff;
-  --accent-soft: #1a2436;
+  --accent: #e9eae6;
+  --accent-strong: #ffffff;
+  --accent-soft: #2a2f3a;
+  --accent-ink: #12151b;
   --thread: #ff7a52;
   --thread-soft: #3a1f16;
   --amber: #d9a055;
@@ -109,6 +119,7 @@
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent-strong);
   --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
   --color-thread: var(--thread);
   --color-thread-soft: var(--thread-soft);
   --color-amber: var(--amber);

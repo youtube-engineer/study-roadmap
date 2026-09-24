@@ -151,7 +151,7 @@ export function ShareSheet({
               type="button"
               onClick={copy}
               disabled={!isPublic}
-              className={`flex-none rounded-[9px] px-4 text-[0.81rem] font-medium text-white ${
+              className={`flex-none rounded-[9px] px-4 text-[0.81rem] font-medium text-accent-ink ${
                 copied ? "bg-thread" : "bg-accent hover:bg-accent-strong"
               }`}
             >
