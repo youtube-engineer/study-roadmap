@@ -131,15 +131,10 @@ export function Shelf({
           />
         )}
 
-        {/*
-          読み取り専用では冊数を名前の隣に置く。棚が中身の幅に縮むので、
-          右端に飛ばすと棚から離れて宙に浮く。編集画面は名前が入力欄で
-          幅を取るため、これまでどおり右端に出る。
-        */}
         <span
-          className={`flex-none text-[0.78rem] font-bold tabular-nums ${
-            readOnly ? "ml-2" : "ml-auto"
-          } ${done ? "text-thread" : "text-ink-faint"}`}
+          className={`ml-auto flex-none text-[0.78rem] font-bold tabular-nums ${
+            done ? "text-thread" : "text-ink-faint"
+          }`}
         >
           {readOnly
             ? stage.items.length > 0
@@ -166,15 +161,7 @@ export function Shelf({
         )}
       </div>
 
-      {/*
-        ★ **棚は中身の幅に合わせる（`w-fit`）。上限は画面幅（`max-w-full`）。**
-
-        常に画面いっぱいにすると、3冊しか無い段で**木の面積が本より広くなり、
-        表紙より棚が目立つ。**「本が主役」（8章 規則2）が数の上で負ける。
-        本を小さくしたり木を薄くしたりせずに解ける唯一の手がこれ。
-        冊数が増えれば自然と画面幅まで伸び、そこから先は横スクロールに変わる。
-      */}
-      <div className="relative mt-0.5 w-fit max-w-full">
+      <div className="relative mt-0.5">
         {/* 棚の奥板。本の後ろに板があるように見せる */}
         <span
           aria-hidden="true"
