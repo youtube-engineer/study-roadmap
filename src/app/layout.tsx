@@ -12,6 +12,16 @@ export const metadata: Metadata = {
   },
   description:
     "参考書をどの順番で進めるかを、1本の経路として組み立てて共有できます。ログインなしで始められます。",
+  /**
+   * 貼られたときの見え方。**宣言しないと、共有ページ以外はタグごと出ない。**
+   * 画像は `app/opengraph-image.tsx` が作り、ここには書かなくても付く。
+   */
+  openGraph: {
+    type: "website",
+    siteName: "参考書ロードマップ",
+    locale: "ja_JP",
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 export const viewport: Viewport = {

@@ -38,6 +38,12 @@ export function ShareSheet({
 
   // オリジンをブラウザから読むとSSRの出力と食い違うので、ビルド時に決まる値を使う
   const origin = getSiteUrl();
+
+  /**
+   * 絵を作り直させるための目印。
+   * 名前や冊数を変えた直後に、前の絵が残って見えるのを防ぐ。
+   */
+  const ogVersion = `${bookCount}-${title.length}`;
   const path = `/r/${shareSlug}`;
   const absoluteUrl = () => new URL(path, origin).toString();
   const displayUrl = `${origin}${path}`.replace(/^https?:\/\//, "");
@@ -165,29 +171,45 @@ export function ShareSheet({
 
           <div>
             <div className="mb-1.5 text-[0.73rem] text-ink-faint">SNSに貼ったときの見え方</div>
-            <div className="flex items-stretch overflow-hidden rounded-[11px] border border-rule bg-sunk">
-              <div className="relative flex w-[92px] flex-none flex-col items-center justify-center gap-1.5 bg-deep py-2.5">
-                <span
-                  aria-hidden="true"
-                  className="absolute inset-y-2.5 w-0.5 rounded-sm bg-thread opacity-50"
+
+            {/*
+              ★ **本物の画像を出す。**
+              ここは以前、色帯を並べた手描きの模造だった。実物と無関係なので
+              絵を作り替えても変わらず、**貼る前に確かめる**という役目を
+              果たしていなかった。`/r/<slug>/opengraph-image` がSNSに渡る絵そのもの。
+
+              比率は 1200:630。X の大きい画像のカードと同じ並びにして、
+              下に出どころ・名前・説明を置く。
+            */}
+            <div className="overflow-hidden rounded-[11px] border border-rule bg-sunk">
+              {isPublic ? (
+                /*
+                  next/image は使わない。**これは最適化する対象ではなく、
+                  SNSに渡る絵そのものを等倍で確かめるためのもの。**
+                  シートを開いたときにだけ読む（lazy）ので初回表示にも効かない。
+                */
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={`/r/${shareSlug}/opengraph-image?v=${ogVersion}`}
+                  alt="SNSに貼ったときに出る画像"
+                  width={1200}
+                  height={630}
+                  loading="lazy"
+                  className="block aspect-[1200/630] w-full object-cover"
                 />
-                {[210, 18, 268, 30].map((hue) => (
-                  <span
-                    key={hue}
-                    aria-hidden="true"
-                    className="relative h-[18px] w-[13px] rounded-[1px_2px_2px_1px]"
-                    style={{ background: `hsl(${hue} 44% 52%)` }}
-                  />
-                ))}
-              </div>
-              <div className="flex min-w-0 flex-col justify-center gap-[0.12rem] px-3 py-2.5">
-                <div className="truncate font-serif text-[0.88rem] font-semibold leading-snug">
-                  {displayTitle(title)}
+              ) : (
+                <div className="grid aspect-[1200/630] w-full place-items-center bg-deep px-4 text-center text-[0.74rem] leading-relaxed text-ink-faint">
+                  公開すると、ここに実際に出る画像が表示されます
                 </div>
-                <div className="text-[0.72rem] text-ink-soft">参考書{bookCount}冊のロードマップ</div>
+              )}
+              <div className="flex min-w-0 flex-col gap-[0.12rem] border-t border-rule px-3 py-2.5">
                 <div className="truncate font-mono text-[0.66rem] text-ink-faint">
                   {displayUrl}
                 </div>
+                <div className="truncate text-[0.88rem] font-bold leading-snug text-ink-title">
+                  {displayTitle(title)}
+                </div>
+                <div className="text-[0.72rem] text-ink-soft">参考書{bookCount}冊のロードマップ</div>
               </div>
             </div>
           </div>
