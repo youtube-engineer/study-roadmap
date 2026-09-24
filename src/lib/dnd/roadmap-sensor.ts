@@ -21,8 +21,14 @@ import { GRIP_ATTRIBUTE } from "./grip";
  *   ドラッグ開始後に動的に切り替えても進行中のジェスチャーには反映されない。
  */
 
-/** 握りから始めたとき: 4px 動いた時点で掴む（押した瞬間から動く体感にする） */
-const GRIP_CONSTRAINT = { distance: 4 };
+/**
+ * 握りから始めたとき: 6px 動いた時点で掴む。
+ *
+ * 押した瞬間から動く体感は保ちつつ、指を置いただけの微動では掴まない。
+ * **握り自体を狭くしてあるのが本命の対処**（`BookSpine` の `GRIP_WIDTH`）で、
+ * ここはその取りこぼしを拾うだけ。
+ */
+const GRIP_CONSTRAINT = { distance: 6 };
 
 /** カード本体から始めたとき: 220ms の長押し。スクロールと取り合いにならない距離だけ許す */
 const BODY_CONSTRAINT = { delay: 220, tolerance: 8 };

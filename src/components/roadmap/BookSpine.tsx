@@ -23,6 +23,18 @@ const IMAGE_HEIGHT = 175;
  */
 const GRIP_HEIGHT = 26;
 
+/**
+ * 握りの幅。**本の幅いっぱいにしないこと。**
+ *
+ * 握りは `touch-action: none` なので、そこから始まった指はもう棚を
+ * スクロールできない（9章）。全幅にすると、**棚を横へスライドしようとした指が
+ * ほぼ必ず握りに乗る**ので、滑らせるつもりが本を掴んでしまう。
+ *
+ * 描いてある点は26px。その左右に少し余裕を持たせた幅にして、
+ * **残りは棚のスクロールに明け渡す。** 指で取れる大きさ（44px以上）は確保する。
+ */
+const GRIP_WIDTH = 56;
+
 export type DragBindings = {
   setNodeRef: (element: HTMLElement | null) => void;
   style: CSSProperties;
@@ -160,8 +172,8 @@ export function BookSpine({ item, book, onOpen, drag, overlay = false, readOnly 
           <span
             {...{ [GRIP_ATTRIBUTE]: "" }}
             aria-hidden="true"
-            className="absolute inset-x-0 bottom-0 flex cursor-grab touch-none items-end justify-center pb-1.5"
-            style={{ height: GRIP_HEIGHT }}
+            className="absolute bottom-0 left-1/2 flex -translate-x-1/2 cursor-grab touch-none items-end justify-center pb-1.5"
+            style={{ height: GRIP_HEIGHT, width: GRIP_WIDTH }}
           >
             {/*
               **背景を敷かない。** 帯を置くと表紙の下が白く（または暗く）なって、
