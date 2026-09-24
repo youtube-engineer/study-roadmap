@@ -143,6 +143,9 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
   } | null>(null);
 
   const titleRef = useRef<HTMLTextAreaElement>(null);
+
+  /** その id が他人のものだった。振り直しを待っている状態 */
+  const [idTaken, setIdTaken] = useState(false);
   const goalRef = useRef<HTMLTextAreaElement>(null);
 
 
@@ -202,22 +205,43 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
    * ログアウト時に手元を消しているので普通は起きないが、起きたときに
    * 「手元では動いて見えるのにサーバーには何も入らない」状態で止まらないようにする。
    */
-  const previousId = doc.id;
-  const reissueId = useCallback(() => {
-    const id = crypto.randomUUID();
-    setDoc((d) => ({ ...d, id, shareSlug: newShareSlug() }));
-    void deleteLocalRoadmap(previousId);
-    router.replace(`/roadmaps/${id}`);
-  }, [previousId, router]);
-
   const sync = useMemo(
     () =>
       createRoadmapSync(
         { id: doc.id, shareSlug: doc.shareSlug },
-        { onError: setToast, onIdTaken: reissueId },
+        { onError: setToast, onIdTaken: () => setIdTaken(true) },
       ),
-    [doc.id, doc.shareSlug, reissueId],
+    [doc.id, doc.shareSlug],
   );
+
+  /**
+   * その id が既に他人のものだったら、**手元のロードマップに別の id を振り直す。**
+   *
+   * サーバーにはまだ何も入っていないので、振り直せばそのまま書けるようになる。
+   * ログアウト時に手元を消しているので普通は起きないが、起きたときに
+   * 「手元では動いて見えるのにサーバーには何も入らない」状態で止まらないようにする。
+   *
+   * ★ **順番を守ること。新しい id で保存してから、古い方を消す。**
+   *
+   * 逆にすると中身が消える。`router.replace` で `key={id}` の編集画面は
+   * 作り直され、新しい id で IndexedDB を読みにいく。そこにまだ何も無ければ
+   * **空のロードマップが出来上がり、元の中身はもう手元にも無い。**
+   * 実際にこれで1本飛ばした。
+   */
+  useEffect(() => {
+    if (!idTaken) return;
+    const previousId = doc.id;
+    const id = crypto.randomUUID();
+    const next = { ...doc, id, shareSlug: newShareSlug() };
+
+    void (async () => {
+      await saveLocal({ roadmap: next, books: Object.values(books) });
+      await deleteLocalRoadmap(previousId);
+      setIdTaken(false);
+      setDoc(next);
+      router.replace(`/roadmaps/${id}`);
+    })();
+  }, [idTaken, doc, books, router]);
 
   // 名前を預けておく。まだ roadmaps の行が無いとき、作る瞬間の名前になる
   useEffect(() => {

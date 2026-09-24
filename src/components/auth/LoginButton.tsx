@@ -44,6 +44,15 @@ const SEEN_SWITCH_NOTICE = "seenAccountSwitchNotice";
  */
 const LINK_UNAVAILABLE = "accountAlreadyExists";
 
+/**
+ * この端末で一度でもログインが通ったか。
+ *
+ * **通ったことがあるなら、そのGoogleアカウントは既にアカウントとして在る。**
+ * だから次からの昇格は必ず失敗する。ログアウトして入り直すたびに
+ * 「昇格を試して失敗 → 切り替えのためにもう一度Googleへ」を繰り返さないために覚える。
+ */
+const SIGNED_IN_BEFORE = "hasSignedInBefore";
+
 function remembered(key: string): boolean {
   try {
     return localStorage.getItem(key) !== null;
@@ -135,6 +144,8 @@ export function LoginButton({ next }: Props) {
     // 効果の本体で直接 setState するとレンダーが連鎖する
     void Promise.resolve().then(async () => {
       if (login === "ok") {
+        // 通った＝このGoogleは既にアカウント。次からは昇格を試さない
+        remember(SIGNED_IN_BEFORE);
         setToast("ログインしました");
         return;
       }
@@ -201,16 +212,30 @@ export function LoginButton({ next }: Props) {
     if (current) sessionStorage.setItem(CARRY_RETURN_ID, current);
 
     /**
-     * 昇格を試す価値があるか。
+     * ★ **昇格を試すのは、成功しうるときだけ。**
      *
-     * - 手元に何も無い（ログアウト直後など）… 守るものが無い
-     * - 既に「そのアカウントは在る」と分かっている … 試しても必ず失敗する
+     * `linkIdentity()` が通るのは「そのGoogleアカウントがまだ
+     * このサービスのアカウントになっていない」ときだけ。既に在れば必ず失敗し、
+     * 切り替えのために**もう一度Googleへ行くことになる**——
+     * 利用者から見れば「2回ログインさせられた」。
      *
-     * どちらでも最初から `signInWithOAuth` に行く。**Googleへの往復が1回で済む。**
-     * 手元のぶんは持ち込みが運ぶので失われない。
+     * 次のどれかに当てはまるなら、成功しないと分かっているので試さない。
+     *
+     *  - 手元に何も無い … そもそも守るものが無い（`linkIdentity` を使う理由が無い）
+     *  - この端末でログインが通ったことがある … その時点でアカウントになっている
+     *  - 「既に在る」と言われたことがある … 同じ結果にしかならない
+     *  - 切り替えの説明を見たことがある … 過去に一度 `taken` を踏んでいる証拠
+     *
+     * 手元のぶんは持ち込み（carry.ts）が運ぶので、どれでも失われない。
+     * 残るのは**本当に新規の人が匿名で作った後に初めてログインする場合**だけで、
+     * そこは昇格が通るので往復も1回で済む。
      */
     const hasLocalWork = (await listLocal()).length > 0;
-    const keepAnonymousWork = hasLocalWork && !remembered(LINK_UNAVAILABLE);
+    const knownToExist =
+      remembered(LINK_UNAVAILABLE) ||
+      remembered(SIGNED_IN_BEFORE) ||
+      remembered(SEEN_SWITCH_NOTICE);
+    const keepAnonymousWork = hasLocalWork && !knownToExist;
 
     try {
       await startGoogleLogin(next, keepAnonymousWork);
