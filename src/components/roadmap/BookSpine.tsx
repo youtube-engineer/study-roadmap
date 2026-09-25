@@ -21,7 +21,7 @@ const IMAGE_HEIGHT = 175;
  * **常に見えていること。** ホバーで出す作りにしたらタッチ端末で事実上
  * 見えなくなった（ホバーが無いので）。掴めることが分からなければ無いのと同じ。
  */
-const GRIP_HEIGHT = 26;
+const GRIP_HEIGHT = 30;
 
 /**
  * 握りの幅。**本の幅いっぱいにしないこと。**
@@ -93,7 +93,7 @@ export function BookSpine({ item, book, onOpen, drag, overlay = false, readOnly 
       onClick={overlay ? undefined : open}
       onKeyDown={overlay ? undefined : onKeyDown}
       {...(inert ? {} : drag?.dragProps)}
-      className={`book-width relative flex-none touch-pan-x focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent ${
+      className={`book-width relative flex-none touch-pan-x touch-pan-y focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent ${
         drag?.isDragging ? "opacity-30" : ""
       } ${overlay ? "cursor-grabbing" : ""}`}
     >

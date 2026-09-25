@@ -120,6 +120,13 @@ export function SortableRoadmap({
       sensors={sensors}
       /* 段をまたぐので、重なりではなく指の位置で判定する */
       collisionDetection={pointerWithin}
+      /*
+        **自動スクロールは端ぎりぎりまで効かせない。**
+        既定だと縁の2割で走り出すので、**一番左（右）の本を持ち上げた瞬間に
+        棚が動いて、掴んだものが飛んだように見える。**
+        速さも落として、指の動きより先に棚が動かないようにする。
+      */
+      autoScroll={{ threshold: { x: 0.08, y: 0.12 }, acceleration: 6 }}
       onDragStart={onDragStart}
       onDragCancel={() => setActive(null)}
       onDragEnd={onDragEnd}
