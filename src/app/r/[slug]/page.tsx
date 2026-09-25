@@ -89,6 +89,34 @@ export default async function SharedRoadmapPage({ params }: Props) {
           </div>
         )}
 
+        {/*
+          ★ **コピー元をここにも出す。**
+
+          出さないと「元を見る」で着いた先が行き止まりになり、
+          **何段か重ねてコピーされたロードマップを遡れない。**
+          編集画面にだけ置いていたので、外から見た人には辿る道が無かった。
+
+          誰のものをもとにしたかを公開の場で示す意味もある。
+          元が消えた／非公開に戻ったときはリンクだけ消え、文言は残る（6章）。
+        */}
+        {roadmap.copiedFrom && (
+          <div className="mb-2.5 flex flex-wrap items-center gap-2 rounded-lg bg-thread-soft px-2.5 py-1.5 text-[0.76rem] text-ink-soft">
+            <span>
+              {roadmap.copiedFrom.authorName
+                ? `${roadmap.copiedFrom.authorName}さんの「${roadmap.copiedFrom.title}」をもとにしています`
+                : `「${roadmap.copiedFrom.title}」をもとにしています`}
+            </span>
+            {roadmap.copiedFrom.shareSlug && (
+              <a
+                href={`/r/${roadmap.copiedFrom.shareSlug}`}
+                className="ml-auto flex-none text-thread underline underline-offset-2"
+              >
+                元を見る
+              </a>
+            )}
+          </div>
+        )}
+
         <div className="flex items-center gap-2.5">
           {/* タグは今は出さない。テーブルと型は残してあるので、使うときに戻す */}
           <span className="flex-1" />
