@@ -123,6 +123,8 @@ export function Shelf({
             defaultValue={stage.name}
             onBlur={(e) => onRenameStage?.(stage.id, e.currentTarget.value.trim())}
             onKeyDown={onNameKeyDown}
+            /* 見出しなので短く。OGP画像でも14字で切っている */
+            maxLength={20}
             placeholder="段の名前"
             aria-label="段の名前"
             className={`min-w-0 flex-1 border-0 bg-transparent p-0 text-[1.05rem] font-bold tracking-[-0.01em] outline-none placeholder:font-medium placeholder:text-ink-faint ${

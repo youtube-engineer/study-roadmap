@@ -16,6 +16,9 @@ import { keyBetween } from "@/lib/roadmaps/reorder";
 import { newShareSlug } from "@/lib/roadmaps/slug";
 import { createRoadmapSync } from "@/lib/roadmaps/sync";
 import { UNTITLED } from "@/lib/roadmaps/title";
+
+/** ロードマップ名の上限。OGP画像が40字で切っているのに合わせる */
+const TITLE_MAX = 40;
 import { allItems, isStageDone } from "@/types/roadmap";
 import type { Book, Roadmap, RoadmapItem, RoadmapStage, RoadmapSummary } from "@/types/roadmap";
 
@@ -634,6 +637,12 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
             onBlur={commitTitle}
             onKeyDown={onTitleKeyDown}
             rows={1}
+            /*
+              **上限を付ける。** 名前は一覧・共有ページの見出し・OGP画像・
+              ブラウザのタブに出る。長いと全部で折れたり切れたりするし、
+              OGPは40字で切っているので、そこに合わせて入力段階で止める。
+            */
+            maxLength={TITLE_MAX}
             placeholder={UNTITLED}
             aria-label="ロードマップの名前"
             /* 太字にしない。大きさで見出しらしさは足りるし、太いと紙の上で重く出る */

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -42,7 +42,18 @@ function isFinished(s: RoadmapSummary): boolean {
   return s.totalCount > 0 && s.doneCount === s.totalCount;
 }
 
-function metaLine(s: RoadmapSummary): string {
+/**
+ * ★ **`showWhen` が false のあいだは時刻を出さない。**
+ *
+ * 「たった今 / 1分前」は `Date.now()` で決まるので、**サーバーで描いた時点と
+ * ブラウザが組み立て直す時点でずれる。** 1分またいだだけで文字が変わり、
+ * hydration の不一致になる（実際に出た）。
+ *
+ * 冊数と進捗は時刻に依存しないので先に出し、**時刻はマウント後に足す。**
+ * 抑制（suppressHydrationWarning）で黙らせると、サーバー側の古い文字が
+ * そのまま残るので直らない。
+ */
+function metaLine(s: RoadmapSummary, showWhen: boolean): string {
   const parts: string[] = [];
   if (s.totalCount === 0) {
     parts.push("まだ空");
@@ -53,7 +64,7 @@ function metaLine(s: RoadmapSummary): string {
       parts.push(s.doneCount === 0 ? "まだ始めていない" : `${s.doneCount}冊終了`);
     }
   }
-  const when = relativeTime(touchedAt(s));
+  const when = showWhen ? relativeTime(touchedAt(s)) : "";
   if (when) parts.push(when);
   return parts.join(" · ");
 }
@@ -79,6 +90,18 @@ export function RoadmapDrawer({ serverSummaries, currentId }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [summaries, setSummaries] = useState<RoadmapSummary[]>(serverSummaries);
+
+  /**
+   * 時刻を出してよいか。最初の描画では出さない（上の metaLine の理由）。
+   *
+   * 効果の中で setState すると連鎖描画になるので `useSyncExternalStore` を使う。
+   * サーバー側の値は false、ブラウザ側は true と分けて返せる。
+   */
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
   const [confirming, setConfirming] = useState<RoadmapSummary | null>(null);
   /** 削除の最終確認。ロードマップは中の参考書ごと消えるので一段挟む */
@@ -292,7 +315,7 @@ export function RoadmapDrawer({ serverSummaries, currentId }: Props) {
                       )}
                     </span>
                     <span className="mt-[0.1rem] block text-[0.7rem] tabular-nums text-ink-faint">
-                      {metaLine(s)}
+                      {metaLine(s, mounted)}
                       {s.isPublic ? " · 公開中" : ""}
                     </span>
                   </span>
