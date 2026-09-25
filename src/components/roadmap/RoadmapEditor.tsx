@@ -642,7 +642,7 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
         </h1>
 
         {doc.copiedFrom && (
-          <div className="mb-2 flex flex-wrap items-center gap-2 rounded-lg bg-thread-soft px-2.5 py-1.5 text-[0.76rem] text-ink-soft">
+          <div className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-[0.73rem] text-ink-faint">
             <span>
               {doc.copiedFrom.authorName
                 ? `${doc.copiedFrom.authorName}さんのロードマップをもとにしています`
@@ -657,7 +657,7 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
             {doc.copiedFrom.shareSlug && (
               <a
                 href={`/r/${doc.copiedFrom.shareSlug}`}
-                className="ml-auto text-thread underline underline-offset-2"
+                className="flex-none text-ink-soft underline underline-offset-2 hover:text-ink"
               >
                 元を見る
               </a>

@@ -52,6 +52,15 @@ export function DetailSheet({
     setRounds(item.roundsTarget);
   }
 
+  /**
+   * 閉じるときに書く。**「保存」ボタンは置かない。**
+   *
+   * シートは上の×でも、外側を押しても、Escでも閉じられて、
+   * **どれを通ってもここを通る。** それでも保存されるのに保存ボタンを
+   * 並べると、「押さないと消えるのか」と考えさせるだけになる。
+   * 操作のたびに即書くのがこのアプリの作り（CLAUDE.md 5章）なので、
+   * ここだけ確定の手数を増やさない。
+   */
   const commit = () => {
     if (item && !readOnly) onPatch?.(item.id, { note, roundsTarget: rounds });
     onClose();
@@ -252,13 +261,6 @@ export function DetailSheet({
               className="rounded-[9px] border border-rule-strong px-3 py-2 text-[0.82rem] text-ink-soft hover:border-thread hover:text-thread"
             >
               ロードマップから外す
-            </button>
-            <button
-              type="button"
-              onClick={commit}
-              className="ml-auto rounded-[10px] bg-accent px-5 py-2.5 text-[0.88rem] font-bold text-accent-ink hover:bg-accent-strong"
-            >
-              保存して閉じる
             </button>
           </div>
           )}
