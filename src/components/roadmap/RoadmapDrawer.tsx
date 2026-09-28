@@ -368,10 +368,16 @@ export function RoadmapDrawer({ serverSummaries, currentId }: Props) {
                 : "並べた順番とメモも一緒に消えます。消したあと数秒は取り消せます。"}
             </p>
 
+            {/*
+              **塗りつぶしにしない。** 朱は経路と進捗の色（規則2）なので、
+              面で塗ると画面の主役級のボタンに見えてしまう。
+              **消す操作は目立つ必要はなく、間違えないことの方が大事。**
+              枠と文字だけの朱にして、危ないことは伝えつつ主役にしない。
+            */}
             <button
               type="button"
               onClick={() => remove(confirming)}
-              className="w-full rounded-[10px] bg-thread px-4 py-3 text-[0.9rem] font-bold text-white hover:brightness-95"
+              className="w-full rounded-[10px] border-[1.5px] border-thread bg-transparent px-4 py-3 text-[0.88rem] font-bold text-thread transition-colors hover:bg-thread-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-thread"
             >
               削除する
             </button>
