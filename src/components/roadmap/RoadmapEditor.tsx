@@ -835,17 +835,18 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
                     ? `中の${stageMenu.items.length}冊も一緒に消えます。消したあと数秒は取り消せます。`
                     : "消したあと数秒は取り消せます。"}
                 </p>
-                {/* 朱の面で囲わない。枠と文字だけで足りる（ドロワー側と同じ考え） */}
                 {confirmingStageId === stageMenu.id ? (
-                  <div className="flex flex-col gap-2">
-                    <p className="text-[0.84rem] font-bold text-thread">本当に消しますか？</p>
+                  <div className="flex flex-col gap-2 rounded-[10px] border border-thread bg-thread-soft px-3.5 py-3">
+                    <p className="text-[0.86rem] font-medium text-thread">
+                      本当に消しますか？
+                    </p>
                     <button
                       type="button"
                       onClick={() => {
                         setConfirmingStageId(null);
                         removeStage(stageMenu.id);
                       }}
-                      className="w-full rounded-[10px] border-[1.5px] border-thread bg-transparent px-4 py-3 text-[0.88rem] font-bold text-thread transition-colors hover:bg-thread-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-thread"
+                      className="w-full rounded-[9px] bg-thread px-4 py-2.5 text-[0.88rem] font-medium text-white"
                     >
                       消す
                     </button>
@@ -861,7 +862,7 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
                   <button
                     type="button"
                     onClick={() => setConfirmingStageId(stageMenu.id)}
-                    className="w-full rounded-[10px] border border-rule-strong px-4 py-3 text-[0.88rem] text-ink-soft transition-colors hover:border-thread hover:text-thread"
+                    className="w-full rounded-[10px] border border-thread px-4 py-3 text-[0.9rem] font-medium text-thread hover:bg-thread-soft"
                   >
                     この段を消す
                   </button>
