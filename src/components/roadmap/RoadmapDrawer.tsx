@@ -175,6 +175,13 @@ export function RoadmapDrawer({ serverSummaries, currentId }: Props) {
   const remove = useCallback(
     async (summary: RoadmapSummary) => {
       setConfirming(null);
+      /**
+       * **確認の段も戻すこと。**
+       * ここはシートを閉じる経路（`onClose`）を通らないので、戻さないと
+       * `confirmedOnce` が true のまま残る。**次に別のロードマップを消そうと
+       * したとき、いきなり「本当に消しますか？」から始まる。**
+       */
+      setConfirmedOnce(false);
 
       const snapshot = await loadLocalRoadmap(summary.id);
       await deleteLocalRoadmap(summary.id);
@@ -268,7 +275,10 @@ export function RoadmapDrawer({ serverSummaries, currentId }: Props) {
                 <button
                   type="button"
                   aria-label={`${displayTitle(s.title)} の設定`}
-                  onClick={() => setConfirming(s)}
+                  onClick={() => {
+                    setConfirmedOnce(false);
+                    setConfirming(s);
+                  }}
                   className="absolute right-0.5 top-1.5 z-10 grid h-7 w-7 place-items-center rounded-full text-ink-faint hover:bg-deep hover:text-ink-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
                   <span aria-hidden="true" className="text-[1rem] leading-none">
@@ -361,37 +371,35 @@ export function RoadmapDrawer({ serverSummaries, currentId }: Props) {
                 : "並べた順番とメモも一緒に消えます。消したあと数秒は取り消せます。"}
             </p>
 
+            {/*
+              **朱は最後の1つだけ。** 入口・確認の箱・ボタンと三重に朱を重ねると
+              画面が赤くなるだけで、どれが最後の一手なのか読み取れない。
+              入口は静かに（墨の枠）、**危ないのは押す直前だけ朱で言う。**
+              朱は経路と進捗の色（規則2）なので、面で使うのはここに絞る。
+            */}
             {confirmedOnce ? (
-              <div className="flex flex-col gap-2 rounded-[10px] border border-thread bg-thread-soft px-3.5 py-3">
-                <p className="text-[0.88rem] font-bold text-thread">本当に消しますか？</p>
-                <button
-                  type="button"
-                  onClick={() => remove(confirming)}
-                  className="w-full rounded-[9px] bg-thread px-4 py-2.5 text-[0.88rem] font-bold text-white"
-                >
+              <>
+                <p className="text-[0.84rem] text-ink-soft">本当に消しますか？</p>
+                <button type="button" onClick={() => remove(confirming)} className="w-full rounded-[10px] bg-thread px-4 py-3 text-[0.88rem] font-bold text-white transition-[filter] hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-thread">
                   消す
                 </button>
                 <button
                   type="button"
                   onClick={() => setConfirmedOnce(false)}
-                  className="w-full py-1 text-[0.8rem] text-ink-soft underline underline-offset-[3px]"
+                  className="w-full py-1.5 text-[0.82rem] text-ink-soft underline underline-offset-[3px] hover:text-ink"
                 >
                   やめる
                 </button>
-              </div>
+              </>
             ) : (
               <>
-                <button
-                  type="button"
-                  onClick={() => setConfirmedOnce(true)}
-                  className="w-full rounded-[10px] border border-thread px-4 py-3 text-[0.9rem] font-bold text-thread hover:bg-thread-soft"
-                >
+                <button type="button" onClick={() => setConfirmedOnce(true)} className="w-full rounded-[10px] border border-rule-strong px-4 py-3 text-[0.88rem] text-ink-soft transition-colors hover:border-thread hover:text-thread focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-thread">
                   削除する
                 </button>
                 <button
                   type="button"
                   onClick={() => setConfirming(null)}
-                  className="w-full py-1 text-[0.82rem] text-ink-soft underline underline-offset-[3px] hover:text-ink"
+                  className="w-full py-1.5 text-[0.82rem] text-ink-soft underline underline-offset-[3px] hover:text-ink"
                 >
                   やめる
                 </button>
