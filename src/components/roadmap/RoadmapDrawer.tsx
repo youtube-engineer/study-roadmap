@@ -103,19 +103,9 @@ export function RoadmapDrawer({ serverSummaries, currentId }: Props) {
     () => false,
   );
 
-  /**
-   * 削除の確認。**一段だけ。**
-   *
-   * 以前は「削除する」→「本当に消しますか？」の二段にしていたが、
-   * **消したあと数秒は取り消せる**（下の `undoable`）ので、手を2回止めるのは
-   * 過剰だった。8章は「確認で手を止めさせず、まず実行して数秒だけ戻せる形」。
-   * このシートが開いていること自体が確認になっている。
-   *
-   * 二段目の状態（`confirmedOnce`）は削除後に戻し忘れていて、
-   * **次に別のものを消そうとすると一度押した状態から始まっていた。**
-   * 段を無くしたので、その戻し忘れも起きない。
-   */
   const [confirming, setConfirming] = useState<RoadmapSummary | null>(null);
+  /** 削除の最終確認。ロードマップは中の参考書ごと消えるので一段挟む */
+  const [confirmedOnce, setConfirmedOnce] = useState(false);
   const [undoable, setUndoable] = useState<{
     summary: RoadmapSummary;
     /** 手元にも持っていた場合の控え。サーバーにしか無いものは null */
@@ -348,7 +338,10 @@ export function RoadmapDrawer({ serverSummaries, currentId }: Props) {
 
       <Sheet
         open={confirming !== null}
-        onClose={() => setConfirming(null)}
+        onClose={() => {
+          setConfirming(null);
+          setConfirmedOnce(false);
+        }}
         title="このロードマップを削除する"
       >
         {confirming && (
@@ -368,20 +361,42 @@ export function RoadmapDrawer({ serverSummaries, currentId }: Props) {
                 : "並べた順番とメモも一緒に消えます。消したあと数秒は取り消せます。"}
             </p>
 
-            <button
-              type="button"
-              onClick={() => remove(confirming)}
-              className="w-full rounded-[10px] bg-thread px-4 py-3 text-[0.9rem] font-bold text-white hover:brightness-95"
-            >
-              削除する
-            </button>
-            <button
-              type="button"
-              onClick={() => setConfirming(null)}
-              className="w-full py-1 text-[0.82rem] text-ink-soft underline underline-offset-[3px] hover:text-ink"
-            >
-              やめる
-            </button>
+            {confirmedOnce ? (
+              <div className="flex flex-col gap-2 rounded-[10px] border border-thread bg-thread-soft px-3.5 py-3">
+                <p className="text-[0.88rem] font-bold text-thread">本当に消しますか？</p>
+                <button
+                  type="button"
+                  onClick={() => remove(confirming)}
+                  className="w-full rounded-[9px] bg-thread px-4 py-2.5 text-[0.88rem] font-bold text-white"
+                >
+                  消す
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmedOnce(false)}
+                  className="w-full py-1 text-[0.8rem] text-ink-soft underline underline-offset-[3px]"
+                >
+                  やめる
+                </button>
+              </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setConfirmedOnce(true)}
+                  className="w-full rounded-[10px] border border-thread px-4 py-3 text-[0.9rem] font-bold text-thread hover:bg-thread-soft"
+                >
+                  削除する
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirming(null)}
+                  className="w-full py-1 text-[0.82rem] text-ink-soft underline underline-offset-[3px] hover:text-ink"
+                >
+                  やめる
+                </button>
+              </>
+            )}
           </div>
         )}
       </Sheet>
