@@ -30,8 +30,18 @@ import { GRIP_ATTRIBUTE } from "./grip";
  */
 const GRIP_CONSTRAINT = { distance: 6 };
 
-/** カード本体から始めたとき: 220ms の長押し。スクロールと取り合いにならない距離だけ許す */
-const BODY_CONSTRAINT = { delay: 220, tolerance: 8 };
+/**
+ * 本そのものから始めたとき: **長押し。**
+ *
+ * 本は `touch-action: none` なので、押したまま待てば掴みへ移れる
+ * （パンを許した要素の上ではこれができない。下の表のとおり）。
+ * 掴めたことは本が少し大きくなることで分かる（`SortableRoadmap` の DragOverlay）。
+ *
+ * `tolerance` は待っているあいだに許す指のぶれ。大きくすると、
+ * **ページを送ろうとしただけで掴んでしまう。** 縦の送りは
+ * `verticalPassthrough` が肩代わりしているので、ここは狭くてよい。
+ */
+const BODY_CONSTRAINT = { delay: 300, tolerance: 5 };
 
 /** 握りの目印。CSS 側の touch-action: none もこの属性に当てる */
 
