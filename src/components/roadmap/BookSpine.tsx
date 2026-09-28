@@ -1,12 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo } from "react";
 import type { CSSProperties, HTMLAttributes, KeyboardEvent } from "react";
 
 import { CheckIcon } from "@/components/ui/icons";
 import { GRIP_ATTRIBUTE } from "@/lib/dnd/grip";
-import { verticalPassthrough } from "@/lib/dnd/vertical-passthrough";
 import type { Book, RoadmapItem } from "@/types/roadmap";
 
 /**
@@ -72,15 +70,6 @@ export function BookSpine({ item, book, onOpen, drag, overlay = false, readOnly 
   const showDone = item.isDone && !readOnly;
   const open = () => onOpen?.(item.id);
 
-  /**
-   * 掴む前の縦移動をページの送りへ回す。本は `touch-action: none` なので、
-   * これが無いと本の上でページが動かせない（vertical-passthrough.ts）。
-   */
-  const passthrough = useMemo(
-    () => verticalPassthrough(() => Boolean(drag?.isDragging)),
-    [drag?.isDragging],
-  );
-
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
@@ -104,14 +93,8 @@ export function BookSpine({ item, book, onOpen, drag, overlay = false, readOnly 
       onClick={overlay ? undefined : open}
       onKeyDown={overlay ? undefined : onKeyDown}
       {...(inert ? {} : drag?.dragProps)}
-      {...(inert ? {} : passthrough)}
-      /*
-        ★ **`touch-action: none`。** 長押しから掴みへ移るにはこれしかない
-        （パンを許した要素の上では、ブラウザが先にジェスチャーを取る。9章）。
-        そのぶん縦の送りは `verticalPassthrough` が肩代わりする。
-      */
-      className={`book-width relative flex-none touch-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent ${
-        drag?.isDragging ? "opacity-25" : ""
+      className={`book-width relative flex-none touch-pan-x touch-pan-y focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent ${
+        drag?.isDragging ? "opacity-30" : ""
       } ${overlay ? "cursor-grabbing" : ""}`}
     >
       {/* 周回の目標とメモの印は棚板の上に出す。表紙を隠さない */}

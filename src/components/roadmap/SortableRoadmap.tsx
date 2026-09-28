@@ -143,19 +143,9 @@ export function SortableRoadmap({
         ))}
       </SortableContext>
 
-      {/*
-        掴んでいるあいだの本。**少し大きくして持ち上がったことを見せる。**
-        指の下にあるので、大きさが変わらないと掴めたのかどうか分からない
-        （長押しで掴む作りではとくに、押している最中の手応えがこれしかない）。
-      */}
-      <DragOverlay
-        dropAnimation={{ duration: 180, easing: "cubic-bezier(0.2,0,0,1)" }}
-        style={{ transformOrigin: "center" }}
-      >
+      <DragOverlay dropAnimation={{ duration: 180, easing: "cubic-bezier(0.2,0,0,1)" }}>
         {activeItem && activeBook ? (
-          <div className="origin-center scale-[1.14] transition-transform duration-150">
-            <BookSpine item={activeItem} book={activeBook} overlay />
-          </div>
+          <BookSpine item={activeItem} book={activeBook} overlay />
         ) : null}
       </DragOverlay>
     </DndContext>
