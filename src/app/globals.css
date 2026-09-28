@@ -293,6 +293,28 @@
    * （pan-x を許した要素の上ではドラッグが成立しない）。
    * 並べ替えは詳細シートから行う。
    */
+  /**
+   * 掴んだ本。**棚から持ち上がったことを見せる。**
+   *
+   * 大きさを変えるだけだと気づけない（1.1倍では十数pxしか変わらない）。
+   * **動きを付けるのが効く**——小さい状態から一拍で持ち上がるので、
+   * 「掴めた」が目で分かる。長押しで掴む作りでは、押している最中の
+   * 手応えがこれしかない。少し傾けるのは、棚から抜き出した感じを出すため。
+   */
+  @keyframes book-lift {
+    from {
+      transform: scale(1) rotate(0deg);
+    }
+    to {
+      transform: scale(1.2) rotate(-4deg);
+    }
+  }
+
+  .book-lift {
+    animation: book-lift 150ms cubic-bezier(0.2, 0, 0, 1) forwards;
+    transform-origin: center;
+  }
+
   .shelf-books {
     /**
      * ★ **縦も通す（`pan-y`）。**

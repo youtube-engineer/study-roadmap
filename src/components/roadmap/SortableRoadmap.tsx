@@ -144,8 +144,15 @@ export function SortableRoadmap({
       </SortableContext>
 
       <DragOverlay dropAnimation={{ duration: 180, easing: "cubic-bezier(0.2,0,0,1)" }}>
+        {/*
+          掴んでいるあいだは**少し大きくする。** 指の下にあるので、
+          大きさが変わらないと掴めたのかどうか分からない。
+          長押しで掴む作りでは、押している最中の手応えがこれしかない。
+        */}
         {activeItem && activeBook ? (
-          <BookSpine item={activeItem} book={activeBook} overlay />
+          <div className="book-lift">
+            <BookSpine item={activeItem} book={activeBook} overlay />
+          </div>
         ) : null}
       </DragOverlay>
     </DndContext>
