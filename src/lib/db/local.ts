@@ -29,6 +29,12 @@ const DB_NAME = "roadmap";
  * 3 … Roadmap に updatedAt を追加
  * 4 … items を stages でまとめる形にした
  * 5 … Roadmap に goal（終点に出す目標）を追加
+ *
+ * ★ **足した項目を「無いときの既定値付き」で読むなら、上げなくてよい。**
+ * IndexedDB のレコードに決まった形は無いので、項目が増えても古い行は壊れない。
+ * 上げるのは**既定値なしで読む項目を足したとき**（createdAt がそうだった）。
+ * 版上げは全利用者のブラウザで移行が走るので、要らないなら走らせない。
+ * `isPinned` は `?? false` で読んでいるので上げていない。
  */
 const DB_VERSION = 5;
 
@@ -97,6 +103,35 @@ function getDb() {
             await store.put({ ...roadmap, goal: "" });
           }
         }
+
+      },
+
+      /**
+       * ★ **古い版を開いたままのタブがあると、版上げが止まる。**
+       *
+       * 止まると `openDB` が永久に返らず、そこを待っている画面が
+       * **読み込みのまま固まる**（真っ白のまま動かない）。エラーではないので
+       * `withDb` の catch にも引っかからない。実際にこれで固まった。
+       *
+       * `blocking` は**止めている側**で呼ばれる。そこで閉じれば通る。
+       * 閉じたあとは使えないので、次に使うときに開き直させる。
+       */
+      blocking(_current, _blocked, event) {
+        (event.target as IDBDatabase | null)?.close();
+        dbPromise = null;
+      },
+
+      /** それでも止まっているとき。原因が分かるように残す */
+      blocked(currentVersion, blockedVersion) {
+        console.warn(
+          `[local] 別のタブが古い版(${currentVersion})を開いたままで、` +
+            `版${blockedVersion}へ上げられません`,
+        );
+      },
+
+      /** ブラウザに接続を切られたら、次に使うときに開き直す */
+      terminated() {
+        dbPromise = null;
       },
     });
   }
@@ -125,6 +160,7 @@ function toSummary(roadmap: Roadmap): RoadmapSummary {
     title: roadmap.title,
     tags: roadmap.tags,
     isPublic: roadmap.isPublic,
+    isPinned: roadmap.isPinned ?? false,
     shareSlug: roadmap.shareSlug,
     totalCount: items.length,
     doneCount: items.filter((i) => i.isDone).length,

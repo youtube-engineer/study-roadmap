@@ -97,6 +97,11 @@ export type Roadmap = {
   shareSlug: string;
   tags: string[];
   stages: RoadmapStage[];
+  /**
+   * 固定したか。**固定しているあいだは消せない。**
+   * 大事な1本を ⋯ から誤って消すのを防ぐためのもの。コピーには引き継がない。
+   */
+  isPinned: boolean;
   /** 匿名のままでも共有はできる。名前を出すにはログインが必要（CLAUDE.md 13章） */
   authorName: string | null;
   copiedFrom: CopiedFrom | null;
@@ -124,6 +129,8 @@ export type RoadmapSummary = {
   /** 他人のルートをコピーしたものか。一覧で名前の横に印を出す */
   copiedFromName: string | null;
   isCopy: boolean;
+  /** 固定中。一覧に印を出し、削除を出さない */
+  isPinned: boolean;
 };
 
 export const ROUNDS_MIN = 1;

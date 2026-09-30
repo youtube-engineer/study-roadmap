@@ -16,6 +16,7 @@ export function newRoadmap(): Roadmap {
     title: "",
     // 目標も空で始める。旗には GOAL とだけ出て、押せば書ける
     goal: "",
+    isPinned: false,
     isPublic: false,
     shareSlug: newShareSlug(),
     tags: [],

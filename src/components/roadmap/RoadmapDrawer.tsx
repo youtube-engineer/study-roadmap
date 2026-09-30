@@ -23,6 +23,7 @@ import {
 import { carryLocalRoadmapsToCurrentUser } from "@/lib/roadmaps/carry";
 import { newRoadmap } from "@/lib/roadmaps/create";
 import { deleteRoadmapOnServer } from "@/lib/roadmaps/remove";
+import { createRoadmapSync } from "@/lib/roadmaps/sync";
 import { displayTitle } from "@/lib/roadmaps/title";
 import { relativeTime } from "@/lib/relative-time";
 import type { RoadmapSummary } from "@/types/roadmap";
@@ -172,6 +173,21 @@ export function RoadmapDrawer({ serverSummaries, currentId }: Props) {
     router.push(`/roadmaps/${roadmap.id}`);
   }, [router]);
 
+  /**
+   * 固定の切り替え。**手元を先に書き、サーバーへは裏で送る**（5章）。
+   * 一覧の見た目もその場で変える。
+   */
+  const togglePinned = useCallback(async (summary: RoadmapSummary) => {
+    const next = !summary.isPinned;
+    setSummaries((prev) => prev.map((s) => (s.id === summary.id ? { ...s, isPinned: next } : s)));
+    setConfirming((c) => (c && c.id === summary.id ? { ...c, isPinned: next } : c));
+
+    const local = await loadLocalRoadmap(summary.id);
+    if (local) await saveLocal({ ...local, roadmap: { ...local.roadmap, isPinned: next } });
+
+    await createRoadmapSync({ id: summary.id, shareSlug: summary.shareSlug }).setPinned(next);
+  }, []);
+
   const remove = useCallback(
     async (summary: RoadmapSummary) => {
       setConfirming(null);
@@ -300,6 +316,16 @@ export function RoadmapDrawer({ serverSummaries, currentId }: Props) {
                         s.title.trim() ? "text-ink-title" : "text-ink-faint"
                       }`}
                     >
+                      {s.isPinned && (
+                        <span
+                          role="img"
+                          aria-label="固定中"
+                          title="固定中（消せません）"
+                          className="mr-1 align-middle text-[0.8rem] text-ink-faint"
+                        >
+                          📌
+                        </span>
+                      )}
                       {displayTitle(s.title)}
                       {/*
                         走りきったものには印を付ける。一覧で見分けがつかないと、
@@ -372,6 +398,27 @@ export function RoadmapDrawer({ serverSummaries, currentId }: Props) {
             </p>
 
             {/*
+              ★ **固定は削除の手前に置く。**
+
+              ⋯ から開いたこのシートは、元は削除だけの場所だった。
+              **固定しているあいだは削除を出さない**ので、消せない理由が
+              同じ画面で分かる必要がある。
+            */}
+            <button
+              type="button"
+              onClick={() => togglePinned(confirming)}
+              className="w-full rounded-[10px] border border-rule-strong px-4 py-3 text-[0.88rem] text-ink-soft transition-colors hover:border-accent hover:text-accent-strong"
+            >
+              {confirming.isPinned ? "固定を解除する" : "固定する（消せなくなる）"}
+            </button>
+
+            {confirming.isPinned ? (
+              <p className="text-[0.8rem] leading-relaxed text-ink-faint">
+                固定しているあいだは削除できません。
+              </p>
+            ) : (
+            <>
+            {/*
               **朱は最後の1つだけ。** 入口・確認の箱・ボタンと三重に朱を重ねると
               画面が赤くなるだけで、どれが最後の一手なのか読み取れない。
               入口は静かに（墨の枠）、**危ないのは押す直前だけ朱で言う。**
@@ -404,6 +451,8 @@ export function RoadmapDrawer({ serverSummaries, currentId }: Props) {
                   やめる
                 </button>
               </>
+            )}
+            </>
             )}
           </div>
         )}

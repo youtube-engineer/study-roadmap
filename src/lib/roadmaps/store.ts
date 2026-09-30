@@ -41,6 +41,7 @@ type RoadmapRow = {
   id: string;
   title: string;
   goal: string | null;
+  is_pinned: boolean | null;
   is_public: boolean;
   share_slug: string;
   copied_from_id: string | null;
@@ -83,6 +84,7 @@ function toRoadmap(
     id: row.id,
     title: row.title,
     goal: row.goal ?? "",
+    isPinned: row.is_pinned ?? false,
     isPublic: row.is_public,
     shareSlug: row.share_slug,
     tags: [],
@@ -112,6 +114,7 @@ export function placeholderRoadmap(id: string): Roadmap {
     id,
     title: "",
     goal: "",
+    isPinned: false,
     isPublic: false,
     shareSlug: newShareSlug(),
     tags: [],
@@ -194,6 +197,7 @@ export async function loadOwnSummaries(): Promise<RoadmapSummary[]> {
         createdAt: roadmap.createdAt,
         copiedFromName: roadmap.copiedFrom?.authorName ?? null,
         isCopy: roadmap.copiedFrom !== null,
+        isPinned: roadmap.isPinned,
       },
     ];
   }
@@ -232,6 +236,7 @@ export async function loadOwnSummaries(): Promise<RoadmapSummary[]> {
       title: row.title,
       tags: [],
       isPublic: row.is_public,
+      isPinned: row.is_pinned ?? false,
       shareSlug: row.share_slug,
       totalCount: mine.length,
       doneCount: mine.filter((i) => i.is_done).length,

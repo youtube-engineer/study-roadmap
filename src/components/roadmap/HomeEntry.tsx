@@ -41,9 +41,10 @@ export function HomeEntry({ serverSummaries }: { serverSummaries: RoadmapSummary
     };
   }, [router, serverSummaries]);
 
-  return (
-    <div className="grid min-h-dvh place-items-center px-6">
-      <p className="font-mono text-[0.7rem] tracking-[0.12em] text-ink-faint">START</p>
-    </div>
-  );
+  /**
+   * **何も出さない。** ここはどのロードマップを開くかを決めるだけの場所で、
+   * 決まればすぐ次の画面へ移る。文字を置くと、一瞬だけ出て消える
+   * 意味のない表示になる。
+   */
+  return <div className="min-h-dvh" />;
 }

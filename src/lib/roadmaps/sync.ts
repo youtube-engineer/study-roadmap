@@ -366,6 +366,20 @@ export function createRoadmapSync(target: SyncTarget, options: SyncOptions = {})
       if (error) fail("setTitle", error);
     },
 
+    /** 固定の切り替え。消せなくするだけなので、失敗しても画面は巻き戻さない */
+    async setPinned(isPinned: boolean): Promise<void> {
+      const supabase = getBrowserClient();
+      if (!supabase) return;
+      if (!(await ensureRoadmap())) return;
+
+      const { error } = await supabase
+        .from("roadmaps")
+        .update({ is_pinned: isPinned })
+        .eq("id", roadmapId);
+
+      if (error) fail("setPinned", error);
+    },
+
     async setPublic(isPublic: boolean): Promise<void> {
       const supabase = getBrowserClient();
       if (!supabase) return;
