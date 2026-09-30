@@ -119,7 +119,7 @@ export function SearchSheet({ open, onClose, onPick, present }: Props) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="書名で探す"
-          className="min-w-0 flex-1 border-0 bg-transparent text-[0.92rem] text-ink outline-none placeholder:text-ink-faint"
+          className="min-w-0 flex-1 border-0 bg-transparent zoom-safe text-[0.92rem] text-ink outline-none placeholder:text-ink-faint"
         />
       </div>
       )}
@@ -215,7 +215,7 @@ export function SearchSheet({ open, onClose, onPick, present }: Props) {
                 value={manualTitle}
                 onChange={(e) => setManualTitle(e.target.value)}
                 placeholder="例：塾のオリジナルプリント"
-                className="rounded-[9px] border border-rule bg-sunk px-3 py-2 text-[0.88rem] text-ink outline-none placeholder:text-ink-faint focus:border-accent"
+                className="rounded-[9px] border border-rule bg-sunk zoom-safe px-3 py-2 text-[0.88rem] text-ink outline-none placeholder:text-ink-faint focus:border-accent"
               />
             </div>
 
@@ -228,7 +228,7 @@ export function SearchSheet({ open, onClose, onPick, present }: Props) {
                 value={manualAuthor}
                 onChange={(e) => setManualAuthor(e.target.value)}
                 placeholder="〇〇ゼミ"
-                className="rounded-[9px] border border-rule bg-sunk px-3 py-2 text-[0.88rem] text-ink outline-none placeholder:text-ink-faint focus:border-accent"
+                className="rounded-[9px] border border-rule bg-sunk zoom-safe px-3 py-2 text-[0.88rem] text-ink outline-none placeholder:text-ink-faint focus:border-accent"
               />
             </div>
 

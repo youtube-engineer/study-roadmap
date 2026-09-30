@@ -164,7 +164,7 @@ export function DetailSheet({
               onChange={(e) => setNote(e.target.value)}
               rows={4}
               placeholder="例：知らない単語だけ付箋を貼って、2周目からは付箋の分だけやる"
-              className="w-full resize-y rounded-[10px] border border-rule bg-sunk px-3 py-2.5 text-[0.88rem] leading-[1.7] text-ink outline-none placeholder:text-ink-faint focus:border-accent"
+              className="w-full resize-y rounded-[10px] border border-rule bg-sunk px-3 py-2.5 zoom-safe text-[0.88rem] leading-[1.7] text-ink outline-none placeholder:text-ink-faint focus:border-accent"
             />
             <p className="text-[0.72rem] text-ink-faint">
               共有したとき、このメモが相手に読まれる部分になる。

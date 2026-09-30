@@ -145,7 +145,7 @@ export function ShareSheet({
               readOnly
               value={displayUrl}
               onFocus={(e) => e.currentTarget.select()}
-              className="min-w-0 flex-1 rounded-[9px] border border-rule bg-sunk px-2.5 py-2 font-mono text-[0.78rem] text-ink-soft outline-none"
+              className="min-w-0 flex-1 rounded-[9px] border border-rule bg-sunk px-2.5 py-2 zoom-safe font-mono text-[0.78rem] text-ink-soft outline-none"
             />
             <button
               type="button"
