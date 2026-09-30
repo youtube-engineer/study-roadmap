@@ -30,8 +30,16 @@ import { GRIP_ATTRIBUTE } from "./grip";
  */
 const GRIP_CONSTRAINT = { distance: 6 };
 
-/** カード本体から始めたとき: 220ms の長押し。スクロールと取り合いにならない距離だけ許す */
-const BODY_CONSTRAINT = { delay: 220, tolerance: 8 };
+/**
+ * 本そのものから始めたとき: **150ms の長押し。**
+ *
+ * 横フリックは棚から取り上げてある（矢印ボタンが担う）ので、取り合うのは
+ * 縦の送りだけ。指を動かせば `tolerance` で中止されるため、短くしてよい。
+ *
+ * ⚠ **`tolerance` は 8 のまま触らないこと。** ここを 5 に狭めたときは、
+ * 指のわずかなぶれで毎回中止されて**まったく掴めなくなった。**
+ */
+const BODY_CONSTRAINT = { delay: 150, tolerance: 8 };
 
 /** 握りの目印。CSS 側の touch-action: none もこの属性に当てる */
 
