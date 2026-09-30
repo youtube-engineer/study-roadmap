@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { HTMLAttributes, KeyboardEvent, ReactNode, Ref } from "react";
 
 import { CheckIcon } from "@/components/ui/icons";
@@ -51,6 +52,83 @@ export function Shelf({
    * 他人がどこまで終えたかは読む側に関係が無く、計画として読ませたい
    * （CLAUDE.md 8章）。玉は数字のまま、棚板の線も出さない。
    */
+  /**
+   * ★ **棚の横移動は矢印ボタンだけで行う。**
+   *
+   * 指で横になぞる操作を棚から取り上げると、**フリックは参考書を動かすため
+   * だけのものになり、掴む／滑らせるの取り合いが起きなくなる**（9章の
+   * touch-action の問題そのものが消える）。
+   *
+   * ホイールやトラックパッドは `touch-action` の対象外なので、
+   * パソコンではこれまでどおり横に流せる。
+   */
+  /**
+   * 棚（横に流れる帯）は `shelfDropRef`（dnd-kit のもの）が付いているので、
+   * **そこへ自分の ref を重ねない。** 外側から引いて使う。
+   */
+  const frame = useRef<HTMLDivElement | null>(null);
+  const scrollerOf = () => frame.current?.querySelector<HTMLDivElement>(".shelf-books") ?? null;
+  const [edge, setEdge] = useState({ left: false, right: false });
+
+  const measure = useCallback(() => {
+    const el = frame.current?.querySelector<HTMLDivElement>(".shelf-books");
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    setEdge({ left: el.scrollLeft > 1, right: el.scrollLeft < max - 1 });
+  }, []);
+
+  useEffect(() => {
+    const el = frame.current?.querySelector<HTMLDivElement>(".shelf-books");
+    if (!el) return;
+    measure();
+    el.addEventListener("scroll", measure, { passive: true });
+
+    /**
+     * **表紙が読み込まれた時点でも測り直す。**
+     * 最初の描画では画像がまだ無く、棚の中身は実際より狭い。
+     * そこで一度しか測らないと、**本がはみ出しているのに矢印が出ない。**
+     */
+    el.addEventListener("load", measure, true);
+    window.addEventListener("resize", measure);
+
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    for (const child of Array.from(el.children)) ro.observe(child);
+
+    return () => {
+      el.removeEventListener("scroll", measure);
+      el.removeEventListener("load", measure, true);
+      window.removeEventListener("resize", measure);
+      ro.disconnect();
+    };
+  }, [measure, stage.items.length]);
+
+  /**
+   * 見えている幅の8割ぶん送る。1冊ずつだと本が多いときに終わらない。
+   *
+   * ⚠ **`behavior: "smooth"` に頼らない。** 環境によっては無視されて
+   * まったく動かない（実測でそうなった）。押しても何も起きないのが
+   * 一番困るので、**自分で動かす。**
+   */
+  const slide = (direction: -1 | 1) => {
+    const el = scrollerOf();
+    if (!el) return;
+
+    const max = el.scrollWidth - el.clientWidth;
+    const from = el.scrollLeft;
+    const to = Math.max(0, Math.min(max, from + direction * el.clientWidth * 0.8));
+    if (to === from) return;
+
+    const started = performance.now();
+    const step = (now: number) => {
+      const t = Math.min(1, (now - started) / 220);
+      // ease-out。最後にすっと止まる
+      el.scrollLeft = from + (to - from) * (1 - (1 - t) ** 3);
+      if (t < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  };
+
   const done = !readOnly && isStageDone(stage);
   const doneCount = stage.items.filter((i) => i.isDone).length;
 
@@ -163,7 +241,7 @@ export function Shelf({
         )}
       </div>
 
-      <div className="relative mt-0.5">
+      <div ref={frame} className="relative mt-0.5">
         {/* 棚の奥板。本の後ろに板があるように見せる */}
         <span
           aria-hidden="true"
@@ -219,6 +297,31 @@ export function Shelf({
           aria-hidden="true"
           className="pointer-events-none absolute bottom-[14px] left-0 top-[11px] w-4 bg-gradient-to-r from-black/40 to-transparent md:w-5"
         />
+
+        {/*
+          横に送る矢印。**端に着いたら出さない**（押せないボタンを置かない）。
+          棚の中に置くので、木の上でも読めるよう白い丸に濃い字を載せる。
+        */}
+        {edge.left && (
+          <button
+            type="button"
+            onClick={() => slide(-1)}
+            aria-label="左へ送る"
+            className="absolute left-1.5 top-1/2 z-[3] grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-ink shadow-[0_1px_4px_rgba(0,0,0,0.45)] transition hover:bg-white active:scale-95"
+          >
+            <ArrowIcon direction="left" />
+          </button>
+        )}
+        {edge.right && (
+          <button
+            type="button"
+            onClick={() => slide(1)}
+            aria-label="右へ送る"
+            className="absolute right-1.5 top-1/2 z-[3] grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-ink shadow-[0_1px_4px_rgba(0,0,0,0.45)] transition hover:bg-white active:scale-95"
+          >
+            <ArrowIcon direction="right" />
+          </button>
+        )}
         <span
           aria-hidden="true"
           className="pointer-events-none absolute bottom-[14px] right-0 top-[11px] w-4 bg-gradient-to-l from-black/40 to-transparent md:w-5"
@@ -247,5 +350,20 @@ export function Shelf({
         )}
       </div>
     </section>
+  );
+}
+
+function ArrowIcon({ direction }: { direction: "left" | "right" }) {
+  return (
+    <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true">
+      <path
+        d={direction === "left" ? "M15 5l-7 7 7 7" : "M9 5l7 7-7 7"}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

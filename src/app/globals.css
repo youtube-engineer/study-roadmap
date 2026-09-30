@@ -326,7 +326,15 @@
      * 縦は `overflow-y: hidden` で棚自身が受けないので、そのままページへ抜ける。
      * 掴む操作は本の握り（`touch-action: none`）だけが持つ（9章）。
      */
-    touch-action: pan-x pan-y;
+    /**
+     * ★ **横は指で送らない（`pan-y` のみ）。**
+     *
+     * 横移動は矢印ボタンが持つ。棚から横フリックを取り上げることで、
+     * **フリックは参考書を動かすためだけのものになり、取り合いが起きない。**
+     * 縦はそのままページへ抜ける。ホイールやトラックパッドは
+     * `touch-action` の対象外なので、パソコンでは横に流せる。
+     */
+    touch-action: pan-y;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
     /**
