@@ -3,10 +3,12 @@
 /* ---------------------------------------------------------------------------
    設計トークン
    プロトタイプ（prototype/index.html）の :root をそのまま引き継いでいる。
-   ライト / ダーク / 明示指定の3状態を持つ:
-     - :root                                    … ライト（既定）
-     - prefers-color-scheme: dark かつ非 light  … OSがダークのとき
-     - :root[data-theme="dark"]                 … ユーザーが明示的にダークを選んだとき
+
+   ★ **ダークテーマは持たない。** 紙と墨と朱でできていて、**本の表紙が
+   唯一の彩り**という作り（8章 規則2）なので、地を暗くすると前提が変わる。
+   棚の木も表紙も暗い地の上では別物になり、2つぶんの見た目を維持することになる。
+   端末がダークでもこの配色のまま出す。
+
    色は必ずここで定義し、コンポーネント側に生の色を書かないこと。
 --------------------------------------------------------------------------- */
 :root {
@@ -46,63 +48,6 @@
   --elev-book: 0 1px 1px rgba(28, 32, 40, 0.1);
   --elev: 0 1px 3px rgba(28, 32, 40, 0.07), 0 10px 24px rgba(28, 32, 40, 0.09);
   --elev-lift: 0 14px 26px rgba(28, 32, 40, 0.2), 0 3px 8px rgba(28, 32, 40, 0.14);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --paper: #12151b;
-    --raised: #1c2029;
-    --sunk: #232832;
-    --deep: #181c24;
-    --ink: #e9eae6;
-    --ink-soft: #a6adb8;
-    --ink-faint: #6e7683;
-    --rule: #2b303a;
-    --rule-strong: #3a414d;
-    /* 暗い地では明暗が反転する。ボタンは明るく、載る字は暗く */
-    --accent: #e9eae6;
-    --accent-strong: #ffffff;
-    --accent-soft: #2a2f3a;
-    --accent-ink: #12151b;
-    --thread: #ff7a52;
-    --thread-soft: #3a1f16;
-    --amber: #d9a055;
-    --board: #4a3e31;
-    --board-lip: #2e261d;
-    --board-face: #5a4b3a;
-    --elev-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --elev-book: 0 1px 1px rgba(0, 0, 0, 0.35);
-    --elev: 0 1px 3px rgba(0, 0, 0, 0.45), 0 10px 24px rgba(0, 0, 0, 0.5);
-    --elev-lift: 0 16px 28px rgba(0, 0, 0, 0.62), 0 3px 8px rgba(0, 0, 0, 0.5);
-  }
-}
-
-:root[data-theme="dark"] {
-  --paper: #12151b;
-  --raised: #1c2029;
-  --sunk: #232832;
-  --deep: #181c24;
-  --ink: #e9eae6;
-  --ink-title: #d3d7d0;
-  --ink-soft: #a6adb8;
-  --ink-faint: #6e7683;
-  --rule: #2b303a;
-  --rule-strong: #3a414d;
-  --accent: #e9eae6;
-  --accent-strong: #ffffff;
-  --accent-soft: #2a2f3a;
-  --accent-ink: #12151b;
-  --thread: #ff7a52;
-  --thread-soft: #3a1f16;
-  --amber: #d9a055;
-  --board: #7d6446;
-  --board-lip: #52402a;
-  --board-face: #9a7f5c;
-  --board-back: #61492f;
-  --elev-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --elev-book: 0 1px 1px rgba(0, 0, 0, 0.35);
-  --elev: 0 1px 3px rgba(0, 0, 0, 0.45), 0 10px 24px rgba(0, 0, 0, 0.5);
-  --elev-lift: 0 16px 28px rgba(0, 0, 0, 0.62), 0 3px 8px rgba(0, 0, 0, 0.5);
 }
 
 @theme inline {

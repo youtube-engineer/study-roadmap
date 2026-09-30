@@ -27,16 +27,14 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  // 表示は端末のライト/ダーク設定に従う
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f2f1ec" },
-    { media: "(prefers-color-scheme: dark)", color: "#12151b" },
-  ],
+  // ダークテーマは持たない（globals.css の先頭）。端末の設定に関わらず紙の色
+  themeColor: "#f2f1ec",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ja">
+    /* 端末がダークでも、フォームや選択色まで暗くならないようにする */
+    <html lang="ja" style={{ colorScheme: "light" }}>
       {/*
         器の幅。スマホは 430px（画面設計）。**広い画面では広げる**——
         棚は横に並ぶので、広がったぶんだけ本が多く見える。狭いままだと

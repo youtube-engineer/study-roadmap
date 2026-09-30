@@ -112,15 +112,8 @@ export function BookSpine({ item, book, onOpen, drag, overlay = false, readOnly 
         drag?.isDragging ? "opacity-30" : ""
       } ${overlay ? "cursor-grabbing" : ""}`}
     >
-      {/* 周回の目標とメモの印は棚板の上に出す。表紙を隠さない */}
-      <span className="flex h-[17px] items-end justify-between px-px">
-        {item.roundsTarget ? (
-          <span className="font-mono text-[0.7rem] leading-none text-ink-faint">
-            {item.roundsTarget}周
-          </span>
-        ) : (
-          <span />
-        )}
+      {/* メモの印は棚板の上に出す。表紙を隠さない（周回の目標は画面から外した） */}
+      <span className="flex h-[17px] items-end justify-end px-px">
         {item.note ? (
           <span
             aria-hidden="true"

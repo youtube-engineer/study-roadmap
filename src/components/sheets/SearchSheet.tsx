@@ -148,7 +148,19 @@ export function SearchSheet({ open, onClose, onPick, present }: Props) {
       */}
       {!manualOpen && (
       <div className="h-[44vh] overflow-y-auto px-2 pb-2">
-        {status === "timeout" ? (
+        {status === "loading" ? (
+          /*
+            **さがしているあいだはぐるぐるを出す。** 見出しの文字だけだと、
+            前の結果が残ったままなので動いているのか止まったのか分からない。
+          */
+          <div className="flex items-center justify-center gap-2.5 py-16 text-ink-faint">
+            <span
+              aria-hidden="true"
+              className="h-4 w-4 animate-spin rounded-full border-2 border-rule-strong border-t-thread"
+            />
+            <span className="text-[0.82rem]">さがしています…</span>
+          </div>
+        ) : status === "timeout" ? (
           <Notice
             title="検索が時間内に終わりませんでした"
             detail="通信の状態を確かめて、もう一度お試しください。"
@@ -264,8 +276,29 @@ export function SearchSheet({ open, onClose, onPick, present }: Props) {
         )}
       </div>
 
-      {/* 楽天ウェブサービスのクレジット表記（必須） */}
-      <div className="flex justify-center border-t border-rule px-4 py-2.5">
+      {/*
+        ★ **楽天サイトへのリンクをここに1つ置く。**
+
+        楽天ウェブサービス規約 第8条4項は、ウェブサービスを使っている画面に
+        楽天サイトへのリンクを置くことを求めている（CLAUDE.md 7章）。
+        結果の行から外したぶん、**一覧の下にまとめて1つ**置く。
+        これなら本を選ぶときに押し間違えない。
+
+        クレジット表記（`RakutenCredit`）の行き先は developers.rakuten.com で、
+        **楽天サイトそのものではない**ので、これの代わりにはならない。
+
+        文言は「探す」にとどめる。購入やクリックの呼びかけは
+        第10条1項(1) の禁止事項。
+      */}
+      <div className="flex flex-col items-center gap-1.5 border-t border-rule px-4 py-2.5">
+        <a
+          href={`https://books.rakuten.co.jp/search?sitem=${encodeURIComponent(query.trim())}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[0.74rem] text-ink-soft underline underline-offset-2 hover:text-ink"
+        >
+          楽天ブックスで探す
+        </a>
         <RakutenCredit />
       </div>
     </Sheet>
@@ -337,22 +370,10 @@ function ResultRow({
           {meta}
           {meta && label ? "・" : ""}
           {/*
-            楽天ウェブサービス規約 第8条4項。ウェブサービスを使っているこの画面には
-            楽天サイトへのリンクを置き、楽天以外へのリンクは置かない
+            **行の中にリンクを置かない。** 本を選ぼうとして押し間違える。
+            楽天サイトへのリンク（規約 第8条4項）は一覧の下に1つ置いてある。
           */}
-          {book.sourceUrl ? (
-            <a
-              href={book.sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="underline underline-offset-2 hover:text-ink-soft"
-            >
-              {label}
-            </a>
-          ) : (
-            label
-          )}
+          {label}
         </span>
       </span>
 
