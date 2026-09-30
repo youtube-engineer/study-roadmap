@@ -46,9 +46,39 @@ interface RoadmapDB extends DBSchema {
 
 let dbPromise: Promise<IDBPDatabase<RoadmapDB>> | null = null;
 
+/**
+ * ★ **開くのを待ち続けない。**
+ *
+ * `openDB` は**返らないことがある**（古い版を開いたままの接続があるなど）。
+ * エラーではないので catch にも入らず、そこを待っている画面は
+ * **真っ白のまま永久に止まる。** 実際にそうなった。
+ *
+ * 手元が読めないだけなら、サーバーのぶんで画面は出せる（5章の裏返し）。
+ * **止まるくらいなら諦めて先へ進む。**
+ */
+const OPEN_TIMEOUT_MS = 3000;
+
+function openWithTimeout(): Promise<IDBPDatabase<RoadmapDB>> {
+  return Promise.race([
+    openDB<RoadmapDB>(DB_NAME, DB_VERSION, dbHandlers),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => {
+        // 次に使うときは開き直す。詰まりが解けていれば通る
+        dbPromise = null;
+        reject(new Error(`IndexedDB が ${OPEN_TIMEOUT_MS}ms 以内に開きませんでした`));
+      }, OPEN_TIMEOUT_MS),
+    ),
+  ]);
+}
+
 function getDb() {
   if (!dbPromise) {
-    dbPromise = openDB<RoadmapDB>(DB_NAME, DB_VERSION, {
+    dbPromise = openWithTimeout();
+  }
+  return dbPromise;
+}
+
+const dbHandlers: Parameters<typeof openDB<RoadmapDB>>[2] = {
       async upgrade(db, oldVersion, _newVersion, tx) {
         if (oldVersion < 1) {
           db.createObjectStore("roadmaps", { keyPath: "id" });
@@ -133,10 +163,7 @@ function getDb() {
       terminated() {
         dbPromise = null;
       },
-    });
-  }
-  return dbPromise;
-}
+};
 
 /**
  * IndexedDB が使えない環境がある（プライベートウィンドウ、ストレージを止めている設定）。

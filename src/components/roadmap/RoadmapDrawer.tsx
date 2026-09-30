@@ -33,7 +33,14 @@ function touchedAt(s: RoadmapSummary): string {
   return s.updatedAt ?? s.createdAt ?? "";
 }
 
+/**
+ * 固定したものを先頭に、その後は最後に触った順。
+ *
+ * **固定は「消したくない＝大事」の印**なので、探しにいく回数も多い。
+ * 触った順だけだと、しばらく開かないうちに下へ沈む。
+ */
 function byRecency(a: RoadmapSummary, b: RoadmapSummary): number {
+  if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
   return touchedAt(b).localeCompare(touchedAt(a));
 }
 
@@ -179,7 +186,9 @@ export function RoadmapDrawer({ serverSummaries, currentId }: Props) {
    */
   const togglePinned = useCallback(async (summary: RoadmapSummary) => {
     const next = !summary.isPinned;
-    setSummaries((prev) => prev.map((s) => (s.id === summary.id ? { ...s, isPinned: next } : s)));
+    setSummaries((prev) =>
+      prev.map((s) => (s.id === summary.id ? { ...s, isPinned: next } : s)).sort(byRecency),
+    );
     setConfirming((c) => (c && c.id === summary.id ? { ...c, isPinned: next } : c));
 
     const local = await loadLocalRoadmap(summary.id);
