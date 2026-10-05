@@ -2,7 +2,9 @@ import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
 
-import { SUPABASE_URL, firstNonEmpty } from "./config";
+import { firstNonEmpty } from "@/lib/first-non-empty";
+
+import { SUPABASE_URL } from "./config";
 import type { Database } from "./database.types";
 
 /**

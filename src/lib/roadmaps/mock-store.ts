@@ -169,7 +169,3 @@ export async function copyRoadmap(slug: string): Promise<Roadmap | null> {
 export async function getRoadmapBySlug(slug: string): Promise<Roadmap | null> {
   return ALL.find((r) => r.shareSlug === slug && r.isPublic) ?? null;
 }
-
-export async function listPublicSlugs(): Promise<string[]> {
-  return ALL.filter((r) => r.isPublic).map((r) => r.shareSlug);
-}

@@ -993,8 +993,9 @@ supabase/migrations/        スキーマ・RLS・GRANT。preview と本番の両
   `item.affiliateUrl ?? item.itemUrl` と書いたので空のまま採用され、
   購入リンクが出なかった
 
-`??` ではなく**値が入っている最初のものを選ぶ**こと
-（`lib/supabase/config.ts` と `lib/books/rakuten.ts` の `firstNonEmpty`）。
+`??` ではなく**値が入っている最初のものを選ぶ**こと（`lib/first-non-empty.ts`）。
+見つからないときに `null` を返す版と空文字を返す版があるだけで、中身は同じ。
+**2か所に書かない**——同じ落とし穴の対処が分かれていると、片方だけ直る。
 
 ### 環境変数は「空文字」で存在しうる
 
@@ -1354,6 +1355,22 @@ DBの権限なら破れない。サーバー側から別のテーブルを触り
    （CLIなら `supabase link --project-ref <ref>` → `supabase db push`。
    `db dump` は Docker が要るが、`db push` と `gen types --linked` は不要）
 5. `.env.local` に URL・publishable key・secret key を入れる
+
+### 消したもの（戻すなら git から）
+
+使われていないコードは残さない。**「いつか使う」は履歴が覚えている。**
+
+| 消したもの | なぜ使われていなかったか |
+|---|---|
+| `Progress.tsx` | 「ロードマップ全体の進捗は出さない」と決めた（8章）結果の残骸 |
+| `SaveState.tsx` | 保存状態の表示は未実装のまま。下書きだけが残っていた |
+| `getBooks` / `usingLiveSource` | 本は `books` テーブルから引く形になり、呼ばれなくなった |
+| `listPublicSlugs` / `GripIcon` | 最初から呼ばれていない |
+| `ROUNDS_MIN` / `ROUNDS_MAX` | 周回の目標を画面から外したときに宙に浮いた |
+| `@dnd-kit/modifiers` | 一度も import していない |
+
+**`findByIsbn` は残した。** 今は呼ばれていないが、7章の「提供元を切り替えるときは
+ISBNから引き直す」の実体で、export されているだけなら lint も鳴らない。
 
 ### まだ入っていないもの
 

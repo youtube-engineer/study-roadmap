@@ -62,20 +62,6 @@ export function SearchIcon({ size = 16, className }: IconProps) {
   );
 }
 
-/** 並び替えの握り。指で取れる大きさが要るので、当たり判定は親側で確保する */
-export function GripIcon({ size = 15, className }: IconProps) {
-  return (
-    <svg viewBox="0 0 18 18" width={size} height={size} className={className} aria-hidden="true">
-      <circle cx="6" cy="4" r="1.4" />
-      <circle cx="12" cy="4" r="1.4" />
-      <circle cx="6" cy="9" r="1.4" />
-      <circle cx="12" cy="9" r="1.4" />
-      <circle cx="6" cy="14" r="1.4" />
-      <circle cx="12" cy="14" r="1.4" />
-    </svg>
-  );
-}
-
 export function PersonIcon({ size = 14, className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} className={className} aria-hidden="true">

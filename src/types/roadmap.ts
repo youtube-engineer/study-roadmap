@@ -133,9 +133,6 @@ export type RoadmapSummary = {
   isPinned: boolean;
 };
 
-export const ROUNDS_MIN = 1;
-export const ROUNDS_MAX = 20;
-
 /** 段をまたいで全部の参考書を順に見る。冊数や進捗を数えるときに使う */
 export function allItems(roadmap: Pick<Roadmap, "stages">): RoadmapItem[] {
   return roadmap.stages.flatMap((stage) => stage.items);

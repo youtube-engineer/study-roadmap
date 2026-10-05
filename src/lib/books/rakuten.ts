@@ -1,5 +1,6 @@
 import "server-only";
 
+import { firstNonEmptyOrNull } from "@/lib/first-non-empty";
 import type { Book } from "@/types/roadmap";
 
 import { hueFromTitle } from "./hue";
@@ -116,16 +117,9 @@ function toYear(salesDate: string | undefined): string | null {
  * （`??` は null / undefined のときしか代替に切り替わらない）。
  * Supabase の鍵で踏んだのと同じ罠（CLAUDE.md 14章）。
  */
-function firstNonEmpty(...values: Array<string | undefined>): string | null {
-  for (const value of values) {
-    const trimmed = value?.trim();
-    if (trimmed) return trimmed;
-  }
-  return null;
-}
 
 function coverUrl(item: RakutenItem): string | null {
-  const url = firstNonEmpty(item.largeImageUrl, item.mediumImageUrl, item.smallImageUrl);
+  const url = firstNonEmptyOrNull(item.largeImageUrl, item.mediumImageUrl, item.smallImageUrl);
   if (!url) return null;
   return url.replace(/_ex=\d+x\d+/, "_ex=240x240");
 }
@@ -141,7 +135,7 @@ function toBook(item: RakutenItem): Book | null {
     isbn,
     source: "rakuten",
     title,
-    author: firstNonEmpty(item.author, item.publisherName) ?? "",
+    author: firstNonEmptyOrNull(item.author, item.publisherName) ?? "",
     publishedYear: toYear(item.salesDate),
     // URLだけを持つ。画像ファイルは複製しない
     coverImageUrl: coverUrl(item),
@@ -154,7 +148,7 @@ function toBook(item: RakutenItem): Book | null {
      * なお楽天アフィリエイトを使う場合、楽天以外のアフィリエイトを併用することは
      * できない（規約 第10条1項(5)）。AmazonとRakutenは二択（CLAUDE.md 7章）。
      */
-    sourceUrl: firstNonEmpty(item.affiliateUrl, item.itemUrl),
+    sourceUrl: firstNonEmptyOrNull(item.affiliateUrl, item.itemUrl),
     hue: hueFromTitle(title),
   };
 }

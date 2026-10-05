@@ -1,3 +1,4 @@
+import { firstNonEmpty } from "@/lib/first-non-empty";
 /**
  * Supabase の接続情報。
  *
@@ -8,20 +9,6 @@
  * そのまま書く必要がある（動的なキーだと置換されない）。
  */
 
-/**
- * **空文字を「無い」として扱う。**
- *
- * `??` は null / undefined のときしか代替に切り替わらない。Vercel では
- * 名前だけ作られて値が空、という状態が普通に起きるので、`??` で繋ぐと
- * 空の鍵をそのまま送ってしまい `Invalid API key` になる。実際になった。
- */
-export function firstNonEmpty(...values: Array<string | undefined>): string {
-  for (const value of values) {
-    const trimmed = value?.trim();
-    if (trimmed) return trimmed;
-  }
-  return "";
-}
 
 export const SUPABASE_URL = firstNonEmpty(process.env.NEXT_PUBLIC_SUPABASE_URL);
 
