@@ -84,11 +84,16 @@ function rememberCompletion(roadmapId: string): void {
 type Props = {
   roadmap: Roadmap;
   books: Book[];
+  /**
+   * サーバーに行があるか（`store.ts` の RoadmapSource）。
+   * **`shareSlug` をどちらから採るかの判断に使う。**
+   */
+  serverHasRow: boolean;
   /** ドロワーに出す一覧。サーバーにあるぶんだけで、手元のぶんは中で足す */
   summaries: RoadmapSummary[];
 };
 
-export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props) {
+export function RoadmapEditor({ roadmap, books: initialBooks, serverHasRow, summaries }: Props) {
   const router = useRouter();
   const [doc, setDoc] = useState<Roadmap>(roadmap);
   const [books, setBooks] = useState<Record<string, Book>>(() =>
@@ -183,15 +188,38 @@ export function RoadmapEditor({ roadmap, books: initialBooks, summaries }: Props
     loadLocalRoadmap(roadmap.id).then((local) => {
       if (!alive) return;
       if (local) {
-        setDoc(local.roadmap);
+        /**
+         * ★ **`shareSlug` だけはサーバーのものを使う。**
+         *
+         * 本文（名前・段・参考書）はローカルが新しいが、**共有の識別子は
+         * サーバーが行を作った瞬間に決まる値**で、ローカルはそれを知らない。
+         * 手元の `newShareSlug()` が作った別物が入っている。
+         *
+         * 丸ごと上書きすると、**共有シートが実在しないURLを出す**
+         * （/r/<手元のslug> が404、実体は /r/<サーバーのslug>）。
+         * 貼った相手が見られない形で出るので、気付くのが遅れる。
+         *
+         * サーバーにまだ行が無いとき（placeholder）は手元の値でよい——
+         * 行が作られるときにその値が入る（sync.ts の ensureRoadmap）。
+         */
+        const fixed = {
+          ...local.roadmap,
+          shareSlug: serverHasRow ? roadmap.shareSlug : local.roadmap.shareSlug,
+        };
+        setDoc(fixed);
         setBooks(Object.fromEntries(local.books.map((b) => [b.id, b])));
+
+        // ずれていたら手元も直す。次に開いたときにまた古い値から始めない
+        if (fixed.shareSlug !== local.roadmap.shareSlug) {
+          void saveLocal({ roadmap: fixed, books: local.books });
+        }
       }
       setHydrated(true);
     });
     return () => {
       alive = false;
     };
-  }, [roadmap.id]);
+  }, [roadmap.id, roadmap.shareSlug, serverHasRow]);
 
   /** 操作のたびに丸ごと保存する。待たせないので画面は止まらない */
   useEffect(() => {

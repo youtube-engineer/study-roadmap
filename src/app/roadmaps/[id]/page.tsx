@@ -11,7 +11,7 @@ type Props = { params: Promise<{ id: string }> };
  */
 export default async function EditorPage({ params }: Props) {
   const { id } = await params;
-  const [{ roadmap, books }, summaries] = await Promise.all([
+  const [{ roadmap, books, source }, summaries] = await Promise.all([
     loadRoadmap(id),
     loadOwnSummaries(),
   ]);
@@ -22,5 +22,14 @@ export default async function EditorPage({ params }: Props) {
     useState の初期値が更新されず**前のルートの内容が残る**。
     「新しく作ったのに他人のルートの表示が出る」のはこれだった。
   */
-  return <RoadmapEditor key={id} roadmap={roadmap} books={books} summaries={summaries} />;
+  return (
+    <RoadmapEditor
+      key={id}
+      roadmap={roadmap}
+      books={books}
+      /* 行があるなら share_slug はサーバーのものが正。手元の値で上書きしない */
+      serverHasRow={source === "stored"}
+      summaries={summaries}
+    />
+  );
 }

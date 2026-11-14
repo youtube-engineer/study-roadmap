@@ -1,0 +1,821 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>本番環境の構築手順</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --paper: #f3f4f0;
+    --paper-raised: #ffffff;
+    --ink: #1e232c;
+    --ink-soft: #545c68;
+    --ink-faint: #8a909b;
+    --rule: #dadcd6;
+    --rule-strong: #c3c6bf;
+    --accent: #33518c;
+    --accent-strong: #223a68;
+    --accent-soft: #e4e9f3;
+    --amber: #966016;
+    --amber-soft: #f5e8d2;
+    --danger: #a3341f;
+    --danger-soft: #f6e3de;
+    --mono-bg: #eaebe4;
+    --mono-ink: #3b4048;
+    --shadow: 0 1px 2px rgba(30,35,44,0.04), 0 6px 20px rgba(30,35,44,0.05);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #14171c;
+      --paper-raised: #1b1f26;
+      --ink: #e7e8e3;
+      --ink-soft: #a7adb6;
+      --ink-faint: #6e7580;
+      --rule: #2a2f38;
+      --rule-strong: #363c46;
+      --accent: #8fabdd;
+      --accent-strong: #b3c5e8;
+      --accent-soft: #202b3e;
+      --amber: #e0a857;
+      --amber-soft: #332a16;
+      --danger: #e9937e;
+      --danger-soft: #33201b;
+      --mono-bg: #1f242b;
+      --mono-ink: #cfd3d9;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #14171c;
+    --paper-raised: #1b1f26;
+    --ink: #e7e8e3;
+    --ink-soft: #a7adb6;
+    --ink-faint: #6e7580;
+    --rule: #2a2f38;
+    --rule-strong: #363c46;
+    --accent: #8fabdd;
+    --accent-strong: #b3c5e8;
+    --accent-soft: #202b3e;
+    --amber: #e0a857;
+    --amber-soft: #332a16;
+    --danger: #e9937e;
+    --danger-soft: #33201b;
+    --mono-bg: #1f242b;
+    --mono-ink: #cfd3d9;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Zen Kaku Gothic New", "Hiragino Sans", "Noto Sans JP", sans-serif;
+    font-size: 1.0625rem;
+    line-height: 1.85;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+
+  h1, h2, h3, h4 {
+    font-family: "Shippori Mincho", "Hiragino Mincho ProN", "Noto Serif JP", serif;
+    font-weight: 700;
+    color: var(--ink);
+    text-wrap: balance;
+    line-height: 1.4;
+  }
+
+  code, .mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
+
+  a { color: var(--accent); }
+
+  .page {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: clamp(1.25rem, 4vw, 3.5rem) clamp(1.25rem, 4vw, 3rem) 6rem;
+  }
+
+  /* ---- masthead ---- */
+
+  .masthead {
+    padding-bottom: 2.25rem;
+    margin-bottom: 2.5rem;
+    border-bottom: 1px solid var(--rule);
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+
+  .eyebrow {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .eyebrow .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+    flex: none;
+  }
+
+  .masthead h1 {
+    font-size: clamp(2.1rem, 4.4vw, 2.9rem);
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+
+  .masthead .lede {
+    color: var(--ink-soft);
+    font-size: 1.09rem;
+    max-width: 46em;
+    margin: 0;
+  }
+
+  .meta-row { display: flex; flex-wrap: wrap; gap: 0.5rem 0.9rem; margin-top: 0.4rem; align-items: center; }
+
+  .meta-chip {
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-radius: 100px;
+    padding: 0.3rem 0.75rem;
+  }
+
+  /* ---- progress ---- */
+
+  .progress {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    margin-top: 0.3rem;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+  }
+
+  .progress .bar {
+    flex: 1;
+    max-width: 320px;
+    height: 6px;
+    border-radius: 100px;
+    background: var(--rule);
+    overflow: hidden;
+  }
+
+  .progress .bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.2s ease; }
+
+  .progress button {
+    font-family: inherit;
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+    background: none;
+    border: 1px solid var(--rule);
+    border-radius: 100px;
+    padding: 0.2rem 0.7rem;
+    cursor: pointer;
+  }
+
+  .progress button:hover { color: var(--ink); border-color: var(--rule-strong); }
+
+  /* ---- layout ---- */
+
+  .layout {
+    display: grid;
+    grid-template-columns: 200px minmax(0,1fr);
+    gap: clamp(2rem, 4vw, 3.5rem);
+    align-items: start;
+  }
+
+  nav.toc {
+    position: sticky;
+    top: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    border-left: 2px solid var(--rule);
+    padding-left: 1.1rem;
+  }
+
+  nav.toc a {
+    position: relative;
+    text-decoration: none;
+    color: var(--ink-faint);
+    font-size: 0.86rem;
+    padding: 0.42rem 0;
+    line-height: 1.4;
+    transition: color 0.15s ease;
+  }
+
+  nav.toc a:hover { color: var(--ink); }
+
+  nav.toc a::before {
+    content: "";
+    position: absolute;
+    left: -1.32rem;
+    top: 0.75rem;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--rule-strong);
+  }
+
+  nav.toc .toc-num {
+    font-family: "JetBrains Mono", monospace;
+    color: var(--accent);
+    margin-right: 0.45em;
+    font-size: 0.78rem;
+  }
+
+  main.content { min-width: 0; }
+
+  section {
+    padding-bottom: 2.75rem;
+    margin-bottom: 2.75rem;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  section:last-child { border-bottom: none; padding-bottom: 0; }
+
+  .sec-head { display: flex; align-items: baseline; gap: 0.8rem; margin-bottom: 0.4rem; }
+
+  .sec-num {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.8rem;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    flex: none;
+  }
+
+  section h2 { font-size: clamp(1.4rem, 2.6vw, 1.75rem); margin: 0; }
+  section h3 { font-size: 1.08rem; margin: 1.8rem 0 0.4rem; }
+  section p { margin: 0.75rem 0; max-width: 42em; }
+  section p.wide { max-width: none; }
+
+  ul.plain, ol.plain { padding-left: 1.3rem; margin: 0.75rem 0; max-width: 42em; }
+  ul.plain li, ol.plain li { margin: 0.42rem 0; }
+
+  .field {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.86em;
+    background: var(--mono-bg);
+    color: var(--mono-ink);
+    padding: 0.08em 0.4em;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  /* ---- steps (checkable) ---- */
+
+  ol.steps { list-style: none; margin: 1.1rem 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+
+  ol.steps > li {
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 0.85rem 1.05rem;
+    box-shadow: var(--shadow);
+  }
+
+  .step { display: flex; gap: 0.8rem; align-items: flex-start; }
+
+  .step input[type="checkbox"] {
+    appearance: none;
+    flex: none;
+    width: 20px; height: 20px;
+    margin: 0.42rem 0 0;
+    border: 1.5px solid var(--rule-strong);
+    border-radius: 5px;
+    background: var(--paper);
+    cursor: pointer;
+    position: relative;
+  }
+
+  .step input[type="checkbox"]:checked { background: var(--accent); border-color: var(--accent); }
+
+  .step input[type="checkbox"]:checked::after {
+    content: "";
+    position: absolute;
+    left: 5px; top: 2px;
+    width: 6px; height: 11px;
+    border: solid var(--paper-raised);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+
+  .step input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .step .body { min-width: 0; flex: 1; }
+  .step .body > :first-child { margin-top: 0; }
+  .step .body > :last-child { margin-bottom: 0; }
+  .step .body p { max-width: none; font-size: 0.98rem; }
+
+  .step input:checked ~ .body { color: var(--ink-faint); }
+  .step input:checked ~ .body b { color: var(--ink-soft); }
+
+  .step .t { font-weight: 700; }
+
+  /* ---- cards / callouts ---- */
+
+  .card {
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 1.2rem 1.35rem;
+    margin: 1.3rem 0;
+    box-shadow: var(--shadow);
+  }
+
+  .card h3 { margin-top: 0; }
+
+  .callout {
+    border-left: 3px solid var(--amber);
+    background: var(--amber-soft);
+    border-radius: 0 10px 10px 0;
+    padding: 1rem 1.2rem;
+    margin: 1.3rem 0;
+  }
+
+  .callout p { margin: 0.3rem 0; max-width: none; font-size: 0.98rem; }
+
+  .callout .lbl {
+    display: block;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 0.35rem;
+  }
+
+  .callout.stop { border-left-color: var(--danger); background: var(--danger-soft); }
+  .callout.stop .lbl { color: var(--danger); }
+
+  /* ---- code ---- */
+
+  pre.code {
+    background: var(--mono-bg);
+    color: var(--mono-ink);
+    border-radius: 10px;
+    padding: 0.9rem 1.1rem;
+    overflow-x: auto;
+    font-size: 0.82rem;
+    line-height: 1.75;
+    margin: 0.8rem 0;
+  }
+
+  /* ---- tables ---- */
+
+  .table-wrap { overflow-x: auto; margin: 1.1rem 0; border: 1px solid var(--rule); border-radius: 10px; }
+
+  table.schema { width: 100%; border-collapse: collapse; font-size: 0.9rem; background: var(--paper-raised); }
+
+  table.schema caption {
+    caption-side: top;
+    text-align: left;
+    padding: 0.8rem 1rem 0.5rem;
+    color: var(--ink-faint);
+    font-size: 0.8rem;
+  }
+
+  table.schema th, table.schema td {
+    text-align: left;
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+
+  table.schema th {
+    font-weight: 700;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    color: var(--ink-faint);
+    background: var(--paper);
+    text-transform: uppercase;
+  }
+
+  table.schema tr:last-child td { border-bottom: none; }
+  table.schema td.m { font-family: "JetBrains Mono", monospace; color: var(--mono-ink); white-space: nowrap; }
+
+  /* ---- responsive ---- */
+
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; }
+    nav.toc {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      flex-direction: row;
+      overflow-x: auto;
+      border-left: none;
+      border-bottom: 1px solid var(--rule);
+      gap: 1.3rem;
+      background: var(--paper);
+      margin: 0 -1.25rem 0.5rem;
+      padding: 0.85rem 1.25rem;
+    }
+    nav.toc a { white-space: nowrap; padding: 0.2rem 0; }
+    nav.toc a::before { display: none; }
+  }
+
+  footer.doc-footer {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--rule);
+    color: var(--ink-faint);
+    font-size: 0.82rem;
+  }
+</style>
+
+<div class="page">
+
+  <header class="masthead">
+    <div class="eyebrow"><span class="dot"></span>本番構築手順 &nbsp;/&nbsp; Vercel + Supabase</div>
+    <h1>本番環境の構築</h1>
+    <p class="lede">preview で検証済みのものを本番に出すための手順。ドメインが決まらないと Supabase の Redirect URLs と楽天の許可リストが埋められないので、<b>ドメインを確定させる前と後で2回に分けて設定する</b>のが全体の形。チェックは閲覧しているブラウザに保存されるので、作業を中断して戻ってきても残る。</p>
+    <div class="meta-row">
+      <span class="meta-chip">2026-10-05 時点</span>
+      <span class="meta-chip">マイグレーション 0001〜0009</span>
+      <span class="meta-chip">Production Branch: feature</span>
+    </div>
+    <div class="progress">
+      <span id="count">0 / 0</span>
+      <span class="bar"><i id="fill"></i></span>
+      <button type="button" id="reset">チェックを消す</button>
+    </div>
+  </header>
+
+  <div class="layout">
+
+    <nav class="toc">
+      <a href="#before"><span class="toc-num">01</span>先に片付ける</a>
+      <a href="#supabase"><span class="toc-num">02</span>Supabase</a>
+      <a href="#google"><span class="toc-num">03</span>Google OAuth</a>
+      <a href="#vercel"><span class="toc-num">04</span>Vercel</a>
+      <a href="#domain"><span class="toc-num">05</span>ドメイン確定後</a>
+      <a href="#verify"><span class="toc-num">06</span>動作確認</a>
+      <a href="#summary"><span class="toc-num">07</span>設定の一覧</a>
+    </nav>
+
+    <main class="content">
+
+      <section id="before">
+        <div class="sec-head"><span class="sec-num">01</span><h2>先に片付ける</h2></div>
+        <p class="wide">コードとブランチの状態を揃えてから外部サービスに触る。ここを飛ばすと、設定は全部正しいのに古いコードが本番になって原因の切り分けができなくなる。</p>
+
+        <ol class="steps">
+          <li><label class="step"><input type="checkbox" data-k="b1"><span class="body">
+            <span class="t">未コミットの変更を処理する</span>
+            <p><span class="field">@dnd-kit/modifiers</span> の追加、<span class="field">books/rakuten.ts</span>・<span class="field">supabase/config.ts</span> などの修正、<span class="field">Progress.tsx</span>／<span class="field">SaveState.tsx</span> の削除が手元に残っている。このままでは本番に入らない。</p>
+          </span></label></li>
+
+          <li><label class="step"><input type="checkbox" data-k="b2"><span class="body">
+            <span class="t">本番にするブランチを決める</span>
+            <p><span class="field">origin/HEAD</span> が <span class="field">feature</span> を指しているので、<b>Vercel の Production Branch も <span class="field">feature</span> にする</b>。<span class="field">main</span> を本番にしたいなら、先に <span class="field">feature</span> を <span class="field">main</span> へマージしておく。</p>
+          </span></label></li>
+
+          <li><label class="step"><input type="checkbox" data-k="b3"><span class="body">
+            <span class="t">手元でビルドを通す</span>
+            <pre class="code">pnpm typecheck
+pnpm build</pre>
+            <p>Vercel 上で初めて落ちると、環境変数の問題と区別がつかなくなる。</p>
+          </span></label></li>
+        </ol>
+      </section>
+
+      <section id="supabase">
+        <div class="sec-head"><span class="sec-num">02</span><h2>Supabase 本番プロジェクト</h2></div>
+        <p class="wide">preview（<span class="field">vkxwdszsdrpablpotdqe</span>）とは別のプロジェクトを立てる。無料プランはアクティブ2プロジェクトまでなので、preview と合わせてちょうど収まる。</p>
+
+        <ol class="steps">
+          <li><label class="step"><input type="checkbox" data-k="s1"><span class="body">
+            <span class="t">プロジェクトを作る</span>
+            <p>Dashboard → New project。名前は preview と区別がつくもの（例 <span class="field">study-roadmap-production</span>）、Region は <b>Northeast Asia (Tokyo)</b>。<b>Database Password は保存しておく</b>——<span class="field">db push</span> で聞かれる。</p>
+          </span></label></li>
+
+          <li><label class="step"><input type="checkbox" data-k="s2"><span class="body">
+            <span class="t">Data API のトグルを ON / OFF / ON にする</span>
+            <p>Project Settings → Data API。</p>
+            <div class="table-wrap">
+              <table class="schema">
+                <tbody>
+                  <tr><td>Enable Data API</td><td class="m">ON</td></tr>
+                  <tr><td>Automatically expose new tables</td><td class="m">OFF</td></tr>
+                  <tr><td>Automatically enable RLS on new tables</td><td class="m">ON</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p>自動公開を切っているぶんの GRANT は <span class="field">0001_init.sql</span>・<span class="field">0004_service_role_grants.sql</span>・<span class="field">0006_stages.sql</span> に書いてあるので、マイグレーションを流せば揃う。</p>
+          </span></label></li>
+
+          <li><label class="step"><input type="checkbox" data-k="s3"><span class="body">
+            <span class="t">マイグレーションを流す（0001〜0009）</span>
+            <p>リポジトリの <span class="field">supabase/.temp/project-ref</span> は現在 <b>preview</b> を指している。本番へ張り替えて流し、終わったら戻す。</p>
+            <pre class="code">supabase link --project-ref &lt;本番のref&gt;
+supabase db push            # DBパスワードを聞かれる
+supabase link --project-ref vkxwdszsdrpablpotdqe   # preview に戻す</pre>
+            <div class="table-wrap">
+              <table class="schema">
+                <caption>流れる9本</caption>
+                <tbody>
+                  <tr><td class="m">0001_init.sql</td><td>roadmaps / roadmap_items / books / tags、RLS、GRANT</td></tr>
+                  <tr><td class="m">0002_cleanup.sql</td><td>匿名データの定期削除関数（公開済みは対象外）。スケジュールは未設定</td></tr>
+                  <tr><td class="m">0003_books_lookup.sql</td><td>books の引き直し</td></tr>
+                  <tr><td class="m">0004_service_role_grants.sql</td><td>books だけ service_role に渡す</td></tr>
+                  <tr><td class="m">0005_untitled_default.sql</td><td>名前の既定値</td></tr>
+                  <tr><td class="m">0006_stages.sql</td><td>段（roadmap_stages）＋GRANT</td></tr>
+                  <tr><td class="m">0007_drop_index_uniqueness.sql</td><td>fractional_index の一意制約を外す</td></tr>
+                  <tr><td class="m">0008_goal.sql</td><td>goal</td></tr>
+                  <tr><td class="m">0009_pinned.sql</td><td>is_pinned</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </span></label></li>
+
+          <li><label class="step"><input type="checkbox" data-k="s4"><span class="body">
+            <span class="t">preview にも 0007〜0009 を当てる</span>
+            <p>preview は <b>0006 までしか適用されていない</b>。揃えておかないと、preview で固定（<span class="field">is_pinned</span>）や目標（<span class="field">goal</span>）を触った瞬間に落ちる。本番の前後どちらでもよいが、忘れると次に preview を触ったときに原因を探すことになる。</p>
+          </span></label></li>
+
+          <li><label class="step"><input type="checkbox" data-k="s5"><span class="body">
+            <span class="t">匿名サインインを有効にする</span>
+            <p>Authentication → Sign In / Up → Anonymous sign-ins を ON。</p>
+          </span></label></li>
+
+          <li><label class="step"><input type="checkbox" data-k="s6"><span class="body">
+            <span class="t">鍵を3つ控える</span>
+            <div class="table-wrap">
+              <table class="schema">
+                <caption>Project Settings → API Keys</caption>
+                <thead><tr><th>ダッシュボードの表記</th><th>環境変数名</th></tr></thead>
+                <tbody>
+                  <tr><td>Project URL</td><td class="m">NEXT_PUBLIC_SUPABASE_URL</td></tr>
+                  <tr><td>publishable（または anon）key</td><td class="m">NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</td></tr>
+                  <tr><td>secret（または service_role）key</td><td class="m">SUPABASE_SECRET_KEY</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p>secret key には<b>絶対に <span class="field">NEXT_PUBLIC_</span> を付けない</b>。</p>
+          </span></label></li>
+        </ol>
+
+        <div class="callout stop">
+          <span class="lbl">CAPTCHA は今は入れない</span>
+          <p>CLAUDE.md 14章は「CAPTCHAも入れておく」としているが、<b>有効にすると全ての認証呼び出しに captcha トークンが必要になる。</b> <span class="field">client.ts</span> と <span class="field">copy.ts</span> の <span class="field">signInAnonymously()</span> はトークンを渡していないので、有効にした瞬間に匿名サインインが全滅する。</p>
+          <p>しかも<b>落ちるのはサーバー側だけ</b>で、IndexedDB には書けるので画面は完全に正常に見える。「手元では動いているのにサーバーには何も入らない」という一番たちの悪い壊れ方になる。入れるなら Turnstile / hCaptcha を実装して <span class="field">options.captchaToken</span> を渡す改修が先。</p>
+        </div>
+
+        <div class="callout">
+          <span class="lbl">任意：定期クリーンアップ</span>
+          <p><span class="field">0002_cleanup.sql</span> の関数は作られるが、<b>スケジュールはコメントアウトされたまま</b>。走らせるなら Integrations で pg_cron を有効にしてから、同ファイル47行目以降の SQL を実行する。公開済み（<span class="field">is_public = true</span>）は対象外になっている。急ぐ設定ではない。</p>
+        </div>
+      </section>
+
+      <section id="google">
+        <div class="sec-head"><span class="sec-num">03</span><h2>Google OAuth</h2></div>
+        <p class="wide">ログインは Google のみ。Cloud Console でクライアントを作り、Supabase に貼る。</p>
+
+        <ol class="steps">
+          <li><label class="step"><input type="checkbox" data-k="g1"><span class="body">
+            <span class="t">OAuth consent screen を作って公開する</span>
+            <p>User Type は <b>External</b>。スコープは <span class="field">email</span> / <span class="field">profile</span> / <span class="field">openid</span> だけなので審査は不要。</p>
+            <p>⚠ <b>最後に Publish app を押す。</b> テストモードのままだと、登録したテストユーザー以外はログインできない。リリースしても他人が入れない状態になり、しかもエラーは Google 側で出るのでアプリのログからは分からない。</p>
+          </span></label></li>
+
+          <li><label class="step"><input type="checkbox" data-k="g2"><span class="body">
+            <span class="t">OAuth client ID を作る</span>
+            <p>Credentials → Create Credentials → OAuth client ID → <b>Web application</b>。</p>
+            <p>Authorized JavaScript origins:</p>
+            <pre class="code">https://&lt;本番ドメイン&gt;
+http://localhost:3000</pre>
+            <p>Authorized redirect URIs（<b>Supabase のドメイン</b>。アプリのドメインではない）:</p>
+            <pre class="code">https://&lt;本番のref&gt;.supabase.co/auth/v1/callback</pre>
+            <p>preview の分も、同じクライアントに redirect URI を1行足せば共用できる。</p>
+          </span></label></li>
+
+          <li><label class="step"><input type="checkbox" data-k="g3"><span class="body">
+            <span class="t">Supabase に Client ID / Secret を貼る</span>
+            <p>Authentication → Sign In / Up → Google を ON。</p>
+          </span></label></li>
+        </ol>
+      </section>
+
+      <section id="vercel">
+        <div class="sec-head"><span class="sec-num">04</span><h2>Vercel</h2></div>
+
+        <ol class="steps">
+          <li><label class="step"><input type="checkbox" data-k="v1"><span class="body">
+            <span class="t">リポジトリを Import する</span>
+            <p><span class="field">youtube-engineer/study-roadmap</span>。Framework は Next.js、パッケージマネージャは <span class="field">packageManager</span> の記述から pnpm が自動で選ばれる。<b>Production Branch を <span class="field">feature</span> にする</b>（01参照）。</p>
+          </span></label></li>
+
+          <li><label class="step"><input type="checkbox" data-k="v2"><span class="body">
+            <span class="t">環境変数を入れる（Environment は Production）</span>
+            <pre class="code">NEXT_PUBLIC_SUPABASE_URL              https://&lt;本番のref&gt;.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY  &lt;publishable key&gt;
+SUPABASE_SECRET_KEY                   &lt;secret key&gt;
+
+RAKUTEN_APPLICATION_ID                &lt;UUID形式&gt;
+RAKUTEN_ACCESS_KEY                    pk_...
+RAKUTEN_AFFILIATE_ID                  &lt;任意。無くても動く&gt;
+
+RAKUTEN_ORIGIN                        ← 05 で埋める
+NEXT_PUBLIC_SITE_URL                  ← 05 で埋める</pre>
+            <p>preview 用の値は Environment を Preview にして別に入れる。</p>
+          </span></label></li>
+
+          <li><label class="step"><input type="checkbox" data-k="v3"><span class="body">
+            <span class="t">1回デプロイして本番ドメインを確定させる</span>
+            <p>Settings → Domains。<b>独自ドメインを当てるならここで当てる</b>——後から変えると Supabase の Redirect URLs と楽天の許可リストを両方やり直すことになる。当てないなら <span class="field">&lt;project&gt;.vercel.app</span> が本番ドメイン。</p>
+            <p>この時点では <span class="field">RAKUTEN_ORIGIN</span> が未設定なので<b>検索はモックのまま</b>。それが正常。</p>
+          </span></label></li>
+        </ol>
+
+        <div class="callout">
+          <span class="lbl">Supabase 連携（Integration）は使わないほうがいい</span>
+          <p>使うと <span class="field">NEXT_PUBLIC_SUPABASE_ANON_KEY</span> / <span class="field">SUPABASE_SERVICE_ROLE_KEY</span> という別名で入る。コードはどちらの名前も受けるので動く（<span class="field">config.ts</span>・<span class="field">admin.ts</span> の <span class="field">firstNonEmpty</span>）が、<b>同じ鍵が2つの名前で並ぶと片方の更新を忘れる事故になる。</b> 手で入れて1本にする。</p>
+        </div>
+
+        <div class="callout">
+          <span class="lbl">値を空にして名前だけ作らない</span>
+          <p>Vercel では<b>名前だけ作られて値が空</b>という状態が普通に起きる。<span class="field">firstNonEmpty</span> が空を「無い」として扱うので落ち方は穏やかになるが、<b>Supabase は丸ごとモックに落ちて保存が一切サーバーへ行かない</b>。CLAUDE.md 14章で半日溶けたのはこれ。</p>
+        </div>
+
+        <div class="callout">
+          <span class="lbl">NEXT_PUBLIC_SITE_URL は省略せず入れる</span>
+          <p><span class="field">site-url.ts</span> の優先順位では省略できることになっているが、フォールバック先の <span class="field">NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL</span> は Vercel の「Automatically expose System Environment Variables」が ON でないと存在せず、<b>無言で <span class="field">localhost:3000</span> まで落ちる</b>。共有URLとOGPの絶対URLが丸ごと壊れるので、明示したほうが確実。</p>
+        </div>
+      </section>
+
+      <section id="domain">
+        <div class="sec-head"><span class="sec-num">05</span><h2>ドメインが確定してから埋める</h2></div>
+
+        <ol class="steps">
+          <li><label class="step"><input type="checkbox" data-k="d1"><span class="body">
+            <span class="t">Supabase の Site URL を入れる</span>
+            <p>Authentication → URL Configuration → Site URL に <span class="field">https://&lt;本番ドメイン&gt;</span>。</p>
+          </span></label></li>
+
+          <li><label class="step"><input type="checkbox" data-k="d2"><span class="body">
+            <span class="t">Redirect URLs を3行入れる</span>
+            <pre class="code">http://localhost:3000/**
+https://&lt;本番ドメイン&gt;/**
+https://*-&lt;Vercelのチーム名&gt;.vercel.app/**</pre>
+            <p><span class="field">auth.ts</span> の <span class="field">callbackUrl()</span> は <span class="field">window.location.origin</span> から組むので、<b>手元・プレビュー・本番の3つとも登録が必要</b>。プレビューは毎回ドメインが変わるのでワイルドカード行が要る。</p>
+          </span></label></li>
+
+          <li><label class="step"><input type="checkbox" data-k="d3"><span class="body">
+            <span class="t">楽天の許可リストに本番ドメインを追加する</span>
+            <p>応募タイプは<b>ウェブアプリケーション</b>であること（API/バックエンドサービスだと IP 許可リストになり、Vercel の動的IPでは詰む）。</p>
+            <p>ワイルドカードは<b>ドットで区切られた1区画まるごと</b>のみ。<span class="field">*.example.com</span> は可、<span class="field">*-foo.example.com</span> は不可。つまり<b>Vercel のプレビュードメインは登録できないので、プレビューはモックのままになる</b>。</p>
+            <p>本番と preview で別アプリを登録する必要はない。1つのアプリに本番ドメインを登録し、<span class="field">RAKUTEN_ORIGIN</span> にその1つを固定すれば足りる——<b>Origin はサーバーから送る値なので、ブラウザが見ているドメインとは無関係</b>。</p>
+          </span></label></li>
+
+          <li><label class="step"><input type="checkbox" data-k="d4"><span class="body">
+            <span class="t">Vercel に2つ足して再デプロイする</span>
+            <pre class="code">RAKUTEN_ORIGIN         https://&lt;本番ドメイン&gt;
+NEXT_PUBLIC_SITE_URL   https://&lt;本番ドメイン&gt;</pre>
+            <p><span class="field">NEXT_PUBLIC_</span> はビルド時に埋め込まれるので、<b>追加したら必ず再デプロイ</b>（Deployments → ⋯ → Redeploy）。</p>
+          </span></label></li>
+        </ol>
+
+        <div class="callout stop">
+          <span class="lbl">Redirect URLs を外すと必ずハマる</span>
+          <p><span class="field">redirectTo</span> が許可リストに<b>無いと、Supabase は黙って Site URL に差し替える</b>。しかも飛ばす先は <span class="field">/auth/callback</span> ではなく Site URL の根なので、<b>認可コードを誰も交換しないままセッションができない。</b>「ログインしたのにログインボタンのままだ」という形で現れる。</p>
+          <p>localhost を入れ忘れると<b>手元でログインしたのに本番のURLへ飛ばされる</b>。オリジンが違うので IndexedDB も別物になり、手元のロードマップが持ち込まれていないようにも見える。</p>
+        </div>
+      </section>
+
+      <section id="verify">
+        <div class="sec-head"><span class="sec-num">06</span><h2>動作確認</h2></div>
+        <p class="wide">本番ドメインを開いて上から順に。括弧内は落ちたときに見る場所。</p>
+
+        <ol class="steps">
+          <li><label class="step"><input type="checkbox" data-k="t1"><span class="body">入口が開き、空のロードマップが出る（<span class="field">/</span>）</span></label></li>
+          <li><label class="step"><input type="checkbox" data-k="t2"><span class="body">ロードマップ名を打ち替えられる</span></label></li>
+          <li><label class="step"><input type="checkbox" data-k="t3"><span class="body">
+            <b>検索で実データが出る</b>（モックでないこと）
+            <p>出ないなら <span class="field">/api/books/search</span> の <span class="field">reason</span> を見る。<span class="field">HTTP_REFERRER_NOT_ALLOWED</span> = 許可リスト漏れ、<span class="field">REQUEST_CONTEXT_BODY_HTTP_REFERRER_MISSING</span> = <span class="field">RAKUTEN_ORIGIN</span> が空。</p>
+          </span></label></li>
+          <li><label class="step"><input type="checkbox" data-k="t4"><span class="body">
+            本を追加できる（＝匿名サインイン＋books 書き込みが通っている）
+            <p><span class="field">permission denied</span> なら <span class="field">0004</span> が流れていない。<span class="field">Invalid API key</span> なら secret key が空。</p>
+          </span></label></li>
+          <li><label class="step"><input type="checkbox" data-k="t5"><span class="body">表紙画像が出る（<span class="field">next.config.ts</span> の <span class="field">remotePatterns</span>）</span></label></li>
+          <li><label class="step"><input type="checkbox" data-k="t6"><span class="body">リロードして内容が残る</span></label></li>
+          <li><label class="step"><input type="checkbox" data-k="t7"><span class="body">共有をONにして <span class="field">/r/&lt;slug&gt;</span> がシークレットウィンドウで開ける（＝RLS の公開読み取りポリシー）</span></label></li>
+          <li><label class="step"><input type="checkbox" data-k="t8"><span class="body"><span class="field">/r/&lt;slug&gt;/opengraph-image</span> を直接開いて絵が出る。<b>日本語が豆腐（□）になっていないこと</b></span></label></li>
+          <li><label class="step"><input type="checkbox" data-k="t9"><span class="body">X / LINE に貼ってカードが出る</span></label></li>
+          <li><label class="step"><input type="checkbox" data-k="t10"><span class="body">「コピーして使う」が効く</span></label></li>
+          <li><label class="step"><input type="checkbox" data-k="t11"><span class="body">Google ログインが通る → <b>ログイン前に作ったロードマップが一覧に残っている</b>（持ち込み／<span class="field">carry.ts</span>）</span></label></li>
+          <li><label class="step"><input type="checkbox" data-k="t12"><span class="body">ログアウト → 再ログインで<b>2回Googleに飛ばされない</b>（<span class="field">accountAlreadyExists</span> の分岐）</span></label></li>
+          <li><label class="step"><input type="checkbox" data-k="t13"><span class="body">
+            <b>Table Editor で行が入っていることを確認する</b>
+            <p><span class="field">roadmaps</span> / <span class="field">roadmap_items</span> / <span class="field">roadmap_stages</span> / <span class="field">books</span>。</p>
+          </span></label></li>
+        </ol>
+
+        <div class="callout stop">
+          <span class="lbl">最後の項目が一番大事</span>
+          <p>IndexedDB が主で Supabase が従という作りなので、<b>サーバーへの保存が全部失敗していても画面は完全に正常に見える。</b> ダッシュボードで行を見るまで、動いているかどうかは分からない。</p>
+        </div>
+      </section>
+
+      <section id="summary">
+        <div class="sec-head"><span class="sec-num">07</span><h2>設定の一覧</h2></div>
+
+        <div class="table-wrap">
+          <table class="schema">
+            <caption>本番で必要なものの全体</caption>
+            <thead><tr><th>場所</th><th>項目</th><th>設定</th></tr></thead>
+            <tbody>
+              <tr><td>Supabase</td><td>Data API</td><td>ON / OFF / ON</td></tr>
+              <tr><td>Supabase</td><td>Auth</td><td>匿名サインイン ON、<b>CAPTCHA は OFF のまま</b></td></tr>
+              <tr><td>Supabase</td><td>Auth</td><td>Google プロバイダ（Client ID / Secret）</td></tr>
+              <tr><td>Supabase</td><td>Auth</td><td>Site URL ＋ Redirect URLs 3行</td></tr>
+              <tr><td>Supabase</td><td>DB</td><td>マイグレーション 0001〜0009</td></tr>
+              <tr><td>Google Cloud</td><td>consent screen</td><td><b>Publish 済み</b>（テストモードにしない）</td></tr>
+              <tr><td>Google Cloud</td><td>OAuth client</td><td>redirect URI = <span class="field">https://&lt;ref&gt;.supabase.co/auth/v1/callback</span></td></tr>
+              <tr><td>楽天</td><td>アプリ</td><td>ウェブアプリケーション、許可リストに本番ドメイン</td></tr>
+              <tr><td>Vercel</td><td>Production Branch</td><td><span class="field">feature</span></td></tr>
+              <tr><td>Vercel</td><td>環境変数</td><td>下の8個（Production）</td></tr>
+              <tr><td>Vercel</td><td>Domains</td><td>本番ドメイン確定</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="table-wrap">
+          <table class="schema">
+            <caption>環境変数（Production）</caption>
+            <thead><tr><th>名前</th><th>無いとどうなるか</th></tr></thead>
+            <tbody>
+              <tr><td class="m">NEXT_PUBLIC_SUPABASE_URL</td><td>Supabase が丸ごとモックに落ちる（画面は動く）</td></tr>
+              <tr><td class="m">NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</td><td>同上</td></tr>
+              <tr><td class="m">SUPABASE_SECRET_KEY</td><td>books への書き込みだけが落ちる</td></tr>
+              <tr><td class="m">RAKUTEN_APPLICATION_ID</td><td>検索がモックのまま</td></tr>
+              <tr><td class="m">RAKUTEN_ACCESS_KEY</td><td>同上（片方だけだと400）</td></tr>
+              <tr><td class="m">RAKUTEN_ORIGIN</td><td>検索が「空です」で落ちる（403になる前に止める作り）</td></tr>
+              <tr><td class="m">RAKUTEN_AFFILIATE_ID</td><td>任意。リンクが成果対象にならないだけ</td></tr>
+              <tr><td class="m">NEXT_PUBLIC_SITE_URL</td><td>共有URLとOGPの絶対URLが localhost になりうる</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <footer class="doc-footer">チェックの状態はこのブラウザの localStorage に保存される。設計判断の理由は CLAUDE.md、要件は requirements.html を見る。</footer>
+
+</div>
+
+<script>
+  // チェックは閲覧しているブラウザに残す。作業を中断して戻ってきても消えない。
+  var KEY = "study-roadmap:production-setup";
+  var boxes = Array.prototype.slice.call(document.querySelectorAll('.step input[type="checkbox"]'));
+  var count = document.getElementById("count");
+  var fill = document.getElementById("fill");
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { return {}; }
+  }
+
+  function save(state) {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* 保存できなくても読める */ }
+  }
+
+  function paint() {
+    var done = boxes.filter(function (b) { return b.checked; }).length;
+    count.textContent = done + " / " + boxes.length;
+    fill.style.width = (boxes.length ? (done / boxes.length) * 100 : 0) + "%";
+  }
+
+  var state = load();
+  boxes.forEach(function (box) {
+    box.checked = Boolean(state[box.dataset.k]);
+    box.addEventListener("change", function () {
+      var next = load();
+      if (box.checked) next[box.dataset.k] = 1; else delete next[box.dataset.k];
+      save(next);
+      paint();
+    });
+  });
+  paint();
+
+  document.getElementById("reset").addEventListener("click", function () {
+    save({});
+    boxes.forEach(function (b) { b.checked = false; });
+    paint();
+  });
+</script>
