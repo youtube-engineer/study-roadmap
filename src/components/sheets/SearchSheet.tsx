@@ -194,7 +194,7 @@ export function SearchSheet({ open, onClose, onPick, present }: Props) {
         別の本が並んでいると、何をしているのか分からなくなる。
       */}
       {!manualOpen && (
-      <div className="h-[44vh] overflow-y-auto px-2 pb-2">
+      <div className="h-[52vh] overflow-y-auto px-2 pb-2">
         {status === "loading" ? (
           /*
             **さがしているあいだはぐるぐるを出す。** 見出しの文字だけだと、
@@ -216,15 +216,24 @@ export function SearchSheet({ open, onClose, onPick, present }: Props) {
           <Notice title="検索できませんでした" detail="しばらくしてからもう一度お試しください。" />
         ) : (
           <>
-            {results.map((book) => (
-              <ResultRow
-                key={book.id}
-                book={book}
-                added={present.has(book.id)}
-                query={query}
-                onPick={() => onPick(book)}
-              />
-            ))}
+            {/*
+              ★ **2カラムで表紙を主役にする。**
+
+              参考書は書名より先に「あの黄色い本」で憶えていることが多い。
+              1行ずつの一覧だと表紙が小さく、**絵で選べないから書名を読む**ことになり、
+              似た書名が並ぶ検索では疲れる。棚と同じで、まず絵で選ばせる。
+            */}
+            <div className="grid grid-cols-2 gap-x-3 gap-y-3 px-1 pt-1">
+              {results.map((book) => (
+                <ResultCard
+                  key={book.id}
+                  book={book}
+                  added={present.has(book.id)}
+                  query={query}
+                  onPick={() => onPick(book)}
+                />
+              ))}
+            </div>
 
             {nothingFound && (
               <p className="px-3 pb-1 pt-4 text-[0.84rem] text-ink-faint">
@@ -543,7 +552,7 @@ function Title({ text, query }: { text: string; query: string }) {
   );
 }
 
-function ResultRow({
+function ResultCard({
   book,
   added,
   query,
@@ -559,12 +568,11 @@ function ResultRow({
   const meta = [book.author, book.publishedYear].filter(Boolean).join("・");
 
   return (
-    // 行をタップすればそのまま末尾に入る（画面設計 04）。
-    // 出典のリンクだけは押しても追加されないよう、伝播を止める
     <div
       role="button"
       tabIndex={added ? undefined : 0}
       aria-disabled={added}
+      aria-label={book.title}
       onClick={added ? undefined : onPick}
       onKeyDown={
         added
@@ -576,44 +584,36 @@ function ResultRow({
               }
             }
       }
-      className={`flex items-start gap-2.5 border-b border-rule px-3 py-2.5 text-left last:border-b-0 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent ${
-        added ? "opacity-50" : "cursor-pointer hover:bg-sunk"
+      className={`group flex flex-col gap-1.5 rounded-[10px] p-1.5 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+        added ? "opacity-45" : "cursor-pointer hover:bg-sunk"
       }`}
     >
-      <BookCover book={book} size="sm" />
+      {/*
+        表紙。**縦横比はそのまま**（棚と同じ理由。切ると縦長の本の上下が削られる）。
+        高さを揃えるため、箱の中で下端に置く。
+      */}
+      <span className="relative flex h-[143px] items-end justify-center">
+        <BookCover book={book} size="grid" className="max-h-full w-auto" />
 
-      <span className="min-w-0 flex-1">
-        {/*
-          ★ **書名を1行で切らない。**
-
-          参考書の書名は**肝心の語が後ろに来る**。
-          「2026-2027年対応 直前対策 英検2級 3回過去問集」を1行で切ると
-          「…英検2級」までしか出ず、**過去問なのか予想問題なのか分からない。**
-          そうなると表紙の絵で見分けるしかなくなって、探すのがひどく疲れる。
-
-          2行まで出す。それでも入らないものは少ないし、
-          行の高さが揃わないより**読めないことの方が困る。**
-        */}
-        <span className="block text-[0.86rem] leading-[1.45] line-clamp-2">
-          <Title text={book.title} query={query} />
-        </span>
-        <span className="mt-0.5 block font-mono text-[0.66rem] text-ink-faint">
-          {meta}
-          {meta && label ? "・" : ""}
-          {/*
-            **行の中にリンクを置かない。** 本を選ぼうとして押し間違える。
-            楽天サイトへのリンク（規約 第8条4項）は一覧の下に1つ置いてある。
-          */}
-          {label}
-        </span>
+        {/* 入れたことは表紙の上で言う。行が消えると何を入れたのか分からない */}
+        {added && (
+          <span className="absolute inset-0 grid place-items-center rounded-[4px] bg-paper/70">
+            <span className="rounded-full bg-ink-soft px-2.5 py-1 text-[0.72rem] font-bold text-paper">
+              追加済み
+            </span>
+          </span>
+        )}
       </span>
 
-      <span
-        className={`mt-0.5 flex-none rounded-full px-2 py-[0.16em] text-[0.71rem] ${
-          added ? "bg-sunk text-ink-faint" : "bg-accent-soft text-accent-strong"
-        }`}
-      >
-        {added ? "追加済み" : "追加"}
+      <span className="min-w-0">
+        <span className="block text-[0.8rem] leading-[1.4] line-clamp-2">
+          <Title text={book.title} query={query} />
+        </span>
+        <span className="mt-0.5 block truncate text-[0.66rem] text-ink-faint">
+          {meta}
+          {meta && label ? "・" : ""}
+          {label}
+        </span>
       </span>
     </div>
   );
