@@ -1,10 +1,10 @@
 "use client";
 
-import { generateKeyBetween } from "fractional-indexing";
 
 import { ensureSession, getBrowserClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/database.types";
 import type { Book, Roadmap, RoadmapItem } from "@/types/roadmap";
+import { seedKey, keyBetween } from "@/lib/roadmaps/reorder";
 
 /**
  * 操作を Supabase に送る層。**保存の主役ではない。**
@@ -197,7 +197,13 @@ export function createRoadmapSync(target: SyncTarget, options: SyncOptions = {})
         id: stage.id,
         roadmap_id: roadmapId,
         name: stage.name,
-        fractional_index: stage.fractionalIndex ?? generateKeyBetween(null, null),
+        /**
+         * ⚠ **ここに落ちてきたら、呼ぶ側が段にキーを付け忘れている。**
+         * 返るのは `a0` ——取り得る中で最小のキーなので、**段を足すたびに
+         * `a0` が増える**（14章）。種は `seedKey()` で必ず付けること。
+         * `??` ではなく `||`：「無い」は空文字で来る（14章）。
+         */
+        fractional_index: stage.fractionalIndex || seedKey(),
       },
       { onConflict: "id", ignoreDuplicates: true },
     );
@@ -208,34 +214,58 @@ export function createRoadmapSync(target: SyncTarget, options: SyncOptions = {})
     /** どのロードマップ用に作られたものか。編集画面が作り直しの要否を判断する */
     roadmapId,
 
-    /** 並び順のキーを作る。前後の行の間に挟むので、動かした行だけ更新すれば済む */
-    keyBetween(before: RoadmapItem | undefined, after: RoadmapItem | undefined): string {
-      try {
-        return generateKeyBetween(before?.fractionalIndex ?? null, after?.fractionalIndex ?? null);
-      } catch {
-        // 前後が壊れている（同じキーが並んでいる等）ときの逃げ道
-        return generateKeyBetween(null, null);
-      }
-    },
+    /**
+     * 並び順のキーを作る。前後の行の間に挟むので、動かした行だけ更新すれば済む。
+     *
+     * **自前で書かない。** 以前ここに写しがあり、逃げ道が `a0` を返していた
+     * ——最小のキーなので先頭へ飛び、落ちるたびに同じ値になって衝突が増える。
+     * 同じ落とし穴の対処が2か所にあると、片方だけ直る（14章）。
+     */
+    keyBetween,
 
     addStage: ensureStage,
 
-    async renameStage(stageId: string, name: string): Promise<void> {
+    /**
+     * ★ **update だけにしないこと。行がまだ無いことがある。**
+     *
+     * 1段目はロードマップと一緒に手元で作られるだけで、サーバーには
+     * **参考書を入れたときに初めて行ができる**（`ensureStage`）。
+     * update は空振りして**エラーも出ない**ので、名前を付けただけの段は
+     * 共有ページから丸ごと消える。
+     */
+    async renameStage(stage: {
+      id: string;
+      name: string;
+      fractionalIndex?: string;
+    }): Promise<void> {
       const supabase = getBrowserClient();
       if (!supabase) return;
       if (!(await ensureRoadmap())) return;
 
+      await ensureStage(stage);
+
       const { error } = await supabase
         .from("roadmap_stages")
-        .update({ name })
-        .eq("id", stageId);
+        .update({ name: stage.name })
+        .eq("id", stage.id);
       if (error) fail("renameStage", error);
     },
 
-    /** 段の並び順。動かした段だけ更新すれば済む */
+    /**
+     * 段の並び順。動かした段だけ更新すれば済む。
+     *
+     * ★ **`ensured` を見るだけにしないこと。** それは「このページで既に
+     * 行を用意したか」でしかない。**読み込み直後は必ず false** なので、
+     * 開いてすぐ並べ替えると**画面は動くのにサーバーには何も書かれない。**
+     * 次に開くと手元とサーバーの順が食い違い、**共有ページだけ段がバラバラ**
+     * という形で表に出る。実際に1本そうなっていた。
+     *
+     * 行が既にあれば `ensureRoadmap()` は引き直して立てるだけ。
+     * 並べ替えも立派な書き込みなので、`setTitle` と同じ扱いでよい。
+     */
     async moveStage(stageId: string, fractionalIndex: string): Promise<void> {
       const supabase = getBrowserClient();
-      if (!supabase || !ensured) return;
+      if (!supabase || !(await ensureRoadmap())) return;
 
       const { error } = await supabase
         .from("roadmap_stages")
@@ -247,7 +277,7 @@ export function createRoadmapSync(target: SyncTarget, options: SyncOptions = {})
     /** 段を消すと中の参考書も消える（on delete cascade） */
     async removeStage(stageId: string): Promise<void> {
       const supabase = getBrowserClient();
-      if (!supabase || !ensured) return;
+      if (!supabase || !(await ensureRoadmap())) return;
 
       const { error } = await supabase.from("roadmap_stages").delete().eq("id", stageId);
       if (error) fail("removeStage", error);
@@ -273,7 +303,7 @@ export function createRoadmapSync(target: SyncTarget, options: SyncOptions = {})
         roadmap_id: roadmapId,
         stage_id: stage.id,
         book_id: bookId,
-        fractional_index: item.fractionalIndex ?? generateKeyBetween(null, null),
+        fractional_index: item.fractionalIndex || seedKey(),
         is_done: item.isDone,
         rounds_target: item.roundsTarget,
         note: item.note,
@@ -285,7 +315,7 @@ export function createRoadmapSync(target: SyncTarget, options: SyncOptions = {})
     /** 別の段へ移す。並び順のキーも一緒に打ち替える */
     async moveItem(itemId: string, stageId: string, fractionalIndex: string): Promise<void> {
       const supabase = getBrowserClient();
-      if (!supabase || !ensured) return;
+      if (!supabase || !(await ensureRoadmap())) return;
 
       const { error } = await supabase
         .from("roadmap_items")
@@ -296,7 +326,7 @@ export function createRoadmapSync(target: SyncTarget, options: SyncOptions = {})
 
     async patchItem(itemId: string, patch: Partial<RoadmapItem>): Promise<void> {
       const supabase = getBrowserClient();
-      if (!supabase || !ensured) return;
+      if (!supabase || !(await ensureRoadmap())) return;
 
       const row: Database["public"]["Tables"]["roadmap_items"]["Update"] = {};
       if (patch.isDone !== undefined) row.is_done = patch.isDone;
@@ -311,7 +341,7 @@ export function createRoadmapSync(target: SyncTarget, options: SyncOptions = {})
 
     async removeItem(itemId: string): Promise<void> {
       const supabase = getBrowserClient();
-      if (!supabase || !ensured) return;
+      if (!supabase || !(await ensureRoadmap())) return;
 
       const { error } = await supabase.from("roadmap_items").delete().eq("id", itemId);
       if (error) fail("removeItem", error);

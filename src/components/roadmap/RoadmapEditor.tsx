@@ -12,13 +12,33 @@ import { Sheet } from "@/components/sheets/Sheet";
 import { Toast } from "@/components/ui/Toast";
 import { FlagIcon, ShareIcon } from "@/components/ui/icons";
 import { deleteLocalRoadmap, loadLocalRoadmap, saveLocal } from "@/lib/db/local";
-import { keyBetween } from "@/lib/roadmaps/reorder";
+import { keyBetween, orderByIndex } from "@/lib/roadmaps/reorder";
 import { newShareSlug } from "@/lib/roadmaps/slug";
 import { createRoadmapSync } from "@/lib/roadmaps/sync";
 import { UNTITLED } from "@/lib/roadmaps/title";
 
 /** ロードマップ名の上限。OGP画像が40字で切っているのに合わせる */
 const TITLE_MAX = 40;
+
+/**
+ * ★ **キーの順に揃えてから描く。**
+ *
+ * 編集画面は配列の順を描き、共有ページは `fractional_index` の昇順で引く。
+ * 揃えないと**共有したものだけ段がバラバラ**になる（`orderByIndex` のコメント）。
+ * 壊れていたら振り直し、`repaired` を立てて呼び出し側に書き戻させる。
+ */
+function orderDoc(doc: Roadmap): { doc: Roadmap; repaired: boolean } {
+  const stages = orderByIndex(doc.stages);
+  let repaired = stages.repaired;
+
+  const next = stages.rows.map((stage) => {
+    const items = orderByIndex(stage.items);
+    if (items.repaired) repaired = true;
+    return items.repaired || items.rows !== stage.items ? { ...stage, items: items.rows } : stage;
+  });
+
+  return { doc: { ...doc, stages: next }, repaired };
+}
 import { allItems, isStageDone } from "@/types/roadmap";
 import type { Book, Roadmap, RoadmapItem, RoadmapStage, RoadmapSummary } from "@/types/roadmap";
 
@@ -150,10 +170,23 @@ export function RoadmapEditor({ roadmap, books: initialBooks, serverHasRow, summ
     timer: ReturnType<typeof setTimeout>;
   } | null>(null);
 
+  /**
+   * サーバーが渡したぶん。**マウント中は変わらない**——ページ側が `key={id}` で
+   * 作り直すので（CLAUDE.md 14章）。effect の依存に `roadmap` を足すと、
+   * 参照が変わるたびに読み直して状態を書き、描画が連鎖する。
+   */
+  const serverDocRef = useRef(roadmap);
+
   const titleRef = useRef<HTMLTextAreaElement>(null);
 
   /** その id が他人のものだった。振り直しを待っている状態 */
   const [idTaken, setIdTaken] = useState(false);
+
+  /** 並び順の書き戻しは1回のマウントにつき1度だけ */
+  const orderSyncedRef = useRef(false);
+
+  /** 手元に控えがあったか。書き戻してよいのはこのときだけ（下の effect） */
+  const hasLocalRef = useRef(false);
   const goalRef = useRef<HTMLTextAreaElement>(null);
 
 
@@ -202,17 +235,26 @@ export function RoadmapEditor({ roadmap, books: initialBooks, serverHasRow, summ
          * サーバーにまだ行が無いとき（placeholder）は手元の値でよい——
          * 行が作られるときにその値が入る（sync.ts の ensureRoadmap）。
          */
-        const fixed = {
+        hasLocalRef.current = true;
+        const ordered = orderDoc({
           ...local.roadmap,
           shareSlug: serverHasRow ? roadmap.shareSlug : local.roadmap.shareSlug,
-        };
+        });
+        const fixed = ordered.doc;
         setDoc(fixed);
         setBooks(Object.fromEntries(local.books.map((b) => [b.id, b])));
 
         // ずれていたら手元も直す。次に開いたときにまた古い値から始めない
-        if (fixed.shareSlug !== local.roadmap.shareSlug) {
+        if (fixed.shareSlug !== local.roadmap.shareSlug || ordered.repaired) {
           void saveLocal({ roadmap: fixed, books: local.books });
         }
+      } else {
+        /**
+         * 手元に無いときはサーバーのぶんを描く。そちらは既に昇順で引いて
+         * あるが、**キーが壊れていれば昇順でも意味をなさない**ので揃える。
+         */
+        const ordered = orderDoc(serverDocRef.current);
+        if (ordered.repaired) setDoc(ordered.doc);
       }
       setHydrated(true);
     });
@@ -244,6 +286,58 @@ export function RoadmapEditor({ roadmap, books: initialBooks, serverHasRow, summ
       ),
     [doc.id, doc.shareSlug],
   );
+
+  /**
+   * ★ **手元の並び順をサーバーへ書き戻す。**
+   *
+   * 編集画面は配列の順を描き、共有ページとサーバーは `fractional_index` の
+   * 昇順で引く。**この2つは黙ってずれる**——ずれても本人の画面は正しいままなので、
+   * **共有したものだけ段がバラバラ**という形でしか表に出ない。
+   * 実際に9段のうち5段が同じキー（`a0`）になっていた1本があった。
+   *
+   * 「キーが壊れていたら」では足りない。**手元を直した次の読み込みでは
+   * もう壊れていないので、サーバーが取り残される。** 見るべきなのは
+   * 壊れているかどうかではなく、**手元とサーバーが食い違っているかどうか**。
+   *
+   * 手元に無いキーのぶん（まだサーバーに無い段）は update が空振りするだけ。
+   */
+  useEffect(() => {
+    if (!hydrated || !serverHasRow || orderSyncedRef.current) return;
+
+    /**
+     * **手元に控えが無いなら書き戻さない。** このブラウザで触っていない
+     * ロードマップなので、押し付けてよい「正しい順」を持っていない。
+     * 公開されている他人のものを開いただけで `ensureRoadmap()` を走らせると、
+     * 所有者違いとして id を振り直してしまう（sync.ts の takeNewId）。
+     */
+    if (!hasLocalRef.current) return;
+
+    const onServer = new Map<string, string | undefined>();
+    for (const stage of serverDocRef.current.stages) {
+      onServer.set(stage.id, stage.fractionalIndex);
+      for (const item of stage.items) onServer.set(item.id, item.fractionalIndex);
+    }
+
+    const stale: Array<{ id: string; index: string; stageId?: string }> = [];
+    for (const stage of doc.stages) {
+      if (stage.fractionalIndex && onServer.get(stage.id) !== stage.fractionalIndex) {
+        stale.push({ id: stage.id, index: stage.fractionalIndex });
+      }
+      for (const item of stage.items) {
+        if (item.fractionalIndex && onServer.get(item.id) !== item.fractionalIndex) {
+          stale.push({ id: item.id, index: item.fractionalIndex, stageId: stage.id });
+        }
+      }
+    }
+
+    if (stale.length === 0) return;
+    orderSyncedRef.current = true;
+
+    for (const row of stale) {
+      if (row.stageId) void sync.patchItem(row.id, { fractionalIndex: row.index });
+      else void sync.moveStage(row.id, row.index);
+    }
+  }, [hydrated, serverHasRow, doc.stages, sync]);
 
   /**
    * その id が既に他人のものだったら、**手元のロードマップに別の id を振り直す。**
@@ -585,9 +679,10 @@ export function RoadmapEditor({ roadmap, books: initialBooks, serverHasRow, summ
   const renameStage = useCallback(
     (stageId: string, name: string) => {
       patchStage(stageId, (s) => (s.name === name ? s : { ...s, name }));
-      void sync.renameStage(stageId, name);
+      const stage = doc.stages.find((s) => s.id === stageId);
+      void sync.renameStage({ id: stageId, name, fractionalIndex: stage?.fractionalIndex });
     },
-    [patchStage, sync],
+    [doc.stages, patchStage, sync],
   );
 
   /**

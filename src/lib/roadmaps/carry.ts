@@ -5,6 +5,7 @@ import { getBrowserClient } from "@/lib/supabase/client";
 import type { Book } from "@/types/roadmap";
 
 import { newShareSlug } from "./slug";
+import { orderByIndex } from "@/lib/roadmaps/reorder";
 
 /**
  * この端末に残っている作りかけを、今ログインしているアカウントのものとして作り直す。
@@ -149,14 +150,21 @@ export async function carryLocalRoadmapsToCurrentUser(): Promise<CarryResult> {
       continue;
     }
 
-    /** 段を作り直す。元id → 新id を持っておかないと参考書の行き先が決まらない */
-    const stageRows = local.roadmap.stages.map((stage, index) => ({
+    /**
+     * 段を作り直す。元id → 新id を持っておかないと参考書の行き先が決まらない。
+     *
+     * ⚠ **`a${index}` で埋めないこと。** 10段目で `a10` になるが、これは
+     * fractional-indexing のキーとして不正で、以後その前後に挟めなくなる。
+     * `orderByIndex` に通せば、欠けていても**正しいキーに振り直される**。
+     */
+    const orderedStages = orderByIndex(local.roadmap.stages).rows;
+    const stageRows = orderedStages.map((stage) => ({
       from: stage.id,
       row: {
         id: crypto.randomUUID(),
         roadmap_id: newId,
         name: stage.name,
-        fractional_index: stage.fractionalIndex ?? `a${index}`,
+        fractional_index: stage.fractionalIndex!,
       },
     }));
 
@@ -172,9 +180,9 @@ export async function carryLocalRoadmapsToCurrentUser(): Promise<CarryResult> {
 
     const stageIds = new Map(stageRows.map((s) => [s.from, s.row.id]));
 
-    const rows = local.roadmap.stages.flatMap((stage) =>
-      stage.items
-        .map((item, index) => {
+    const rows = orderedStages.flatMap((stage) =>
+      orderByIndex(stage.items)
+        .rows.map((item) => {
           const bookId = bookIds.get(item.bookId);
           const stageId = stageIds.get(stage.id);
           if (!bookId || !stageId) return null;
@@ -182,7 +190,7 @@ export async function carryLocalRoadmapsToCurrentUser(): Promise<CarryResult> {
             roadmap_id: newId,
             stage_id: stageId,
             book_id: bookId,
-            fractional_index: item.fractionalIndex ?? `a${index}`,
+            fractional_index: item.fractionalIndex!,
             // 進捗は自分のものなので、こちらは引き継ぐ（他人のコピーとは違う）
             is_done: item.isDone,
             rounds_target: item.roundsTarget,

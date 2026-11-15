@@ -1,6 +1,7 @@
 import type { Roadmap } from "@/types/roadmap";
 
 import { newShareSlug } from "./slug";
+import { seedKey } from "@/lib/roadmaps/reorder";
 
 /**
  * まっさらなロードマップ。
@@ -21,7 +22,7 @@ export function newRoadmap(): Roadmap {
     shareSlug: newShareSlug(),
     tags: [],
     // 段は最初から1つ置く。空の棚があることで「ここに置く」が見える（8章）
-    stages: [{ id: crypto.randomUUID(), name: "", items: [] }],
+    stages: [{ id: crypto.randomUUID(), name: "", items: [], fractionalIndex: seedKey() }],
     authorName: null,
     copiedFrom: null,
     createdAt: new Date().toISOString(),
