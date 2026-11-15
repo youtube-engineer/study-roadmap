@@ -3,6 +3,8 @@ import "server-only";
 import { getAdminClient } from "@/lib/supabase/admin";
 import type { Book } from "@/types/roadmap";
 
+import { safeBookUrl } from "./safe-url";
+
 /**
  * books テーブルへの**唯一の書き込み経路**。
  *
@@ -39,8 +41,9 @@ export async function persistBook(book: Book): Promise<string | null> {
       isbn: book.isbn,
       title: book.title,
       author: book.author || null,
-      cover_image_url: book.coverImageUrl,
-      source_url: book.sourceUrl,
+      // ★ URLは検査してから入れる。ここが <a href> と <img src> になる（safe-url.ts）
+      cover_image_url: safeBookUrl(book.coverImageUrl),
+      source_url: safeBookUrl(book.sourceUrl),
     })
     .select("id")
     .single();
