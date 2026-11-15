@@ -221,6 +221,7 @@ export function SearchSheet({ open, onClose, onPick, present }: Props) {
                 key={book.id}
                 book={book}
                 added={present.has(book.id)}
+                query={query}
                 onPick={() => onPick(book)}
               />
             ))}
@@ -500,13 +501,58 @@ function sourceLabel(book: Book): string {
   }
 }
 
+/**
+ * ★ **打った語を薄くして、違うところを浮かせる。**
+ *
+ * 「英検2級」で引くと、全部の行に「英検2級」が入る。**同じ語が繰り返されると、
+ * 読むべき「過去問集」「二次試験」の方が埋もれる。**
+ * 打った語は既に分かっているので、そこを沈めて差分を読ませる。
+ *
+ * 強調（太字）ではなく減光にしているのは、**目立たせたいのが逆だから。**
+ */
+function Title({ text, query }: { text: string; query: string }) {
+  const needle = query.trim();
+  if (!needle) return <>{text}</>;
+
+  // 打った語で切って、挟まれた部分だけ通常の濃さで出す
+  const parts: Array<{ text: string; hit: boolean }> = [];
+  let rest = text;
+  let guard = 0;
+  while (guard++ < 20) {
+    const at = rest.toLowerCase().indexOf(needle.toLowerCase());
+    if (at < 0) break;
+    if (at > 0) parts.push({ text: rest.slice(0, at), hit: false });
+    parts.push({ text: rest.slice(at, at + needle.length), hit: true });
+    rest = rest.slice(at + needle.length);
+  }
+  if (rest) parts.push({ text: rest, hit: false });
+  if (parts.length === 0) return <>{text}</>;
+
+  return (
+    <>
+      {parts.map((p, i) =>
+        p.hit ? (
+          <span key={i} className="text-ink-faint">
+            {p.text}
+          </span>
+        ) : (
+          <span key={i}>{p.text}</span>
+        ),
+      )}
+    </>
+  );
+}
+
 function ResultRow({
   book,
   added,
+  query,
   onPick,
 }: {
   book: Book;
   added: boolean;
+  /** 打った語。書名の中のこの部分を沈める */
+  query: string;
   onPick: () => void;
 }) {
   const label = sourceLabel(book);
@@ -548,7 +594,9 @@ function ResultRow({
           2行まで出す。それでも入らないものは少ないし、
           行の高さが揃わないより**読めないことの方が困る。**
         */}
-        <span className="block text-[0.86rem] leading-[1.45] line-clamp-2">{book.title}</span>
+        <span className="block text-[0.86rem] leading-[1.45] line-clamp-2">
+          <Title text={book.title} query={query} />
+        </span>
         <span className="mt-0.5 block font-mono text-[0.66rem] text-ink-faint">
           {meta}
           {meta && label ? "・" : ""}
