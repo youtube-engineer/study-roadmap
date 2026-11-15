@@ -358,15 +358,26 @@ function ResultRow({
               }
             }
       }
-      className={`flex items-center gap-2.5 border-b border-rule px-3 py-2.5 text-left last:border-b-0 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent ${
+      className={`flex items-start gap-2.5 border-b border-rule px-3 py-2.5 text-left last:border-b-0 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent ${
         added ? "opacity-50" : "cursor-pointer hover:bg-sunk"
       }`}
     >
       <BookCover book={book} size="sm" />
 
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[0.86rem]">{book.title}</span>
-        <span className="block font-mono text-[0.66rem] text-ink-faint">
+        {/*
+          ★ **書名を1行で切らない。**
+
+          参考書の書名は**肝心の語が後ろに来る**。
+          「2026-2027年対応 直前対策 英検2級 3回過去問集」を1行で切ると
+          「…英検2級」までしか出ず、**過去問なのか予想問題なのか分からない。**
+          そうなると表紙の絵で見分けるしかなくなって、探すのがひどく疲れる。
+
+          2行まで出す。それでも入らないものは少ないし、
+          行の高さが揃わないより**読めないことの方が困る。**
+        */}
+        <span className="block text-[0.86rem] leading-[1.45] line-clamp-2">{book.title}</span>
+        <span className="mt-0.5 block font-mono text-[0.66rem] text-ink-faint">
           {meta}
           {meta && label ? "・" : ""}
           {/*
@@ -378,7 +389,7 @@ function ResultRow({
       </span>
 
       <span
-        className={`flex-none rounded-full px-2 py-[0.16em] text-[0.71rem] ${
+        className={`mt-0.5 flex-none rounded-full px-2 py-[0.16em] text-[0.71rem] ${
           added ? "bg-sunk text-ink-faint" : "bg-accent-soft text-accent-strong"
         }`}
       >
