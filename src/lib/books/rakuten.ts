@@ -254,9 +254,100 @@ export async function listPopular(): Promise<Book[]> {
 }
 
 /** 書名で探す。ユーザーは書名で探すので title に入れる */
+/**
+ * ★ **打った語を、当たる形に組み直す。**
+ *
+ * 楽天の `title=` は**語順どおりの部分一致**で、空白で区切ると AND（順不同）になる。
+ * そのまま渡すと通称がほぼ当たらない。実測した挙動:
+ *
+ * ```
+ * ポラリス英文法2     0件   続けて書くと、その並びの書名しか当たらない
+ * ポラリス 英文法      7件   空白で区切れば順不同で当たる
+ * ポラリス 英文法 2    0件   ★ 数字を足すと落ちる
+ * ```
+ *
+ * 数字が落ちるのは、書名では「ポラリス［2　応用レベル］」のように
+ * **記号に挟まれて離れている**ため。巻数は人がよく打つのに、一番外れやすい。
+ */
+function variants(query: string): string[] {
+  const q = query.trim().replace(/[\s　]+/g, " ");
+  if (!q) return [];
+
+  /**
+   * 文字種の切れ目で分ける。
+   *
+   * ⚠ **英字と数字のあいだも切る。** 切らないと `rules3` が1語のままで、
+   * 候補が1つも増えない（実際に当たらなかった）。
+   *
+   * ⚠ **「準1」「第2」のような接頭辞は切り離さない。** 切ると「準」だけが
+   * 残って意味が壊れ、AND条件で全部落ちる。
+   */
+  const split = q
+    .replace(/([\u3040-\u30ff\u4e00-\u9fff])([A-Za-z])/g, "$1 $2")
+    .replace(/([A-Za-z])([\u3040-\u30ff\u4e00-\u9fff])/g, "$1 $2")
+    .replace(/([\u4e00-\u9fff])([\u30a0-\u30ff])/g, "$1 $2")
+    .replace(/([\u30a0-\u30ff])([\u4e00-\u9fff])/g, "$1 $2")
+    // 英字と数字（rules3 → rules 3）
+    .replace(/([A-Za-z])([0-9])/g, "$1 $2")
+    .replace(/([0-9])([A-Za-z])/g, "$1 $2")
+    // かなカナ漢字と数字。ただし「準1」「第2」「級」などは残す
+    .replace(/([\u3040-\u30ff\u4e00-\u9fff])([0-9])/g, (m, a, b) =>
+      "準第全上下初中高".includes(a) ? m : `${a} ${b}`,
+    )
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const words = split.split(" ");
+  const noDigits = words.filter((w) => !/^[0-9]+$/.test(w)).join(" ");
+
+  /** 語が多いときは、短い語（巻数や記号めいたもの）を落として本命だけ残す */
+  const longOnly = words.filter((w) => w.length >= 2).join(" ");
+
+  /**
+   * 上から順に試して、最初に「関係がある」結果が出たものを採る。
+   * **緩める方向にだけ進む。**
+   */
+  return [...new Set([q, split, noDigits, longOnly].filter(Boolean))];
+}
+
+/**
+ * 打った語の「中身」がどれだけ書名に入っているか。
+ *
+ * ⚠ **1件でも返ったら当たり、とはしない。**
+ * `rules3` は `EURO STYLE TRUCKS（3）` に当たってしまう（「3」だけの一致）。
+ * **当たった気になって緩めるのをやめる**ので、本命に辿り着けない。
+ */
+function looksRelevant(query: string, books: Book[]): boolean {
+  const words = query
+    .toLowerCase()
+    .split(/[\s　]+/)
+    .filter((w) => w.length >= 2 && !/^[0-9]+$/.test(w));
+  if (words.length === 0) return books.length > 0;
+
+  /**
+   * **一番長い語が入っているかで見る。** その語が打った内容の芯になっている
+   * （「rules」「ポラリス」「ワークブック」）。
+   * どれか1語でよしとすると `rules3` が `EURO STYLE TRUCKS（3）` に当たって
+   * しまい、**当たった気になって緩めるのをやめる。**
+   */
+  const key = words.reduce((a, b) => (b.length > a.length ? b : a));
+  return books.some((b) => b.title.toLowerCase().includes(key));
+}
+
 export async function searchByTitle(query: string): Promise<Book[]> {
-  const items = await call({ title: query });
-  return items.map(toBook).filter((b): b is Book => b !== null);
+  let fallback: Book[] = [];
+
+  for (const title of variants(query)) {
+    const items = await call({ title });
+    const books = items.map(toBook).filter((b): b is Book => b !== null);
+    if (books.length === 0) continue;
+
+    if (looksRelevant(title, books)) return books;
+    // 関係が薄い結果しか無いときは、覚えておいて次の形を試す
+    if (fallback.length === 0) fallback = books;
+  }
+
+  return fallback;
 }
 
 export async function findByIsbn(isbn: string): Promise<Book | null> {
