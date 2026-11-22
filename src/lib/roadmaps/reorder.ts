@@ -93,3 +93,28 @@ export function orderByIndex<T extends Ordered>(rows: T[]): { rows: T[]; repaire
 export function seedKey(): string {
   return generateKeyBetween(null, null);
 }
+
+/**
+ * ★ **並べ替えた結果が、キーの順どおりに読めるか確かめる。**
+ *
+ * `keyBetween` は前後の2つしか見ない。前後が壊れている（同じキーが並ぶ、
+ * 空）ときは逃げ道に落ち、**返ってきたキーが別の行とぶつかることがある。**
+ * 一度ぶつかると、その隙間に挟む計算が以後ずっと例外になり、
+ * **逃げ道が逃げ道を呼んで壊れ方が広がる。**
+ *
+ * → 並べ替えるたびに、**並べたい順とキーの順が一致しているか**を見る。
+ * していなければ全部振り直す。段や本は多くても数十なので、
+ * 直すのが遅れて崩れるより、その場で作り直す方が安い。
+ */
+export function sealOrder<T extends Ordered>(rows: T[]): { rows: T[]; renumbered: boolean } {
+  const keys = rows.map((r) => key(r));
+  const sound =
+    keys.every((k) => k !== null) &&
+    new Set(keys).size === keys.length &&
+    keys.every((k, i) => i === 0 || keys[i - 1]! < k!);
+
+  if (sound) return { rows, renumbered: false };
+
+  const fresh = generateNKeysBetween(null, null, rows.length);
+  return { rows: rows.map((row, i) => ({ ...row, fractionalIndex: fresh[i] })), renumbered: true };
+}

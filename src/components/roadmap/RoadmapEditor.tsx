@@ -12,7 +12,7 @@ import { Sheet } from "@/components/sheets/Sheet";
 import { Toast } from "@/components/ui/Toast";
 import { FlagIcon, ShareIcon } from "@/components/ui/icons";
 import { deleteLocalRoadmap, loadLocalRoadmap, saveLocal } from "@/lib/db/local";
-import { keyBetween, orderByIndex } from "@/lib/roadmaps/reorder";
+import { keyBetween, orderByIndex, sealOrder } from "@/lib/roadmaps/reorder";
 import { newShareSlug } from "@/lib/roadmaps/slug";
 import { createRoadmapSync } from "@/lib/roadmaps/sync";
 import { UNTITLED } from "@/lib/roadmaps/title";
@@ -288,56 +288,86 @@ export function RoadmapEditor({ roadmap, books: initialBooks, serverHasRow, summ
   );
 
   /**
-   * ★ **手元の並び順をサーバーへ書き戻す。**
+   * ★ **並び順をサーバーと合わせる。やることは2つで、どちらも「全部書く」。**
    *
-   * 編集画面は配列の順を描き、共有ページとサーバーは `fractional_index` の
-   * 昇順で引く。**この2つは黙ってずれる**——ずれても本人の画面は正しいままなので、
+   * 編集画面は配列の順で描き、共有ページは `fractional_index` で並べる。
+   * **この2つは黙ってずれる**——ずれても本人の画面は正しいままなので、
    * **共有したものだけ段がバラバラ**という形でしか表に出ない。
-   * 実際に9段のうち5段が同じキー（`a0`）になっていた1本があった。
    *
-   * 「キーが壊れていたら」では足りない。**手元を直した次の読み込みでは
-   * もう壊れていないので、サーバーが取り残される。** 見るべきなのは
-   * 壊れているかどうかではなく、**手元とサーバーが食い違っているかどうか**。
-   *
-   * 手元に無いキーのぶん（まだサーバーに無い段）は update が空振りするだけ。
+   * ⚠ **一部だけ書いてはいけない。** 書かなかった行は古いキーのまま残り、
+   * **新しく書いたキーと衝突する。** 実際にこれで1本壊した——手元に5段しか
+   * 無いのに9段あるロードマップへ `a0..a4` を書き、残り4段の `a3..a6` と
+   * ぶつかって `a0` と `a1` が2つずつになった。
+   * **直すつもりの処理が、開くたびに壊す処理になる。**
    */
   useEffect(() => {
     if (!hydrated || !serverHasRow || orderSyncedRef.current) return;
 
     /**
-     * **手元に控えが無いなら書き戻さない。** このブラウザで触っていない
+     * **手元に控えが無いなら触らない。** このブラウザで触っていない
      * ロードマップなので、押し付けてよい「正しい順」を持っていない。
      * 公開されている他人のものを開いただけで `ensureRoadmap()` を走らせると、
      * 所有者違いとして id を振り直してしまう（sync.ts の takeNewId）。
      */
     if (!hasLocalRef.current) return;
 
-    const onServer = new Map<string, string | undefined>();
-    for (const stage of serverDocRef.current.stages) {
-      onServer.set(stage.id, stage.fractionalIndex);
-      for (const item of stage.items) onServer.set(item.id, item.fractionalIndex);
-    }
+    const idsOf = (stages: RoadmapStage[]) => {
+      const out = new Set<string>();
+      for (const stage of stages) {
+        out.add(stage.id);
+        for (const item of stage.items) out.add(item.id);
+      }
+      return out;
+    };
 
-    const stale: Array<{ id: string; index: string; stageId?: string }> = [];
-    for (const stage of doc.stages) {
-      if (stage.fractionalIndex && onServer.get(stage.id) !== stage.fractionalIndex) {
-        stale.push({ id: stage.id, index: stage.fractionalIndex });
+    const server = serverDocRef.current;
+    const here = idsOf(doc.stages);
+    const there = idsOf(server.stages);
+    const sameRows = here.size === there.size && [...there].every((id) => here.has(id));
+
+    /**
+     * **何を正とするか。**
+     *
+     * 行の顔ぶれが一致するなら手元が正——このブラウザで並べた順そのもの。
+     * 一致しないなら手元は古いので、**サーバーの行をサーバー自身の順で
+     * 振り直すだけ**にする（見えているものは変えない）。
+     * どちらが正しいか決められないときに手元を押し付けると、上の事故が起きる。
+     */
+    const truth = sameRows ? orderDoc(doc) : orderDoc(server);
+    const rows: Array<{ id: string; index: string; isItem: boolean }> = [];
+    for (const stage of truth.doc.stages) {
+      if (stage.fractionalIndex) {
+        rows.push({ id: stage.id, index: stage.fractionalIndex, isItem: false });
       }
       for (const item of stage.items) {
-        if (item.fractionalIndex && onServer.get(item.id) !== item.fractionalIndex) {
-          stale.push({ id: item.id, index: item.fractionalIndex, stageId: stage.id });
+        if (item.fractionalIndex) {
+          rows.push({ id: item.id, index: item.fractionalIndex, isItem: true });
         }
       }
     }
 
-    if (stale.length === 0) return;
+    const onServer = new Map<string, string | undefined>();
+    for (const stage of server.stages) {
+      onServer.set(stage.id, stage.fractionalIndex);
+      for (const item of stage.items) onServer.set(item.id, item.fractionalIndex);
+    }
+
+    // 何も変わらないなら書かない。開くたびに update を投げても意味がない
+    if (rows.every((r) => onServer.get(r.id) === r.index)) return;
     orderSyncedRef.current = true;
 
-    for (const row of stale) {
-      if (row.stageId) void sync.patchItem(row.id, { fractionalIndex: row.index });
+    /**
+     * **差分だけでなく全行を書く。** 同じ値を書き直す無駄より、
+     * 書き忘れた行が衝突する方がずっと高くつく。段と本で高々数十行。
+     */
+    for (const row of rows) {
+      if (row.isItem) void sync.patchItem(row.id, { fractionalIndex: row.index });
       else void sync.moveStage(row.id, row.index);
     }
-  }, [hydrated, serverHasRow, doc.stages, sync]);
+
+    // 振り直したなら手元もその値にしておく。次に開いたとき また書き直さない
+    if (sameRows && truth.repaired) setDoc(truth.doc);
+  }, [hydrated, serverHasRow, doc, sync]);
 
   /**
    * その id が既に他人のものだったら、**手元のロードマップに別の id を振り直す。**
@@ -640,6 +670,24 @@ export function RoadmapEditor({ roadmap, books: initialBooks, serverHasRow, summ
       } else {
         void sync.moveItem(itemId, toStageId, fractionalIndex);
       }
+
+      /**
+       * ★ **移した先の棚が、キーの順どおりに読めるか確かめる。**
+       * `keyBetween` は前後しか見ないので、棚の中に壊れたキーがあると
+       * ぶつかるキーを返すことがある。ぶつかったら棚ごと振り直す。
+       */
+      const after = [...(toStageId === found.stage.id ? remaining : target.items)];
+      after.splice(at, 0, moved);
+      const sealed = sealOrder(after);
+      if (!sealed.renumbered) return;
+
+      setDoc((d) => ({
+        ...d,
+        stages: d.stages.map((s) => (s.id === toStageId ? { ...s, items: sealed.rows } : s)),
+      }));
+      for (const item of sealed.rows) {
+        void sync.patchItem(item.id, { fractionalIndex: item.fractionalIndex! });
+      }
     },
     [doc.stages, findItem, sync],
   );
@@ -651,15 +699,24 @@ export function RoadmapEditor({ roadmap, books: initialBooks, serverHasRow, summ
       const to = doc.stages.findIndex((s) => s.id === overId);
       if (from < 0 || to < 0 || from === to) return;
 
-      const next = [...doc.stages];
-      const [moved] = next.splice(from, 1);
-      next.splice(to, 0, moved);
+      const moving = [...doc.stages];
+      const [moved] = moving.splice(from, 1);
+      moving.splice(to, 0, moved);
+      moving[to] = { ...moving[to], fractionalIndex: keyBetween(moving[to - 1], moving[to + 1]) };
 
-      const fractionalIndex = keyBetween(next[to - 1], next[to + 1]);
-      next[to] = { ...next[to], fractionalIndex };
+      /**
+       * ★ **挟んだキーが本当に収まっているか確かめる。**
+       * `keyBetween` は前後しか見ないので、前後が壊れていると
+       * 別の段とぶつかるキーを返すことがある。ぶつかったら全部振り直す。
+       */
+      const sealed = sealOrder(moving);
+      setDoc((d) => ({ ...d, stages: sealed.rows }));
 
-      setDoc((d) => ({ ...d, stages: next }));
-      void sync.moveStage(activeId, fractionalIndex);
+      if (sealed.renumbered) {
+        for (const stage of sealed.rows) void sync.moveStage(stage.id, stage.fractionalIndex!);
+      } else {
+        void sync.moveStage(activeId, sealed.rows[to].fractionalIndex!);
+      }
     },
     [doc.stages, sync],
   );

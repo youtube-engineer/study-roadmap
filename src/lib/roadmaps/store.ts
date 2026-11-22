@@ -152,15 +152,27 @@ async function loadStagesAndBooks(
    * **逆の順を出す。** 段を一番上へ動かすと共有ページでは一番下に出る——
    * 「共有すると段がバラバラ」の正体がこれだった。
    *
-   * 並べる場所を1つにすれば照合順の違いが効かない。`orderByIndex` は
-   * キーが壊れているとき（空・重複）に渡された順を保つので、そこも揃う。
+   * → **`orderByIndex` で JS 側に並べ直させる。**
+   *
+   * ⚠ **`order()` 自体は残すこと。** `orderByIndex` はキーが壊れているとき
+   * （空・重複）**渡された順をそのまま保つ**ので、土台が要る。外すと
+   * Postgres は順序を保証しないので、**壊れたロードマップの共有ページが
+   * 読み込むたびに違う順で出る。** 照合順で並んでいれば少なくとも毎回同じ。
    *
    * （`0010_index_collation.sql` で列を `collate "C"` にすると DB 側も
    *   バイト順になるが、**それに頼らない。** 片方だけ流し忘れると黙ってずれる）
    */
   const [{ data: stageRows }, { data: itemRows, error }] = await Promise.all([
-    supabase.from("roadmap_stages").select("*").eq("roadmap_id", roadmapId),
-    supabase.from("roadmap_items").select("*").eq("roadmap_id", roadmapId),
+    supabase
+      .from("roadmap_stages")
+      .select("*")
+      .eq("roadmap_id", roadmapId)
+      .order("fractional_index", { ascending: true }),
+    supabase
+      .from("roadmap_items")
+      .select("*")
+      .eq("roadmap_id", roadmapId)
+      .order("fractional_index", { ascending: true }),
   ]);
 
   if (error) console.error("[roadmaps/store] items", error);
