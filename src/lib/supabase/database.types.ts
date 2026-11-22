@@ -73,13 +73,13 @@ export type Database = {
           id: string;
           roadmap_id: string;
           name: string;
-          fractional_index: string;
+          position: number;
         };
         Insert: {
           id?: string;
           roadmap_id: string;
           name?: string;
-          fractional_index: string;
+          position: number;
         };
         Update: Partial<Database["public"]["Tables"]["roadmap_stages"]["Insert"]>;
         Relationships: [];
@@ -90,7 +90,7 @@ export type Database = {
           roadmap_id: string;
           stage_id: string;
           book_id: string;
-          fractional_index: string;
+          position: number;
           is_done: boolean;
           rounds_target: number | null;
           note: string;
@@ -100,7 +100,7 @@ export type Database = {
           roadmap_id: string;
           stage_id: string;
           book_id: string;
-          fractional_index: string;
+          position: number;
           is_done?: boolean;
           rounds_target?: number | null;
           note?: string;

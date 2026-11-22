@@ -12,7 +12,6 @@ import {
   getRoadmapBySlug as mockBySlug,
 } from "./mock-store";
 import { newShareSlug } from "./slug";
-import { orderByIndex, seedKey } from "@/lib/roadmaps/reorder";
 
 /**
  * ロードマップの読み取り。
@@ -119,7 +118,7 @@ export function placeholderRoadmap(id: string): Roadmap {
     isPublic: false,
     shareSlug: newShareSlug(),
     tags: [],
-    stages: [{ id: crypto.randomUUID(), name: "", items: [], fractionalIndex: seedKey() }],
+    stages: [{ id: crypto.randomUUID(), name: "", items: [] }],
     authorName: null,
     copiedFrom: null,
     createdAt: new Date().toISOString(),
@@ -136,67 +135,46 @@ async function loadStagesAndBooks(
 ): Promise<{ stages: RoadmapStage[]; books: Book[] }> {
   const supabase = await getServerClient();
   const empty = {
-    stages: [{ id: crypto.randomUUID(), name: "", items: [], fractionalIndex: seedKey() }],
+    stages: [{ id: crypto.randomUUID(), name: "", items: [] }],
     books: [],
   };
   if (!supabase) return empty;
 
   /**
-   * ★ **`order("fractional_index")` を使わない。並べるのは JS 側。**
+   * ★ **並べるのは `position` だけ。** 配列にした時点で順番は確定する。
    *
-   * fractional-indexing は**先頭へ挿入すると大文字から始まるキー**を作る
-   * （`a0` の前は `Zz`、その前は `Zy`）。ブラウザの文字列比較はコード単位の順で
-   * `Zz < a0` だが、**Postgres の既定の照合順は言語向け**なので `a0 < Zz` になる。
-   *
-   * 同じキーの組なのに、編集画面（JS で並べる）と共有ページ（DB で並べる）が
-   * **逆の順を出す。** 段を一番上へ動かすと共有ページでは一番下に出る——
-   * 「共有すると段がバラバラ」の正体がこれだった。
-   *
-   * → **`orderByIndex` で JS 側に並べ直させる。**
-   *
-   * ⚠ **`order()` 自体は残すこと。** `orderByIndex` はキーが壊れているとき
-   * （空・重複）**渡された順をそのまま保つ**ので、土台が要る。外すと
-   * Postgres は順序を保証しないので、**壊れたロードマップの共有ページが
-   * 読み込むたびに違う順で出る。** 照合順で並んでいれば少なくとも毎回同じ。
-   *
-   * （`0010_index_collation.sql` で列を `collate "C"` にすると DB 側も
-   *   バイト順になるが、**それに頼らない。** 片方だけ流し忘れると黙ってずれる）
+   * 以前は fractional indexing のキーを使っていて、**JS と Postgres で
+   * 大小が逆**（`Zz` と `a0`）という罠があった。連番なら数値なので起きない。
    */
   const [{ data: stageRows }, { data: itemRows, error }] = await Promise.all([
     supabase
       .from("roadmap_stages")
       .select("*")
       .eq("roadmap_id", roadmapId)
-      .order("fractional_index", { ascending: true }),
+      .order("position", { ascending: true }),
     supabase
       .from("roadmap_items")
       .select("*")
       .eq("roadmap_id", roadmapId)
-      .order("fractional_index", { ascending: true }),
+      .order("position", { ascending: true }),
   ]);
 
   if (error) console.error("[roadmaps/store] items", error);
   if (!stageRows || stageRows.length === 0) return empty;
 
-  const stages: RoadmapStage[] = orderByIndex(
-    stageRows.map((stage) => ({
-      id: stage.id,
-      name: stage.name,
-      fractionalIndex: stage.fractional_index,
-      items: orderByIndex(
-        (itemRows ?? [])
-          .filter((row) => row.stage_id === stage.id)
-          .map((row) => ({
-            id: row.id,
-            bookId: row.book_id,
-            isDone: row.is_done,
-            roundsTarget: row.rounds_target,
-            note: row.note,
-            fractionalIndex: row.fractional_index,
-          })),
-      ).rows,
-    })),
-  ).rows;
+  const stages: RoadmapStage[] = stageRows.map((stage) => ({
+    id: stage.id,
+    name: stage.name,
+    items: (itemRows ?? [])
+      .filter((row) => row.stage_id === stage.id)
+      .map((row) => ({
+        id: row.id,
+        bookId: row.book_id,
+        isDone: row.is_done,
+        roundsTarget: row.rounds_target,
+        note: row.note,
+      })),
+  }));
 
   const bookIds = [...new Set((itemRows ?? []).map((row) => row.book_id))];
   if (bookIds.length === 0) return { stages, books: [] };

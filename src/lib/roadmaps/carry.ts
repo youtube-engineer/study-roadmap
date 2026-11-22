@@ -5,7 +5,6 @@ import { getBrowserClient } from "@/lib/supabase/client";
 import type { Book } from "@/types/roadmap";
 
 import { newShareSlug } from "./slug";
-import { orderByIndex } from "@/lib/roadmaps/reorder";
 
 /**
  * この端末に残っている作りかけを、今ログインしているアカウントのものとして作り直す。
@@ -152,19 +151,16 @@ export async function carryLocalRoadmapsToCurrentUser(): Promise<CarryResult> {
 
     /**
      * 段を作り直す。元id → 新id を持っておかないと参考書の行き先が決まらない。
-     *
-     * ⚠ **`a${index}` で埋めないこと。** 10段目で `a10` になるが、これは
-     * fractional-indexing のキーとして不正で、以後その前後に挟めなくなる。
-     * `orderByIndex` に通せば、欠けていても**正しいキーに振り直される**。
+     * 並びは**配列の添字をそのまま**入れる（手元の順がそのまま正）。
      */
-    const orderedStages = orderByIndex(local.roadmap.stages).rows;
-    const stageRows = orderedStages.map((stage) => ({
+    const orderedStages = local.roadmap.stages;
+    const stageRows = orderedStages.map((stage, position) => ({
       from: stage.id,
       row: {
         id: crypto.randomUUID(),
         roadmap_id: newId,
         name: stage.name,
-        fractional_index: stage.fractionalIndex!,
+        position,
       },
     }));
 
@@ -181,8 +177,8 @@ export async function carryLocalRoadmapsToCurrentUser(): Promise<CarryResult> {
     const stageIds = new Map(stageRows.map((s) => [s.from, s.row.id]));
 
     const rows = orderedStages.flatMap((stage) =>
-      orderByIndex(stage.items)
-        .rows.map((item) => {
+      stage.items
+        .map((item, position) => {
           const bookId = bookIds.get(item.bookId);
           const stageId = stageIds.get(stage.id);
           if (!bookId || !stageId) return null;
@@ -190,7 +186,7 @@ export async function carryLocalRoadmapsToCurrentUser(): Promise<CarryResult> {
             roadmap_id: newId,
             stage_id: stageId,
             book_id: bookId,
-            fractional_index: item.fractionalIndex!,
+            position,
             // 進捗は自分のものなので、こちらは引き継ぐ（他人のコピーとは違う）
             is_done: item.isDone,
             rounds_target: item.roundsTarget,

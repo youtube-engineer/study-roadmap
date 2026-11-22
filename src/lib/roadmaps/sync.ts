@@ -3,8 +3,7 @@
 
 import { ensureSession, getBrowserClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/database.types";
-import type { Book, Roadmap, RoadmapItem } from "@/types/roadmap";
-import { seedKey, keyBetween } from "@/lib/roadmaps/reorder";
+import type { Book, Roadmap, RoadmapItem, RoadmapStage } from "@/types/roadmap";
 
 /**
  * 操作を Supabase に送る層。**保存の主役ではない。**
@@ -186,7 +185,8 @@ export function createRoadmapSync(target: SyncTarget, options: SyncOptions = {})
   async function ensureStage(stage: {
     id: string;
     name: string;
-    fractionalIndex?: string;
+    /** 段の並び（配列の添字）。呼ぶ側が渡す */
+    position: number;
   }): Promise<void> {
     const supabase = getBrowserClient();
     if (!supabase) return;
@@ -197,13 +197,7 @@ export function createRoadmapSync(target: SyncTarget, options: SyncOptions = {})
         id: stage.id,
         roadmap_id: roadmapId,
         name: stage.name,
-        /**
-         * ⚠ **ここに落ちてきたら、呼ぶ側が段にキーを付け忘れている。**
-         * 返るのは `a0` ——取り得る中で最小のキーなので、**段を足すたびに
-         * `a0` が増える**（14章）。種は `seedKey()` で必ず付けること。
-         * `??` ではなく `||`：「無い」は空文字で来る（14章）。
-         */
-        fractional_index: stage.fractionalIndex || seedKey(),
+        position: stage.position,
       },
       { onConflict: "id", ignoreDuplicates: true },
     );
@@ -213,15 +207,6 @@ export function createRoadmapSync(target: SyncTarget, options: SyncOptions = {})
   return {
     /** どのロードマップ用に作られたものか。編集画面が作り直しの要否を判断する */
     roadmapId,
-
-    /**
-     * 並び順のキーを作る。前後の行の間に挟むので、動かした行だけ更新すれば済む。
-     *
-     * **自前で書かない。** 以前ここに写しがあり、逃げ道が `a0` を返していた
-     * ——最小のキーなので先頭へ飛び、落ちるたびに同じ値になって衝突が増える。
-     * 同じ落とし穴の対処が2か所にあると、片方だけ直る（14章）。
-     */
-    keyBetween,
 
     addStage: ensureStage,
 
@@ -233,11 +218,7 @@ export function createRoadmapSync(target: SyncTarget, options: SyncOptions = {})
      * update は空振りして**エラーも出ない**ので、名前を付けただけの段は
      * 共有ページから丸ごと消える。
      */
-    async renameStage(stage: {
-      id: string;
-      name: string;
-      fractionalIndex?: string;
-    }): Promise<void> {
+    async renameStage(stage: { id: string; name: string; position: number }): Promise<void> {
       const supabase = getBrowserClient();
       if (!supabase) return;
       if (!(await ensureRoadmap())) return;
@@ -263,15 +244,46 @@ export function createRoadmapSync(target: SyncTarget, options: SyncOptions = {})
      * 行が既にあれば `ensureRoadmap()` は引き直して立てるだけ。
      * 並べ替えも立派な書き込みなので、`setTitle` と同じ扱いでよい。
      */
-    async moveStage(stageId: string, fractionalIndex: string): Promise<void> {
+    /**
+     * ★ **並び順は丸ごと書く。差分にしない。**
+     *
+     * 以前は「動かした1行だけ更新」していた（fractional indexing）。何千行も
+     * ある表なら効くが、**ロードマップは数十行**なので割に合わない。
+     * 節約したのは1回の書き込みで、代わりに**手元とサーバーがずれる余地**を
+     * 買っていた（14章）。
+     *
+     * 配列の添字をそのまま入れるので、**渡された並びがそのまま正**になる。
+     * 書き忘れた行が古い値で生き残ることが無い。
+     */
+    async saveOrder(stages: RoadmapStage[]): Promise<void> {
       const supabase = getBrowserClient();
       if (!supabase || !(await ensureRoadmap())) return;
 
-      const { error } = await supabase
-        .from("roadmap_stages")
-        .update({ fractional_index: fractionalIndex })
-        .eq("id", stageId);
-      if (error) fail("moveStage", error);
+      const work = [];
+      for (const [position, stage] of stages.entries()) {
+        work.push(
+          Promise.resolve(
+            supabase.from("roadmap_stages").update({ position }).eq("id", stage.id),
+          ),
+        );
+        for (const [at, item] of stage.items.entries()) {
+          work.push(
+            Promise.resolve(
+              supabase
+                .from("roadmap_items")
+                .update({ position: at, stage_id: stage.id })
+                .eq("id", item.id),
+            ),
+          );
+        }
+      }
+
+      for (const { error } of await Promise.all(work)) {
+        if (error) {
+          fail("saveOrder", error);
+          return;
+        }
+      }
     },
 
     /** 段を消すと中の参考書も消える（on delete cascade） */
@@ -286,7 +298,9 @@ export function createRoadmapSync(target: SyncTarget, options: SyncOptions = {})
     async addItem(
       item: RoadmapItem,
       book: Book,
-      stage: { id: string; name: string; fractionalIndex?: string },
+      stage: { id: string; name: string; position: number },
+      /** 棚の中での並び（配列の添字） */
+      position: number,
     ): Promise<void> {
       const supabase = getBrowserClient();
       if (!supabase) return;
@@ -303,7 +317,7 @@ export function createRoadmapSync(target: SyncTarget, options: SyncOptions = {})
         roadmap_id: roadmapId,
         stage_id: stage.id,
         book_id: bookId,
-        fractional_index: item.fractionalIndex || seedKey(),
+        position,
         is_done: item.isDone,
         rounds_target: item.roundsTarget,
         note: item.note,
@@ -312,14 +326,17 @@ export function createRoadmapSync(target: SyncTarget, options: SyncOptions = {})
       if (error) fail("addItem", error);
     },
 
-    /** 別の段へ移す。並び順のキーも一緒に打ち替える */
-    async moveItem(itemId: string, stageId: string, fractionalIndex: string): Promise<void> {
+    /**
+     * 別の段へ移す。**順番はここで書かない**——`saveOrder` がまとめて書く。
+     * 行き先が変わることだけを伝える。
+     */
+    async moveItem(itemId: string, stageId: string): Promise<void> {
       const supabase = getBrowserClient();
       if (!supabase || !(await ensureRoadmap())) return;
 
       const { error } = await supabase
         .from("roadmap_items")
-        .update({ stage_id: stageId, fractional_index: fractionalIndex })
+        .update({ stage_id: stageId })
         .eq("id", itemId);
       if (error) fail("moveItem", error);
     },
@@ -332,7 +349,6 @@ export function createRoadmapSync(target: SyncTarget, options: SyncOptions = {})
       if (patch.isDone !== undefined) row.is_done = patch.isDone;
       if (patch.roundsTarget !== undefined) row.rounds_target = patch.roundsTarget;
       if (patch.note !== undefined) row.note = patch.note;
-      if (patch.fractionalIndex !== undefined) row.fractional_index = patch.fractionalIndex;
       if (Object.keys(row).length === 0) return;
 
       const { error } = await supabase.from("roadmap_items").update(row).eq("id", itemId);

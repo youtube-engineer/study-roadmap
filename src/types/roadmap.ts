@@ -38,13 +38,22 @@ export type Book = {
  * 枝分かれ（8章で取り下げたもの）とは別物。あれは「本線か補助か」という
  * 性質の分岐だったが、これは順番に進む区切り。経路は1本のまま。
  */
+/**
+ * ★ **並び順は配列の順そのもの。** 番号は持たない。
+ *
+ * 以前は fractional indexing のキーを持っていたが、**順番を2つの形で
+ * 表すことになる**（配列の順と、キーを並べ替えた順）。片方だけ更新されると
+ * ずれて、しかも編集画面は配列を見ているので**本人には正しく見える。**
+ * 共有して初めて分かる、という一番たちの悪い壊れ方をした（CLAUDE.md 14章）。
+ *
+ * サーバーには `position` 列があるが、それは**保存のたびに配列の添字から
+ * 振り直すだけ**で、ここでは持たない。正は常に配列1つ。
+ */
 export type RoadmapStage = {
   id: string;
   /** 自由入力。空でも構わない */
   name: string;
   items: RoadmapItem[];
-  /** 並び順のキー（fractional indexing） */
-  fractionalIndex?: string;
 };
 
 export type RoadmapItem = {
@@ -56,12 +65,6 @@ export type RoadmapItem = {
   roundsTarget: number | null;
   /** この本をどう使うかのメモ。共有時に相手が読む部分 */
   note: string;
-  /**
-   * 並び順のキー（fractional indexing）。
-   * 1冊動かすたびに動かした行だけ更新するためのもの（CLAUDE.md 4章）。
-   * 保存されていないロードマップではまだ持っていない。
-   */
-  fractionalIndex?: string;
 };
 
 /** コピー時点のスナップショット。元が消えても表示だけは残すために持つ（CLAUDE.md 6章） */

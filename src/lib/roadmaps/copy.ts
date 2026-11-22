@@ -53,12 +53,12 @@ export async function copyRoadmapForCurrentUser(slug: string): Promise<string | 
       .from("roadmap_stages")
       .select("*")
       .eq("roadmap_id", source.id)
-      .order("fractional_index", { ascending: true }),
+      .order("position", { ascending: true }),
     supabase
       .from("roadmap_items")
       .select("*")
       .eq("roadmap_id", source.id)
-      .order("fractional_index", { ascending: true }),
+      .order("position", { ascending: true }),
   ]);
 
   const user = await requireUser(supabase);
@@ -101,7 +101,7 @@ export async function copyRoadmapForCurrentUser(slug: string): Promise<string | 
         id: newStageId,
         roadmap_id: created.id,
         name: stage.name,
-        fractional_index: stage.fractional_index,
+        position: stage.position,
       };
     });
     const { error: stagesError } = await supabase.from("roadmap_stages").insert(rows);
@@ -117,7 +117,7 @@ export async function copyRoadmapForCurrentUser(slug: string): Promise<string | 
           roadmap_id: created.id,
           stage_id: stageId,
           book_id: item.book_id,
-          fractional_index: item.fractional_index,
+          position: item.position,
           // 進捗は引き継がない
           is_done: false,
           rounds_target: item.rounds_target,
