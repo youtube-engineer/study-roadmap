@@ -32,9 +32,20 @@ export function SearchSheet({ open, onClose, onPick, present }: Props) {
   /** 手入力の欄を開いているか。開くまでは1行のボタンとして畳んでおく */
   const [manualOpen, setManualOpen] = useState(false);
 
+  /**
+   * ★ **選んだものを溜めて、最後にまとめて入れる。**
+   *
+   * 1冊ごとに即入れる形だと、押した瞬間に確定するので**選び直せない。**
+   * 「rules」で引いて 1・2・3 を取りたい、という場面がそもそも普通なのに、
+   * 1冊目で確定すると残りを入れるのに検索からやり直すことになっていた。
+   *
+   * 押す＝選ぶ、にして、下の帯で一度に入れる。選び直しは押し直すだけ。
+   */
+  const [picked, setPicked] = useState<Book[]>([]);
+
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // 開いた瞬間に入力を空へ戻す（レンダー中に前回値と比べる）
+  // 開いた瞬間に入力と選択を空へ戻す（レンダー中に前回値と比べる）
   const [wasOpen, setWasOpen] = useState(open);
   if (open !== wasOpen) {
     setWasOpen(open);
@@ -43,6 +54,7 @@ export function SearchSheet({ open, onClose, onPick, present }: Props) {
       setManualAuthor("");
       setManualTitle("");
       setManualOpen(false);
+      setPicked([]);
     }
   }
 
@@ -107,6 +119,8 @@ export function SearchSheet({ open, onClose, onPick, present }: Props) {
       sourceUrl: null,
       hue: hueFromTitle(title),
     });
+    // 手入力は1件で終わる。選んで溜める検索と違って、入れたら閉じてよい
+    onClose();
   };
 
   const nothingFound = status === "ok" && results.length === 0 && query.trim() !== "";
@@ -184,8 +198,15 @@ export function SearchSheet({ open, onClose, onPick, present }: Props) {
                   key={book.id}
                   book={book}
                   added={present.has(book.id)}
+                  picked={picked.some((p) => p.id === book.id)}
                   query={query}
-                  onPick={() => onPick(book)}
+                  onToggle={() =>
+                    setPicked((prev) =>
+                      prev.some((p) => p.id === book.id)
+                        ? prev.filter((p) => p.id !== book.id)
+                        : [...prev, book],
+                    )
+                  }
                 />
               ))}
             </div>
@@ -210,6 +231,37 @@ export function SearchSheet({ open, onClose, onPick, present }: Props) {
         切り替わると打ち直したい検索結果が見えなくなる（8章「検索を行き止まりに
         しない」）。
       */}
+      {/*
+        ★ **選んだぶんをまとめて入れる帯。**
+
+        選んでいるあいだだけ出す。0冊のときに押せないボタンを置いておくより、
+        **選べば出る**方が「選ぶ → 入れる」という順番がそのまま読める。
+        入れたらシートを閉じる——ここで作業は終わっているので、
+        閉じないと棚が見えず、何冊入ったのか確かめられない。
+      */}
+      {!manualOpen && picked.length > 0 && (
+        <div className="flex items-center gap-2 border-t border-rule px-3 py-2.5">
+          <button
+            type="button"
+            onClick={() => setPicked([])}
+            className="rounded-[10px] border border-rule-strong px-3.5 py-2.5 text-[0.84rem] text-ink-soft hover:border-accent hover:text-accent-strong"
+          >
+            選び直す
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              for (const book of picked) onPick(book);
+              setPicked([]);
+              onClose();
+            }}
+            className="flex-1 rounded-[10px] bg-accent px-4 py-2.5 text-[0.9rem] font-bold text-accent-ink hover:bg-accent-strong"
+          >
+            {picked.length} 冊を棚に入れる
+          </button>
+        </div>
+      )}
+
       <div className={manualOpen ? "px-4 pb-4 pt-1" : "border-t border-rule px-3 py-2.5"}>
         {manualOpen ? (
           <div className="flex flex-col gap-3.5">
@@ -387,14 +439,18 @@ function Title({ text, query }: { text: string; query: string }) {
 function ResultCard({
   book,
   added,
+  picked,
   query,
-  onPick,
+  onToggle,
 }: {
   book: Book;
+  /** もうロードマップに入っている。押せない */
   added: boolean;
+  /** これから入れるものとして選ばれている */
+  picked: boolean;
   /** 打った語。書名の中のこの部分を沈める */
   query: string;
-  onPick: () => void;
+  onToggle: () => void;
 }) {
   const label = sourceLabel(book);
   const meta = [book.author, book.publishedYear].filter(Boolean).join("・");
@@ -405,19 +461,20 @@ function ResultCard({
       tabIndex={added ? undefined : 0}
       aria-disabled={added}
       aria-label={book.title}
-      onClick={added ? undefined : onPick}
+      aria-pressed={added ? undefined : picked}
+      onClick={added ? undefined : onToggle}
       onKeyDown={
         added
           ? undefined
           : (e) => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
-                onPick();
+                onToggle();
               }
             }
       }
       className={`group flex flex-col gap-1.5 rounded-[10px] p-1.5 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
-        added ? "opacity-45" : "cursor-pointer hover:bg-sunk"
+        added ? "opacity-45" : picked ? "cursor-pointer bg-accent-soft" : "cursor-pointer hover:bg-sunk"
       }`}
     >
       {/*
@@ -434,6 +491,26 @@ function ResultCard({
               追加済み
             </span>
           </span>
+        )}
+
+        {/*
+          選んだ印。**表紙を隠さない。** どれを選んだかは一目で要るが、
+          絵で選んでいる最中（8章）なので表紙を覆うと見比べられなくなる。
+          角に小さく置いて、枠で囲うことで選ばれていると分かる形にする。
+        */}
+        {!added && picked && (
+          <>
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-0 rounded-[4px] ring-2 ring-accent"
+            />
+            <span
+              aria-hidden
+              className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-accent text-[0.68rem] font-bold leading-none text-accent-ink shadow-sm"
+            >
+              ✓
+            </span>
+          </>
         )}
       </span>
 
