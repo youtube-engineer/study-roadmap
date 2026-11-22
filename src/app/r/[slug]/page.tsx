@@ -3,9 +3,9 @@ import { notFound } from "next/navigation";
 
 import { SharedStage } from "@/components/roadmap/SharedStage";
 import { RakutenCredit } from "@/components/sheets/RakutenCredit";
+import { CopyRoadmapButton } from "@/components/roadmap/CopyRoadmapButton";
 import { StartBlankButton } from "@/components/roadmap/StartBlankButton";
 import { FlagIcon } from "@/components/ui/icons";
-import { copyRoadmapAction } from "@/lib/roadmaps/actions";
 import { loadSharedRoadmap } from "@/lib/roadmaps/store";
 import { allItems } from "@/types/roadmap";
 import { displayTitle } from "@/lib/roadmaps/title";
@@ -146,15 +146,7 @@ export default async function SharedRoadmapPage({ params }: Props) {
           <span className="text-[0.79rem] text-ink-faint">元のロードマップは書き換わらない。</span>
         </p>
 
-        <form action={copyRoadmapAction}>
-          <input type="hidden" name="slug" value={roadmap.shareSlug} />
-          <button
-            type="submit"
-            className="w-full rounded-[10px] bg-accent px-4 py-3 text-[0.95rem] font-medium text-accent-ink hover:bg-accent-strong"
-          >
-            このロードマップをコピーして使う
-          </button>
-        </form>
+        <CopyRoadmapButton slug={roadmap.shareSlug} />
 
         <StartBlankButton className="mt-2 w-full py-2 text-[0.82rem] text-ink-soft underline underline-offset-[3px] hover:text-ink" />
 
