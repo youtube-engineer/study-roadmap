@@ -8,7 +8,6 @@ import { hueFromTitle } from "@/lib/books/hue";
 import type { Book } from "@/types/roadmap";
 
 import { RakutenCredit } from "./RakutenCredit";
-import type { BulkHit } from "@/app/api/books/bulk/route";
 
 import { Sheet } from "./Sheet";
 
@@ -33,16 +32,6 @@ export function SearchSheet({ open, onClose, onPick, present }: Props) {
   /** 手入力の欄を開いているか。開くまでは1行のボタンとして畳んでおく */
   const [manualOpen, setManualOpen] = useState(false);
 
-  /**
-   * ★ **まとめて貼り付ける。**
-   *
-   * 何を入れるかは決まっていて、1冊ずつ検索→追加するのが面倒、という場面のため。
-   * 28冊なら28往復していた。**選ぶのは人のまま、探す手間だけを肩代わりする。**
-   */
-  const [bulkOpen, setBulkOpen] = useState(false);
-  const [bulkText, setBulkText] = useState("");
-  const [bulkBusy, setBulkBusy] = useState(false);
-  const [bulkHits, setBulkHits] = useState<BulkHit[] | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // 開いた瞬間に入力を空へ戻す（レンダー中に前回値と比べる）
@@ -104,40 +93,6 @@ export function SearchSheet({ open, onClose, onPick, present }: Props) {
    * することで、実際の学習に即したルートが組める（画面設計 05）。
    * 表紙は無いので、書名から作った色帯で代替する。
    */
-  const runBulk = async () => {
-    const lines = bulkText
-      .split("\n")
-      .map((l) => l.replace(/^\s*[-*・\d.、]+\s*/, "").trim())
-      .filter(Boolean);
-    if (lines.length === 0) return;
-
-    setBulkBusy(true);
-    try {
-      const res = await fetch("/api/books/bulk", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lines }),
-      });
-      const data = (await res.json()) as { results?: BulkHit[] };
-      setBulkHits(data.results ?? []);
-    } catch {
-      setBulkHits([]);
-    } finally {
-      setBulkBusy(false);
-    }
-  };
-
-  /** 当たったものを上から順に入れる。外れた行は手入力に回してもらう */
-  const addAllHits = () => {
-    for (const hit of bulkHits ?? []) {
-      const book = hit.candidates[0];
-      if (book && !present.has(book.id)) onPick(book);
-    }
-    setBulkHits(null);
-    setBulkText("");
-    setBulkOpen(false);
-  };
-
   const addManual = () => {
     const title = (manualOpen ? manualTitle : query).trim();
     if (!title) return;
@@ -255,110 +210,6 @@ export function SearchSheet({ open, onClose, onPick, present }: Props) {
         切り替わると打ち直したい検索結果が見えなくなる（8章「検索を行き止まりに
         しない」）。
       */}
-      {/* まとめて貼り付ける。結果が出たら、当たったものを一覧で見せる */}
-      {bulkOpen && (
-        <div className="flex flex-col gap-3 border-t border-rule px-4 pb-4 pt-3">
-          {bulkHits === null ? (
-            <>
-              <p className="text-[0.82rem] leading-relaxed text-ink-faint">
-                1行に1冊ずつ貼り付けてください。箇条書きの記号や番号は外して読みます。
-              </p>
-              <textarea
-                value={bulkText}
-                onChange={(e) => setBulkText(e.target.value)}
-                rows={6}
-                placeholder={"英検2級 でる順パス単\n英文法ポラリス1\nやっておきたい英語長文300"}
-                className="zoom-safe w-full resize-y rounded-[10px] border border-rule bg-sunk px-3 py-2.5 text-[0.88rem] leading-[1.7] text-ink outline-none placeholder:text-ink-faint focus:border-accent"
-              />
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setBulkOpen(false);
-                    setBulkText("");
-                  }}
-                  className="rounded-[10px] border border-rule-strong px-4 py-2.5 text-[0.84rem] text-ink-soft"
-                >
-                  やめる
-                </button>
-                <button
-                  type="button"
-                  onClick={runBulk}
-                  disabled={bulkBusy || bulkText.trim() === ""}
-                  className="flex-1 rounded-[10px] bg-accent px-4 py-2.5 text-[0.88rem] font-bold text-accent-ink disabled:opacity-40 enabled:hover:bg-accent-strong"
-                >
-                  {bulkBusy ? "さがしています…" : "まとめてさがす"}
-                </button>
-              </div>
-              {bulkBusy && (
-                <p className="text-[0.74rem] text-ink-faint">
-                  1冊ずつ順に調べています（楽天への問い合わせは毎秒1回まで）。
-                </p>
-              )}
-            </>
-          ) : (
-            <>
-              <p className="text-[0.82rem] text-ink-soft">
-                {bulkHits.filter((h) => h.candidates.length > 0).length} 冊が見つかりました
-                {bulkHits.some((h) => h.candidates.length === 0) && (
-                  <span className="text-ink-faint">
-                    （{bulkHits.filter((h) => h.candidates.length === 0).length} 行は該当なし）
-                  </span>
-                )}
-              </p>
-              <ul className="max-h-[34vh] overflow-y-auto">
-                {bulkHits.map((hit) => (
-                  <li
-                    key={hit.query}
-                    className="flex items-start gap-2.5 border-b border-rule py-2 last:border-b-0"
-                  >
-                    {hit.candidates[0] ? (
-                      <>
-                        <BookCover book={hit.candidates[0]} size="sm" />
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-[0.84rem] leading-[1.45] line-clamp-2">
-                            {hit.candidates[0].title}
-                          </span>
-                          <span className="mt-0.5 block text-[0.7rem] text-ink-faint">
-                            「{hit.query}」で検索
-                          </span>
-                        </span>
-                      </>
-                    ) : (
-                      <span className="min-w-0 flex-1 py-1">
-                        <span className="block text-[0.84rem] text-ink-faint line-through">
-                          {hit.query}
-                        </span>
-                        <span className="mt-0.5 block text-[0.7rem] text-ink-faint">
-                          見つかりませんでした。手で追加してください
-                        </span>
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setBulkHits(null)}
-                  className="rounded-[10px] border border-rule-strong px-4 py-2.5 text-[0.84rem] text-ink-soft"
-                >
-                  打ち直す
-                </button>
-                <button
-                  type="button"
-                  onClick={addAllHits}
-                  disabled={!bulkHits.some((h) => h.candidates.length > 0)}
-                  className="flex-1 rounded-[10px] bg-accent px-4 py-2.5 text-[0.88rem] font-bold text-accent-ink disabled:opacity-40 enabled:hover:bg-accent-strong"
-                >
-                  {bulkHits.filter((h) => h.candidates.length > 0).length} 冊をまとめて追加
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
       <div className={manualOpen ? "px-4 pb-4 pt-1" : "border-t border-rule px-3 py-2.5"}>
         {manualOpen ? (
           <div className="flex flex-col gap-3.5">
@@ -413,25 +264,6 @@ export function SearchSheet({ open, onClose, onPick, present }: Props) {
           </div>
         ) : (
           <>
-          {!bulkOpen && (
-            <button
-              type="button"
-              onClick={() => setBulkOpen(true)}
-              className="mb-2 flex w-full items-center gap-2.5 rounded-[10px] border-[1.5px] border-dashed border-rule-strong px-3 py-2.5 text-left transition-colors hover:border-accent hover:bg-accent-soft"
-            >
-              <span className="grid h-8 w-8 flex-none place-items-center rounded-full bg-accent-soft text-[1rem] text-accent-strong">
-                ≡
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-[0.85rem] font-bold text-ink">
-                  まとめて貼り付けて追加
-                </span>
-                <span className="block text-[0.73rem] text-ink-faint">
-                  使う本が決まっているとき、1行に1冊ずつ
-                </span>
-              </span>
-            </button>
-          )}
           <button
             type="button"
             onClick={() => {
