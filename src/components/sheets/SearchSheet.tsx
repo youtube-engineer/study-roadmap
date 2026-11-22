@@ -240,25 +240,54 @@ export function SearchSheet({ open, onClose, onPick, present }: Props) {
         閉じないと棚が見えず、何冊入ったのか確かめられない。
       */}
       {!manualOpen && picked.length > 0 && (
-        <div className="flex items-center gap-2 border-t border-rule px-3 py-2.5">
-          <button
-            type="button"
-            onClick={() => setPicked([])}
-            className="rounded-[10px] border border-rule-strong px-3.5 py-2.5 text-[0.84rem] text-ink-soft hover:border-accent hover:text-accent-strong"
-          >
-            選び直す
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              for (const book of picked) onPick(book);
-              setPicked([]);
-              onClose();
-            }}
-            className="flex-1 rounded-[10px] bg-accent px-4 py-2.5 text-[0.9rem] font-bold text-accent-ink hover:bg-accent-strong"
-          >
-            {picked.length} 冊を棚に入れる
-          </button>
+        <div className="flex flex-col gap-2 border-t border-rule px-3 py-2.5">
+          {/*
+            ★ **選んだものを並べて見せる。** 数だけだと、**別の語で検索し直した
+            瞬間に中身が見えなくなる。** 何を選んだか憶えていられるのはせいぜい
+            2〜3冊で、それ以上はカゴの意味が無い。
+            押すと外れる——選び直すのに検索し直さなくていい。
+          */}
+          <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+            {picked.map((book) => (
+              <button
+                key={book.id}
+                type="button"
+                title={`${book.title} を外す`}
+                aria-label={`${book.title} を外す`}
+                onClick={() => setPicked((prev) => prev.filter((p) => p.id !== book.id))}
+                className="group relative flex-none"
+              >
+                <BookCover book={book} size="sm" className="rounded-[2px]" />
+                <span
+                  aria-hidden
+                  className="absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-ink text-[0.6rem] leading-none text-paper opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+                >
+                  ×
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPicked([])}
+              className="rounded-[10px] border border-rule-strong px-3.5 py-2.5 text-[0.84rem] text-ink-soft hover:border-accent hover:text-accent-strong"
+            >
+              空にする
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                for (const book of picked) onPick(book);
+                setPicked([]);
+                onClose();
+              }}
+              className="flex-1 rounded-[10px] bg-accent px-4 py-2.5 text-[0.9rem] font-bold text-accent-ink hover:bg-accent-strong"
+            >
+              {picked.length} 冊を棚に入れる
+            </button>
+          </div>
         </div>
       )}
 
