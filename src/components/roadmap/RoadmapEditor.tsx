@@ -236,16 +236,32 @@ export function RoadmapEditor({ roadmap, books: initialBooks, serverHasRow, summ
          * 行が作られるときにその値が入る（sync.ts の ensureRoadmap）。
          */
         hasLocalRef.current = true;
+        /**
+         * ★ **`shareSlug` と `isPublic` はサーバーのものを使う。**
+         *
+         * 本文（名前・段・参考書）はローカルが新しいが、この2つは
+         * **「外から何が見えるか」を決める値**で、サーバーが持っているものが
+         * そのまま事実。手元の控えは古いことがある。
+         *
+         * 上書きすると**共有シートが嘘をつく**——非公開にしたのに別の端末では
+         * 「公開中」と出る（`isPublic`）、実在しないURLを出す（`shareSlug`）。
+         * どちらも**本人には気付けない形**で出る。
+         */
         const ordered = orderDoc({
           ...local.roadmap,
           shareSlug: serverHasRow ? roadmap.shareSlug : local.roadmap.shareSlug,
+          isPublic: serverHasRow ? roadmap.isPublic : local.roadmap.isPublic,
         });
         const fixed = ordered.doc;
         setDoc(fixed);
         setBooks(Object.fromEntries(local.books.map((b) => [b.id, b])));
 
         // ずれていたら手元も直す。次に開いたときにまた古い値から始めない
-        if (fixed.shareSlug !== local.roadmap.shareSlug || ordered.repaired) {
+        if (
+          fixed.shareSlug !== local.roadmap.shareSlug ||
+          fixed.isPublic !== local.roadmap.isPublic ||
+          ordered.repaired
+        ) {
           void saveLocal({ roadmap: fixed, books: local.books });
         }
       } else {
@@ -261,7 +277,7 @@ export function RoadmapEditor({ roadmap, books: initialBooks, serverHasRow, summ
     return () => {
       alive = false;
     };
-  }, [roadmap.id, roadmap.shareSlug, serverHasRow]);
+  }, [roadmap.id, roadmap.shareSlug, roadmap.isPublic, serverHasRow]);
 
   /** 操作のたびに丸ごと保存する。待たせないので画面は止まらない */
   useEffect(() => {
@@ -1069,8 +1085,11 @@ export function RoadmapEditor({ roadmap, books: initialBooks, serverHasRow, summ
         onClose={() => setShareOpen(false)}
         isPublic={doc.isPublic}
         onChangePublic={(next) => {
+          // 先に動かして、書けなかったら戻す。嘘の状態を残さない
           setDoc((d) => ({ ...d, isPublic: next }));
-          void sync.setPublic(next);
+          void sync.setPublic(next).then((ok) => {
+            if (!ok) setDoc((d) => ({ ...d, isPublic: !next }));
+          });
         }}
         shareSlug={doc.shareSlug}
         title={doc.title}

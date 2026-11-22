@@ -410,17 +410,34 @@ export function createRoadmapSync(target: SyncTarget, options: SyncOptions = {})
       if (error) fail("setPinned", error);
     },
 
-    async setPublic(isPublic: boolean): Promise<void> {
+    /**
+     * 公開の切り替え。**失敗したら必ず知らせる。**
+     *
+     * ★ ほかの書き込みは黙って諦めてよい（手元に残っていれば操作は失われない）が、
+     * **ここだけは「誰に見えるか」を決める。** 書けていないのにトグルだけ動くと、
+     * **非公開にしたつもりのものが公開されたまま**になり、本人には気付けない。
+     *
+     * 戻り値は「サーバーに書けたか」。呼ぶ側は書けなかったら画面を戻すこと。
+     */
+    async setPublic(isPublic: boolean): Promise<boolean> {
       const supabase = getBrowserClient();
-      if (!supabase) return;
-      if (!(await ensureRoadmap())) return;
+      if (!supabase) return false;
+      if (!(await ensureRoadmap())) {
+        options.onError?.("共有の設定を保存できませんでした。通信を確かめてください");
+        return false;
+      }
 
       const { error } = await supabase
         .from("roadmaps")
         .update({ is_public: isPublic })
         .eq("id", roadmapId);
 
-      if (error) fail("setPublic", error);
+      if (error) {
+        fail("setPublic", error);
+        options.onError?.("共有の設定を保存できませんでした。通信を確かめてください");
+        return false;
+      }
+      return true;
     },
   };
 }
