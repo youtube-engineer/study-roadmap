@@ -17,12 +17,22 @@ export function Toast({ message, onDismiss, durationMs = 3200, action }: Props) 
     return () => clearTimeout(t);
   }, [message, onDismiss, durationMs]);
 
+  /**
+   * ★ **帯そのものは指を通す**（`pointer-events-none`）。
+   *
+   * 画面の下に出るので、**棚がそこにあると本を押せなくなる。** 1冊外して
+   * 続けて2冊目を外そうとすると、ちょうど邪魔になる位置に立つ。
+   * 読むだけのものが操作を塞ぐのは筋が通らない。
+   *
+   * 押せる必要があるのは「取り消す」だけなので、そこにだけ戻す。
+   * 塞がるのはボタンのぶん（数十px）で済む。
+   */
   return (
     <div
       role="status"
       aria-live="polite"
-      className={`fixed bottom-5 left-1/2 z-[200] max-w-[min(460px,calc(100%-2rem))] -translate-x-1/2 rounded-[10px] bg-ink px-4 py-2.5 text-[0.83rem] leading-relaxed text-paper shadow-lift transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.2,0,0,1)] ${
-        message ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-6 opacity-0"
+      className={`pointer-events-none fixed bottom-5 left-1/2 z-[200] max-w-[min(460px,calc(100%-2rem))] -translate-x-1/2 rounded-[10px] bg-ink px-4 py-2.5 text-[0.83rem] leading-relaxed text-paper shadow-lift transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.2,0,0,1)] ${
+        message ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"
       }`}
     >
       <span className="flex items-center gap-3">
@@ -31,7 +41,9 @@ export function Toast({ message, onDismiss, durationMs = 3200, action }: Props) 
           <button
             type="button"
             onClick={action.onClick}
-            className="flex-none font-medium text-paper underline underline-offset-2 hover:opacity-80"
+            className={`flex-none font-medium text-paper underline underline-offset-2 hover:opacity-80 ${
+              message ? "pointer-events-auto" : ""
+            }`}
           >
             {action.label}
           </button>

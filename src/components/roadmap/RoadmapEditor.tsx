@@ -814,6 +814,27 @@ export function RoadmapEditor({ roadmap, books: initialBooks, serverHasRow, summ
   const detail = detailId ? findItem(detailId) : null;
   const detailBook = detail ? (books[detail.item.bookId] ?? null) : null;
   const stageMenu = stageMenuId ? doc.stages.find((s) => s.id === stageMenuId) : null;
+  /**
+   * ★ **本を開いたら、外したときの帯を終わらせる。**
+   *
+   * 帯は画面の下に出るので、続けて2冊目を外そうとすると
+   * **「取り消す」が次の本の上に立つ**（Toast のコメント）。
+   * 本文は指を通すようにしたが、ボタンのぶんは残る。
+   *
+   * 次の本に手を付けたということは**1冊目は取り消さないと決めた**ということなので、
+   * ここで確定させてよい。猶予を途中で畳むだけなので、消えるものは増えない。
+   */
+  const openItem = useCallback((id: string) => {
+    const pending = pendingRemove.current;
+    if (pending) {
+      clearTimeout(pending.timer);
+      pendingRemove.current = null;
+      setRemoved(null);
+      pending.flush();
+    }
+    setDetailId(id);
+  }, []);
+
   const present = useMemo(() => new Set(items.map((i) => i.bookId)), [items]);
 
   return (
@@ -899,7 +920,7 @@ export function RoadmapEditor({ roadmap, books: initialBooks, serverHasRow, summ
           books={books}
           onToggleStage={toggleStage}
           onRenameStage={renameStage}
-          onOpenItem={setDetailId}
+          onOpenItem={openItem}
           onAddBook={setAddingTo}
           onOpenStageMenu={setStageMenuId}
           onMoveItem={moveItem}
