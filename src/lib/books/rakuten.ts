@@ -35,9 +35,16 @@ export class BookSearchTimeoutError extends Error {
 }
 
 export class BookSearchError extends Error {
-  constructor(message: string) {
+  /**
+   * 楽天が返した状態コード。**文言ではなくこれで分岐する。**
+   * 文言は楽天の都合で変わるし、`detail` にも同じ数字が混ざるので当てにならない。
+   */
+  readonly status?: number;
+
+  constructor(message: string, status?: number) {
     super(message);
     this.name = "BookSearchError";
+    this.status = status;
   }
 }
 
@@ -153,7 +160,32 @@ function toBook(item: RakutenItem): Book | null {
   };
 }
 
+/**
+ * ★ **429 は1度だけ待ってやり直す。**
+ *
+ * 楽天は**毎秒1回**（7章）。打った語を組み直して何度か試すので
+ * （`variants`）、1回の検索でも複数回当たる。**2人が同じ秒に検索すれば
+ * それだけで弾かれる。** 実測で `Rate limit is exceeded. Try again in
+ * 1 seconds.` を確認した。
+ *
+ * 利用者から見ると「検索できませんでした」としか出ないので、
+ * **言われたとおり1秒待ってもう一度だけ試す。** それでも駄目なら諦める
+ * （延々待たせる方が悪い。検索は5秒で切る約束がある。10章）。
+ */
 async function call(params: Record<string, string>): Promise<RakutenItem[]> {
+  try {
+    return await callOnce(params);
+  } catch (e) {
+    if (!(e instanceof BookSearchError) || e.status !== 429) throw e;
+    await new Promise((r) => setTimeout(r, RETRY_AFTER_MS));
+    return callOnce(params);
+  }
+}
+
+/** 楽天が「1秒後に」と言ってくるので、それより少しだけ長く待つ */
+const RETRY_AFTER_MS = 1100;
+
+async function callOnce(params: Record<string, string>): Promise<RakutenItem[]> {
   const appId = applicationId();
   const key = accessKey();
   if (!appId || !key) {
@@ -219,6 +251,7 @@ async function call(params: Record<string, string>): Promise<RakutenItem[]> {
     const detail = body.replace(/\s+/g, " ").slice(0, 200);
     throw new BookSearchError(
       `楽天ブックスAPIが ${res.status} を返しました（Origin: ${origin}）${detail ? ` ${detail}` : ""}`,
+      res.status,
     );
   }
 
@@ -334,7 +367,7 @@ function looksRelevant(query: string, books: Book[]): boolean {
   return books.some((b) => b.title.toLowerCase().includes(key));
 }
 
-export async function searchByTitle(query: string): Promise<Book[]> {
+async function searchByTitle(query: string): Promise<Book[]> {
   let fallback: Book[] = [];
 
   for (const title of variants(query)) {
@@ -348,6 +381,48 @@ export async function searchByTitle(query: string): Promise<Book[]> {
   }
 
   return fallback;
+}
+
+/**
+ * 著者でも引くのは、書名の結果がこれに満たないとき。
+ * `hits=20` なので、**1ページ埋まっていれば足りている**と見なす。
+ */
+const THIN = 20;
+
+/**
+ * ★ **書名で引いて、薄かったら著者でも引いて混ぜる。**
+ *
+ * 参考書は**書いた人で憶えていることがある**（「関正生の」「肘井の」
+ * 「大岩の」）。`title=` でも著者名は部分一致でそこそこ当たるが、
+ * **取りこぼしが大きい。** 実測:
+ *
+ * ```
+ * 大岩秀樹   title   1件  /  author  30件   ← 1冊しか出ない
+ * 肘井学     title  12件  /  author  42件
+ * 関正生     title  42件  /  author 111件
+ * ```
+ *
+ * 1件でも返ると `looksRelevant` が当たりと判定して止まるので、
+ * **当たった気になって29冊を捨てる。** 一番困る外し方。
+ *
+ * ⚠ **いつも両方は叩かない。** 楽天は毎秒1回（7章）なので、
+ * 足りているときに1往復足すと**全員の検索が遅くなる。**
+ * 薄いときだけ払う。書名の結果を先に出すのは、打った人が
+ * **書名のつもりで打っていることの方が多い**ため。
+ */
+export async function search(query: string): Promise<Book[]> {
+  const byTitle = await searchByTitle(query);
+  if (byTitle.length >= THIN) return byTitle;
+
+  const author = query.trim().replace(/[\s　]+/g, " ");
+  if (!author) return byTitle;
+
+  const items = await call({ author });
+  const byAuthor = items.map(toBook).filter((b): b is Book => b !== null);
+  if (byAuthor.length === 0) return byTitle;
+
+  const seen = new Set(byTitle.map((b) => b.id));
+  return [...byTitle, ...byAuthor.filter((b) => !seen.has(b.id))];
 }
 
 export async function findByIsbn(isbn: string): Promise<Book | null> {

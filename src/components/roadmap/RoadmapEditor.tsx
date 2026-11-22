@@ -592,7 +592,15 @@ export function RoadmapEditor({ roadmap, books: initialBooks, serverHasRow, summ
 
       setBooks((prev) => ({ ...prev, [book.id]: book }));
       patchStage(stage.id, (s) => ({ ...s, items: [...s.items, item] }));
-      setAddingTo(null);
+
+      /**
+       * ★ **入れてもシートは閉じない。**
+       *
+       * 1冊入れるたびに閉じると、次を入れるのに「＋追加 → 打ち直す」を
+       * 毎回やり直すことになる。**棚に並べるのは普通まとめてやる作業**なので、
+       * 検索結果はそのまま残して、続けて選べるようにする。
+       * 入ったことは結果の上の「追加済み」で分かる。閉じるのは本人が決める。
+       */
 
       // ここが「最初の書き込み」になることがある
       void sync.addItem(item, book, stage);
