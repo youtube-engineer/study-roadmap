@@ -156,6 +156,9 @@ export function RoadmapEditor({ roadmap, books: initialBooks, serverHasRow, summ
   /** その id が他人のものだった。振り直しを待っている状態 */
   const [idTaken, setIdTaken] = useState(false);
 
+  /** 別の端末で編集されている。手元を出しているが、読み込み直せる */
+  const [elsewhere, setElsewhere] = useState(false);
+
 
   const goalRef = useRef<HTMLTextAreaElement>(null);
 
@@ -192,20 +195,6 @@ export function RoadmapEditor({ roadmap, books: initialBooks, serverHasRow, summ
       if (!alive) return;
       if (local) {
         /**
-         * ★ **`shareSlug` だけはサーバーのものを使う。**
-         *
-         * 本文（名前・段・参考書）はローカルが新しいが、**共有の識別子は
-         * サーバーが行を作った瞬間に決まる値**で、ローカルはそれを知らない。
-         * 手元の `newShareSlug()` が作った別物が入っている。
-         *
-         * 丸ごと上書きすると、**共有シートが実在しないURLを出す**
-         * （/r/<手元のslug> が404、実体は /r/<サーバーのslug>）。
-         * 貼った相手が見られない形で出るので、気付くのが遅れる。
-         *
-         * サーバーにまだ行が無いとき（placeholder）は手元の値でよい——
-         * 行が作られるときにその値が入る（sync.ts の ensureRoadmap）。
-         */
-        /**
          * ★ **`shareSlug` と `isPublic` はサーバーのものを使う。**
          *
          * 本文（名前・段・参考書）はローカルが新しいが、この2つは
@@ -224,6 +213,36 @@ export function RoadmapEditor({ roadmap, books: initialBooks, serverHasRow, summ
         setDoc(fixed);
         setBooks(Object.fromEntries(local.books.map((b) => [b.id, b])));
 
+        /**
+         * ★ **別の端末で編集されていたら、黙って手元を出さない。**
+         *
+         * 手元を優先するのは「同じ端末で続きを書く」ための規則で、
+         * **別の端末で足した段は手元に無い。** 気付かないまま手元の内容を
+         * 出し続けると、**共有ページだけ違うものが出ている**ように見える。
+         * 実際に「公開と元で順番が違う」として表に出たのがこれだった。
+         *
+         * **時刻は比べない。** 手元の `updatedAt` はブラウザの時計、
+         * サーバーは `now()` なので、端末の時刻がずれていれば判定が壊れる。
+         * **行の顔ぶれ（id）**なら時計に依らない。
+         *
+         * 勝手に入れ替えもしない——手元にしか無い編集（まだ送れていないぶん）が
+         * 消える。**知らせて、本人に選ばせる。**
+         */
+        if (serverHasRow) {
+          const ids = (stages: RoadmapStage[]) => {
+            const out = new Set<string>();
+            for (const stage of stages) {
+              out.add(stage.id);
+              for (const item of stage.items) out.add(item.id);
+            }
+            return out;
+          };
+          const here = ids(fixed.stages);
+          const there = ids(roadmap.stages);
+          const same = here.size === there.size && [...there].every((id) => here.has(id));
+          if (!same) setElsewhere(true);
+        }
+
         // ずれていたら手元も直す。次に開いたときにまた古い値から始めない
         if (
           fixed.shareSlug !== local.roadmap.shareSlug ||
@@ -237,7 +256,7 @@ export function RoadmapEditor({ roadmap, books: initialBooks, serverHasRow, summ
     return () => {
       alive = false;
     };
-  }, [roadmap.id, roadmap.shareSlug, roadmap.isPublic, serverHasRow]);
+  }, [roadmap.id, roadmap.shareSlug, roadmap.isPublic, roadmap.stages, serverHasRow]);
 
   /** 操作のたびに丸ごと保存する。待たせないので画面は止まらない */
   useEffect(() => {
@@ -689,6 +708,17 @@ export function RoadmapEditor({ roadmap, books: initialBooks, serverHasRow, summ
     setDetailId(id);
   }, []);
 
+  /**
+   * 別の端末のぶんを読み込む。**押されたときだけ**走る。
+   * サーバーが渡したものをそのまま手元に書き、以後はそれが続きになる。
+   */
+  const loadFromServer = useCallback(() => {
+    setElsewhere(false);
+    setDoc(roadmap);
+    setBooks(Object.fromEntries(initialBooks.map((b) => [b.id, b])));
+    void saveLocal({ roadmap, books: initialBooks });
+  }, [roadmap, initialBooks]);
+
   const present = useMemo(() => new Set(items.map((i) => i.bookId)), [items]);
 
   return (
@@ -754,6 +784,28 @@ export function RoadmapEditor({ roadmap, books: initialBooks, serverHasRow, summ
         )}
 
       </div>
+
+      {/*
+        ★ **別の端末で編集されていることを知らせる。**
+
+        勝手に入れ替えない——手元にしか無い編集が消える。出しているのは
+        どちらなのかを言って、読み込み直す道だけ用意する。
+        朱は経路と進捗の色なので使わない（8章 規則3）。紙と墨で出す。
+      */}
+      {elsewhere && (
+        <div className="mx-4 mb-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-[10px] border border-rule-strong bg-sunk px-3.5 py-2.5 md:mx-6">
+          <span className="flex-1 text-[0.8rem] leading-relaxed text-ink-soft">
+            別の端末でも編集されています。いまはこの端末の内容を出しています。
+          </span>
+          <button
+            type="button"
+            onClick={loadFromServer}
+            className="flex-none rounded-[8px] border border-rule-strong bg-raised px-3 py-1.5 text-[0.78rem] font-bold text-ink-soft hover:border-accent hover:text-accent-strong"
+          >
+            別の端末の内容を読み込む
+          </button>
+        </div>
+      )}
 
       <div className="flex-1 pb-16 pt-3">
         {/*
